@@ -15,5 +15,7 @@ wget https://raw.githubusercontent.com/dlwlslgurdlwlsgur/skills/refs/heads/main/
 ```bash
 sudo dnf install -y python3-pip
 python3 -m pip install --user boto3
+```
+```bash
 python3 ./workflow.py
 ```
