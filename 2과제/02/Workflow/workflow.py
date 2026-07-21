@@ -24,6 +24,43 @@ STATE_MACHINE_NAME = "wsc2026-student-score-workflow"
 ROOT = Path(__file__).resolve().parent
 
 
+def ensure_lambda(client, name, role_arn, code, environment):
+    kwargs = {
+        "FunctionName": name,
+        "Role": role_arn,
+        "Runtime": "python3.12",
+        "Handler": "index.handler",
+        "Timeout": 60,
+        "MemorySize": 256,
+        "Environment": {"Variables": environment},
+    }
+    try:
+        response = client.get_function(FunctionName=name)
+        client.update_function_code(
+            FunctionName=name, ZipFile=code, Publish=True
+        )
+        client.get_waiter("function_updated").wait(FunctionName=name)
+        client.update_function_configuration(**kwargs)
+        client.get_waiter("function_updated").wait(FunctionName=name)
+        return response["Configuration"]["FunctionArn"]
+    except client.exceptions.ResourceNotFoundException:
+        # IAM 역할 전파 대기를 위한 재시도 로직 추가
+        for attempt in range(10):
+            try:
+                return client.create_function(
+                    **kwargs,
+                    Code={"ZipFile": code},
+                    Publish=True,
+                    Tags={"Name": name},
+                )["FunctionArn"]
+            except ClientError as exc:
+                error_code = exc.response.get("Error", {}).get("Code", "")
+                error_msg = str(exc)
+                if error_code == "InvalidParameterValueException" and "cannot be assumed by Lambda" in error_msg and attempt < 9:
+                    time.sleep(3)  # 역할 전파 대기 후 재시도
+                    continue
+                raise
+
 def zip_code(filename, arcname="index.py"):
     output = io.BytesIO()
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
@@ -337,7 +374,6 @@ def main():
     account_id = sts.get_caller_identity()["Account"]
     suffix = os.environ.get("CANDIDATE_NUMBER").lower()
     bucket = f"wsc2026-student-score-bucket-{suffix}"
-    print(bucket)
 
     iam = session.client("iam")
     s3 = session.client("s3")
@@ -395,6 +431,24 @@ def main():
         zip_code("stepfunction_app.py"),
         {"S3_BUCKET": bucket, "DDB_TABLE": TABLE_NAME},
     )
+
+    sfn_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "S3Workflow",
+                "Effect": "Allow",
+                "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+                "Resource": f"arn:aws:s3:::{bucket}/*",
+            },
+            {
+                "Sid": "InvokeProcessor",
+                "Effect": "Allow",
+                "Action": "lambda:InvokeFunction",
+                "Resource": processor_arn,  # 여기서 processor_arn을 참조합니다.
+            },
+        ],
+    }
 
     sfn_policy = {
         "Version": "2012-10-17",

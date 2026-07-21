@@ -1,5 +1,5 @@
 ```bash
-CANDIDATE_NUMBER=<비번호>
+export CANDIDATE_NUMBER=<비번호>
 ```
 ```bash
 wget https://raw.githubusercontent.com/dlwlslgurdlwlsgur/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/02/Workflow/stepfunction_app.py
