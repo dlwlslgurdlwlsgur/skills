@@ -1,0 +1,52 @@
+[SERVICE]
+    Flush         1
+    Log_Level     info
+    Parsers_File  parsers.conf
+
+[INPUT]
+    Name              tail
+    Path              /var/log/containers/*_unicorn_book-*.log
+    Tag               unicorn.book.*
+    Parser            cri
+    Refresh_Interval  5
+    Mem_Buf_Limit     5MB
+    Skip_Long_Lines   On
+
+[FILTER]
+    Name          parser
+    Match         unicorn.book.*
+    Key_Name      message
+    Parser        book_access
+    Reserve_Data  Off
+
+# access 로그 파싱에 실패한 레코드(앱 기동 메시지 등)는 스키마가 어긋나므로 완전히 폐기
+[FILTER]
+    Name     grep
+    Match    unicorn.book.*
+    Regex    method \S+
+
+# /health 경로는 CloudWatch로 전달하지 않음 (요구사항 12)
+[FILTER]
+    Name     grep
+    Match    unicorn.book.*
+    Exclude  path ^/health$
+
+[FILTER]
+    Name    lua
+    Match   unicorn.book.*
+    script  access_log.lua
+    call    add_timestamp
+
+[FILTER]
+    Name         record_modifier
+    Match        unicorn.book.*
+    Remove_key   duration
+    Remove_key   user_agent
+
+[OUTPUT]
+    Name               cloudwatch_logs
+    Match              unicorn.book.*
+    region             ${region}
+    log_group_name     /unicorn/eks/book-app
+    log_stream_prefix  book-
+    auto_create_group  false

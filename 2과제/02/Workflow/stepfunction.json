@@ -1,0 +1,101 @@
+{
+  "StartAt": "CheckS3File",
+  "States": {
+    "CheckS3File": {
+      "Type": "Task",
+      "Parameters": {
+        "Bucket": "wsc2026-student-score-bucket-<비번호>",
+        "Key.$": "$.key"
+      },
+      "Resource": "arn:aws:states:::aws-sdk:s3:headObject",
+      "ResultPath": null,
+      "Next": "ProcessStudentData",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "WorkflowFail"
+        }
+      ]
+    },
+    "ProcessStudentData": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:ap-southeast-1:<계정 ID>:function:wsc2026-student-score-lambda",
+      "Parameters": {
+        "key.$": "$.key"
+      },
+      "ResultPath": "$.lambda_result",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "States.TaskFailed"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "CheckResult"
+    },
+    "CheckResult": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.lambda_result.statusCode",
+          "NumericEquals": 200,
+          "Next": "MoveToProcessed"
+        }
+      ],
+      "Default": "MoveToError"
+    },
+    "MoveToProcessed": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:s3:copyObject",
+      "Parameters": {
+        "Bucket": "wsc2026-student-score-bucket-<비번호>",
+        "Key.$": "States.Format('processed/{}', States.ArrayGetItem(States.StringSplit($.key, '/'), 1))",
+        "CopySource.$": "States.Format('wsc2026-student-score-bucket-<비번호>/{}', $.key)"
+      },
+      "ResultPath": null,
+      "Next": "DeleteOriginalProcessed"
+    },
+    "DeleteOriginalProcessed": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:s3:deleteObject",
+      "Parameters": {
+        "Bucket": "wsc2026-student-score-bucket-<비번호>",
+        "Key.$": "$.key"
+      },
+      "End": true
+    },
+    "MoveToError": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:s3:copyObject",
+      "Parameters": {
+        "Bucket": "wsc2026-student-score-bucket-<비번호>",
+        "Key.$": "States.Format('error/{}', States.ArrayGetItem(States.StringSplit($.key, '/'), 1))",
+        "CopySource.$": "States.Format('wsc2026-student-score-bucket-<비번호>/{}', $.key)"
+      },
+      "ResultPath": null,
+      "Next": "DeleteOriginalError"
+    },
+    "DeleteOriginalError": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:s3:deleteObject",
+      "Parameters": {
+        "Bucket": "wsc2026-student-score-bucket-<비번호>",
+        "Key.$": "$.key"
+      },
+      "Next": "WorkflowFail"
+    },
+    "WorkflowFail": {
+      "Type": "Fail",
+      "Error": "WorkflowFailed",
+      "Cause": "S3 File check failed or Lambda execution failed."
+    }
+  }
+}

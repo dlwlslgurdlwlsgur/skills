@@ -1,0 +1,36 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: sqs-worker-trigger-auth
+  namespace: skills-sqs
+spec:
+  secretTargetRef:
+    - parameter: awsAccessKeyId
+      name: keda-sqs-secrets
+      key: <AWS_ACCESS_KEY_ID>
+    - parameter: awsSecretAccessKey
+      name: keda-sqs-secrets
+      key: <AWS_SECRET_ACCESS_KEY>
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: sqs-worker-scaledobject
+  namespace: skills-sqs
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sqs-worker
+  minReplicaCount: 0
+  maxReplicaCount: 6
+  pollingInterval: 15
+  cooldownPeriod: 30
+  triggers:
+  - type: aws-sqs-queue
+    authenticationRef:
+      name: sqs-worker-trigger-auth
+    metadata:
+      queueURL: "<SQS_URL>"
+      queueLength: "2"
+      awsRegion: "us-west-2"
