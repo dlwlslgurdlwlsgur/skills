@@ -77,10 +77,22 @@ def ensure_bucket(s3, bucket):
     except ClientError as exc:
         if exc.response["Error"]["Code"] not in ("404", "NoSuchBucket"):
             raise
-        s3.create_bucket(
-            Bucket=bucket,
-            CreateBucketConfiguration={"LocationConstraint": REGION},
-        )
+        
+        # OperationAborted 에러 발생 시 재시도하는 로직 추가
+        for attempt in range(5):
+            try:
+                s3.create_bucket(
+                    Bucket=bucket,
+                    CreateBucketConfiguration={"LocationConstraint": REGION},
+                )
+                break
+            except ClientError as create_exc:
+                error_code = create_exc.response.get("Error", {}).get("Code", "")
+                if error_code == "OperationAborted" and attempt < 4:
+                    time.sleep(3)  # 3초 대기 후 재시도
+                    continue
+                raise
+
     s3.put_public_access_block(
         Bucket=bucket,
         PublicAccessBlockConfiguration={
@@ -323,8 +335,9 @@ def main():
     session = boto3.Session(region_name=REGION)
     sts = session.client("sts")
     account_id = sts.get_caller_identity()["Account"]
-    suffix = os.environ.get("CANDIDATE_NUMBER", "1").lower()
+    suffix = os.environ.get("CANDIDATE_NUMBER").lower()
     bucket = f"wsc2026-student-score-bucket-{suffix}"
+    print(bucket)
 
     iam = session.client("iam")
     s3 = session.client("s3")
