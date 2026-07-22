@@ -1,7 +1,7 @@
 resource "kubernetes_config_map" "fluent_bit_config" {
   metadata {
     name      = "fluent-bit-config"
-    namespace = "logging" # Deprecated 경고 해결을 위해 문자열로 하드코딩
+    namespace = "logging"
   }
 
   data = {
@@ -16,7 +16,7 @@ resource "kubernetes_config_map" "fluent_bit_config" {
 resource "kubernetes_daemonset" "fluent_bit" {
   metadata {
     name      = "aws-for-fluent-bit"
-    namespace = "logging" # Deprecated 경고 해결을 위해 문자열로 하드코딩
+    namespace = "logging"
     labels    = { app = "aws-for-fluent-bit" }
   }
 
@@ -31,9 +31,8 @@ resource "kubernetes_daemonset" "fluent_bit" {
       }
 
       spec {
-        service_account_name = "aws-for-fluent-bit" # Deprecated 경고 해결을 위해 문자열로 하드코딩
+        service_account_name = "aws-for-fluent-bit"
 
-        # DaemonSet은 Addon Nodegroup 전용 규칙에서 예외 (요구사항 8) - 모든 노드에서 수집
         toleration {
           operator = "Exists"
         }
@@ -101,6 +100,4 @@ resource "kubernetes_daemonset" "fluent_bit" {
       }
     }
   }
-
-  # 에러를 발생시켰던 01-infra 리소스(aws_eks_pod_identity_association 등) 참조 depends_on 블록 완전 삭제
 }

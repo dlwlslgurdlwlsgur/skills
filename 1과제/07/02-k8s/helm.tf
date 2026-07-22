@@ -35,7 +35,6 @@ resource "helm_release" "aws_load_balancer_controller" {
     value = "addon"
   }
 
-  # ECR 프라이빗 이미지 사용
   set {
     name  = "image.repository"
     value = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/ecr-public/eks/aws-load-balancer-controller"

@@ -62,25 +62,19 @@ resource "helm_release" "kube_prometheus_stack" {
     value = "grafana_dashboard"
   }
 
-  # ---------------------------------------------------------
-  # 1. ECR 프라이빗 이미지 사용 (Grafana 메인 컨테이너)
-  # ---------------------------------------------------------
   set {
     name  = "grafana.image.registry"
     value = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
   }
   set {
     name  = "grafana.image.repository"
-    value = "grafana" # 만약 ECR 리포지토리 이름을 'grafana/grafana'로 만드셨다면 해당 이름으로 변경하세요.
+    value = "grafana"
   }
   set {
     name  = "grafana.image.tag"
     value = "11.4.0"
   }
   
-  # ---------------------------------------------------------
-  # 2. ECR 프라이빗 이미지 사용 (Dashboard 다운로더)
-  # ---------------------------------------------------------
   set {
     name  = "grafana.downloadDashboardsImage.registry"
     value = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
@@ -94,20 +88,17 @@ resource "helm_release" "kube_prometheus_stack" {
     value = "8.9.1"
   }
 
-  # ---------------------------------------------------------
-  # 3. ConfigMap 감지용 K8s 사이드카 컨테이너 (🚨 수정 완료!)
-  # ---------------------------------------------------------
   set {
     name  = "grafana.sidecar.image.registry"
     value = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
   }
   set {
     name  = "grafana.sidecar.image.repository"
-    value = "kiwigrid/k8s-sidecar" # ❌ 기존 curlimages/curl 에서 올바른 이미지로 변경
+    value = "kiwigrid/k8s-sidecar"
   }
   set {
     name  = "grafana.sidecar.image.tag"
-    value = "1.28.0"               # ❌ 기존 8.9.1 에서 1.28.0 으로 변경
+    value = "1.28.0"
   }
 
   values = [

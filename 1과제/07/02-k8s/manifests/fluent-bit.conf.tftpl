@@ -19,13 +19,11 @@
     Parser        book_access
     Reserve_Data  Off
 
-# access 로그 파싱에 실패한 레코드(앱 기동 메시지 등)는 스키마가 어긋나므로 완전히 폐기
 [FILTER]
     Name     grep
     Match    unicorn.book.*
     Regex    method \S+
 
-# /health 경로는 CloudWatch로 전달하지 않음 (요구사항 12)
 [FILTER]
     Name     grep
     Match    unicorn.book.*
