@@ -12,7 +12,7 @@
 - 0204: [msk, skills2026](https://github.com/dlwlslgurdlwlsgur/skills/tree/main/2%EA%B3%BC%EC%A0%9C/02/MSK)
 <br></br>
 
-<!-- - 0701: [예약 좌석 DynamoDB](https://github.com/dlwlslgurdlwlsgur/skills/tree/main/2%EA%B3%BC%EC%A0%9C/07/NOSQL) -->
+- 0701: [예약 좌석 DynamoDB](https://github.com/dlwlslgurdlwlsgur/skills/tree/main/2%EA%B3%BC%EC%A0%9C/07/NOSQL)
 <!-- - 0702: [CF KeyValueStores](https://github.com/dlwlslgurdlwlsgur/skills/tree/main/2%EA%B3%BC%EC%A0%9C/07/CDN) -->
 - 0703: [skm - KEDA, Karpenter](https://github.com/dlwlslgurdlwlsgur/skills/tree/main/2%EA%B3%BC%EC%A0%9C/07/Scaling)
 - 0704: [loki](https://github.com/dlwlslgurdlwlsgur/skills/tree/main/2%EA%B3%BC%EC%A0%9C/07/Logging)
