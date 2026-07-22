@@ -1,8 +1,5 @@
 set -u
 export AWS_PAGER=""
-OUT_TXT="asgmt2_module2_check_result.txt"
-exec > >(tee "$OUT_TXT") 2>&1
-
 for CMD in aws curl; do
   if ! command -v "$CMD" >/dev/null 2>&1; then
     echo "ERROR: required command not found: $CMD" >&2
@@ -11,7 +8,6 @@ for CMD in aws curl; do
 done
 
 
-echo "[2-1] 기본 VPC 구성 (1.5점)"
 aws ec2 describe-vpcs --region ap-northeast-1 --filters Name=tag:Name,Values=skills-lattice-client-vpc,skills-lattice-service-vpc --query 'Vpcs[].{Name:Tags[?Key==`Name`].Value|[0],VpcId:VpcId,Cidr:CidrBlock,State:State}' --output table
 CLIENT_VPC_ID=$(aws ec2 describe-vpcs --region ap-northeast-1 --filters Name=tag:Name,Values=skills-lattice-client-vpc --query 'Vpcs[0].VpcId' --output text 2>/dev/null || true)
 SERVICE_VPC_ID=$(aws ec2 describe-vpcs --region ap-northeast-1 --filters Name=tag:Name,Values=skills-lattice-service-vpc --query 'Vpcs[0].VpcId' --output text 2>/dev/null || true)
@@ -25,7 +21,6 @@ fi
 # Client/Service VPC CIDR 10.61.0.0/16, 10.62.0.0/16 가 존재하고 이 각각 인지 확인합니다
 
 
-echo "[2-2] Client/Service EC2 및 애플리케이션 구성 (1.5점)"
 aws ec2 describe-instances --region ap-northeast-1 --filters Name=tag:Name,Values=skills-lattice-client-ec2,skills-lattice-service-ec2 Name=instance-state-name,Values=running --query 'Reservations[].Instances[].{Name:Tags[?Key==`Name`].Value|[0],Id:InstanceId,Type:InstanceType,PublicIp:PublicIpAddress,PrivateIp:PrivateIpAddress,State:State.Name}' --output table
 CLIENT_IP=$(aws ec2 describe-instances --region ap-northeast-1 --filters Name=tag:Name,Values=skills-lattice-client-ec2 Name=instance-state-name,Values=running --query 'Reservations[0].Instances[0].PublicIpAddress' --output text 2>/dev/null || true)
 SERVICE_INSTANCE_ID=$(aws ec2 describe-instances --region ap-northeast-1 --filters Name=tag:Name,Values=skills-lattice-service-ec2 Name=instance-state-name,Values=running --query 'Reservations[0].Instances[0].InstanceId' --output text 2>/dev/null || true)
@@ -41,7 +36,6 @@ fi
 # Client/Service EC2 , Public IP , Client /health HTTP 200 상태 조건 응답을 확인합니다.
 
 
-echo "[2-3] VPC Lattice Service Network 및 Service 구성 (1.5점)"
 SERVICE_NETWORK_ID=$(aws vpc-lattice list-service-networks --region ap-northeast-1 --query 'items[?name==`skills-lattice-sn`].id|[0]' --output text 2>/dev/null || true)
 SERVICE_ID=$(aws vpc-lattice list-services --region ap-northeast-1 --query 'items[?name==`skills-lattice-order-service`].id|[0]' --output text 2>/dev/null || true)
 TARGET_GROUP_ID=$(aws vpc-lattice list-target-groups --region ap-northeast-1 --query 'items[?name==`skills-lattice-order-tg`].id|[0]' --output text 2>/dev/null || true)
@@ -62,7 +56,6 @@ fi
 # Service Network가 존재하고  , Service, VPC Association, Service Association이 ACTIVE 인지 확인합니다.
 
 
-echo "[2-4] Target Group, Listener, Security Group 구성 (1.5점)"
 echo "TARGET_GROUP_ID=${TARGET_GROUP_ID}"
 aws vpc-lattice list-target-groups --region ap-northeast-1 --query 'items[?name==`skills-lattice-order-tg`].{Name:name,Id:id,Type:type,Port:port,Protocol:protocol,Vpc:vpcIdentifier,Status:status}' --output table
 if [ -n "$TARGET_GROUP_ID" ] && [ "$TARGET_GROUP_ID" != "None" ]; then
@@ -84,11 +77,9 @@ fi
 # 일치하는지 확인합니다
 
 
-echo "[2-5] End-to-End 기능 검증 (1.5점)"
 if [ -n "$CLIENT_IP" ] && [ "$CLIENT_IP" != "None" ]; then
   curl -s -m 10 -w "\nhttp_code=%{http_code}\n" "http://${CLIENT_IP}/v1/client/orders?id=1001"; echo
 else
   echo "Client EC2 Public IP 식별 실패"
 fi
-echo "Result file: ${OUT_TXT}"
 # Client API HTTP 200 order_id=1001, via=vpc-lattice 가 을 반환하고 값이 포함되는지 확인합니다.

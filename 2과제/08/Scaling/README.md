@@ -1,3 +1,7 @@
+## Region
+- 오레곤/us-west-2
+
+
 ## configure
 ```
 aws configure

@@ -19,9 +19,9 @@
 <br></br>
 
 <!-- - 0801: [DocumentDB, Cluster, Ec2 이름 다르게](https://github.com/dlwlslgurdlwlsgur/skills/tree/main/2%EA%B3%BC%EC%A0%9C/08/NOSQL) -->
-<!-- - 0802: [Lattice Client, Service](https://github.com/dlwlslgurdlwlsgur/skills/tree/main/2%EA%B3%BC%EC%A0%9C/08/Lattice) -->
-<!-- - 0803: [sg 포트 제거 EventBridge, CloudTrail](https://github.com/dlwlslgurdlwlsgur/skills/tree/main/2%EA%B3%BC%EC%A0%9C/08/Handling) -->
-- 0804: [skills - KEDA, Karpenter](https://github.com/dlwlslgurdlwlsgur/skills/tree/main/2%EA%B3%BC%EC%A0%9C/08/Scaling)
+- 0802: [Lattice Client, Service](https://github.com/dlwlslgurdlwlsgur/skills/tree/main/2%EA%B3%BC%EC%A0%9C/08/Lattice)
+- 0803: [sg 포트 제거 EventBridge, CloudTrail](https://github.com/dlwlslgurdlwlsgur/skills/tree/main/2%EA%B3%BC%EC%A0%9C/08/Handling)
+<!-- - 0804: [skills - KEDA, Karpenter](https://github.com/dlwlslgurdlwlsgur/skills/tree/main/2%EA%B3%BC%EC%A0%9C/08/Scaling) -->
 <br></br>
 
 ## 3과제
