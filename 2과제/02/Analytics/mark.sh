@@ -1,5 +1,4 @@
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-echo "ACCOUNT ID: $ACCOUNT_ID"
 aws configure set region ap-northeast-2
 
 ALB_DNS=$(aws elbv2 describe-load-balancers --names wsc2026-analytics-alb --query "LoadBalancers[0].DNSName" --output text)

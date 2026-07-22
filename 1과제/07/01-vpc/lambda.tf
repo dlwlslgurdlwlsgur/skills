@@ -1,5 +1,3 @@
-# 요구사항 9. Lambda
-
 resource "aws_cloudwatch_log_group" "lambda_get_booking" {
   name              = "/unicorn/lambda/get-booking"
   retention_in_days = 30

@@ -1,7 +1,3 @@
-# 요구사항 3: "App이 구동되는 Subnet은 컨테이너 이미지 다운로드 및 로그/메트릭 export 시
-# 외부 인터넷을 경유하지 않아야 합니다." NAT는 일반 아웃바운드용이고, ECR/CloudWatch Logs/Metrics
-# 트래픽은 VPC 엔드포인트로만 흐르도록 인터페이스/게이트웨이 엔드포인트를 별도로 둔다.
-
 resource "aws_security_group" "vpc_endpoints" {
   name        = "unicorn-vpce-sg"
   description = "Allow HTTPS from within the VPC to interface VPC endpoints"

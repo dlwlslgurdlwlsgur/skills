@@ -1,4 +1,3 @@
-# 요구사항 12. Observability - Container Logging
 resource "aws_cloudwatch_log_group" "book_app" {
   name              = "/unicorn/eks/book-app"
   retention_in_days = 30

@@ -1,4 +1,3 @@
-### EKS cluster role ###
 data "aws_iam_policy_document" "eks_assume" {
   statement {
     effect  = "Allow"
@@ -58,7 +57,6 @@ resource "aws_iam_role_policy_attachment" "eks_node" {
   policy_arn = each.value[1]
 }
 
-### Pod Identity: 공통 신뢰정책 - "본 클러스터에서만 사용 가능" (SourceArn 고정) ###
 data "aws_iam_policy_document" "pod_identity_assume" {
   statement {
     effect  = "Allow"
@@ -80,7 +78,6 @@ data "aws_iam_policy_document" "pod_identity_assume" {
   }
 }
 
-### Book App Pod Identity Role: DynamoDB PutItem + App CMK 사용 (최소 권한, 요구사항 8-Security) ###
 resource "aws_iam_role" "book_app" {
   name               = "unicorn-book-app-role"
   assume_role_policy = data.aws_iam_policy_document.pod_identity_assume.json
@@ -140,7 +137,6 @@ resource "aws_iam_role_policy" "fluent_bit" {
   policy = data.aws_iam_policy_document.fluent_bit_policy.json
 }
 
-### Grafana Pod Identity Role: CloudWatch(ALB latency) 메트릭 조회 ###
 resource "aws_iam_role" "grafana" {
   name               = "unicorn-grafana-role"
   assume_role_policy = data.aws_iam_policy_document.pod_identity_assume.json
@@ -166,7 +162,6 @@ resource "aws_iam_role_policy" "grafana" {
   policy = data.aws_iam_policy_document.grafana_policy.json
 }
 
-### AWS Load Balancer Controller Pod Identity Role ###
 resource "aws_iam_role" "lbc" {
   name               = "unicorn-aws-lb-controller-role"
   assume_role_policy = data.aws_iam_policy_document.pod_identity_assume.json
@@ -179,7 +174,6 @@ resource "aws_iam_role_policy" "lbc" {
   policy = file("${path.module}/policies/aws-load-balancer-controller-iam-policy.json")
 }
 
-### Lambda 실행 역할: DynamoDB 조회 + 로그 (요구사항 9) ###
 resource "aws_iam_role" "lambda_get_booking" {
   name = "unicorn-lambda-get-booking-role"
 

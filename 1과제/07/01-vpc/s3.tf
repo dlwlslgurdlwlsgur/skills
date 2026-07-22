@@ -1,5 +1,3 @@
-# 요구사항 5. S3 Bucket - 정적 Frontend
-
 resource "aws_s3_bucket" "web" {
   bucket = "unicorn-web-${data.aws_caller_identity.current.account_id}"
   tags   = merge(local.common_tags, { Name = "unicorn-web-${data.aws_caller_identity.current.account_id}" })
@@ -32,7 +30,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "web" {
   }
 }
 
-# CloudFront OAC만 접근 허용, 해당 Distribution ARN으로 한정 (요구사항 10-2)
 data "aws_iam_policy_document" "web_bucket_policy" {
   statement {
     sid       = "AllowCloudFrontOAC"

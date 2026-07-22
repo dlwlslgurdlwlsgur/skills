@@ -1,5 +1,3 @@
-# 요구사항 11. Security - Audit Role
-
 data "aws_iam_policy_document" "audit_assume" {
   statement {
     effect  = "Allow"
@@ -37,7 +35,6 @@ data "aws_iam_policy_document" "audit_policy" {
     ]
   }
 
-  # ec2:Describe* 계열은 AWS IAM 사양상 리소스 레벨 제한이 불가능해 Resource "*"가 불가피함(문서화된 예외).
   statement {
     sid       = "VpcDescribe"
     effect    = "Allow"

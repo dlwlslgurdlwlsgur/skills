@@ -1,5 +1,3 @@
-# 요구사항 10-3. WAF (CloudFront 연결이므로 us-east-1 필수)
-
 resource "aws_cloudwatch_log_group" "waf_logs" {
   provider          = aws.us_east_1
   name              = "aws-waf-logs-unicorn"
@@ -8,7 +6,6 @@ resource "aws_cloudwatch_log_group" "waf_logs" {
   tags              = local.common_tags
 }
 
-# vended log delivery (WAF) 권한
 data "aws_iam_policy_document" "waf_log_resource_policy" {
   statement {
     sid    = "AWSLogDeliveryWrite"
@@ -50,9 +47,41 @@ resource "aws_wafv2_web_acl" "this" {
   }
 
   rule {
-    name     = "AWS-AWSManagedRulesCommonRuleSet"
+    name     = "block-direct-booking"
     priority = 1
 
+    action {
+      block {
+        custom_response {
+          response_code            = 403
+          custom_response_body_key = "unicorn-blocked"
+        }
+      }
+    }
+
+    statement {
+      byte_match_statement {
+        field_to_match {
+          body {}
+        }
+        positional_constraint = "CONTAINS"
+        search_string         = "DIRECT"
+        text_transformation {
+          priority = 0
+          type     = "NONE"
+        }
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "block-direct-booking"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  rule {
+    name     = "AWS-AWSManagedRulesCommonRuleSet"
     override_action {
       none {}
     }
@@ -73,7 +102,7 @@ resource "aws_wafv2_web_acl" "this" {
 
   rule {
     name     = "AWS-AWSManagedRulesKnownBadInputsRuleSet"
-    priority = 2
+    priority = 3 # 2 -> 3으로 변경
 
     override_action {
       none {}
@@ -93,10 +122,9 @@ resource "aws_wafv2_web_acl" "this" {
     }
   }
 
-  # 동일 클라이언트 IP가 60초 내 50건 초과 시 차단, HTTP 403 커스텀 응답
   rule {
     name     = "unicorn-rate-limit"
-    priority = 3
+    priority = 4 # 3 -> 4로 변경
 
     action {
       block {

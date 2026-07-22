@@ -1,6 +1,3 @@
-# 요구사항 3. Networking
-# unicorn-vpc(10.97.0.0/16) 3개 AZ, public/private 2계층 x 3 = 6개 서브넷 (/24, zero subnet 허용)
-
 resource "aws_vpc" "this" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
@@ -39,7 +36,6 @@ resource "aws_subnet" "private" {
   tags = merge(local.common_tags, { Name = "unicorn-subnet-priv-${each.key}" })
 }
 
-# Public: unicorn-igw로 인터넷 접근, unicorn-rt-pub 공용 라우팅 테이블
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.this.id
   tags   = merge(local.common_tags, { Name = "unicorn-rt-pub" })
@@ -58,7 +54,6 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# NAT: AZ별 unicorn-nat-{a,b,c}, EIP 별도 확보, public 서브넷에 배치
 resource "aws_eip" "nat" {
   for_each = local.az_suffixes_map
   domain   = "vpc"
@@ -80,7 +75,6 @@ resource "aws_nat_gateway" "this" {
   depends_on = [aws_internet_gateway.this]
 }
 
-# Private: AZ별 unicorn-rt-priv-{a,b,c} 분리, 각각 자기 AZ의 NAT를 기본 경로로 사용
 resource "aws_route_table" "private" {
   for_each = local.az_suffixes_map
 
@@ -103,7 +97,6 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private[each.key].id
 }
 
-# VPC Flow Log -> CloudWatch Logs (Platform CMK 암호화)
 resource "aws_cloudwatch_log_group" "vpc_flow_log" {
   name              = "/unicorn/vpc/flow-log"
   retention_in_days = 30

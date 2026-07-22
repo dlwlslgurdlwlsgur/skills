@@ -1,42 +1,164 @@
-# 1. CloudFront, WAF 등에서 사용할 Platform CMK (Multi-Region Primary)
 resource "aws_kms_key" "platform_primary" {
-  provider                = aws.us_east_1 # 반드시 us-east-1 (providers.tf에 정의된 alias)
+  provider                = aws.us_east_1
   description             = "Platform CMK Primary Key (us-east-1)"
   multi_region            = true
   enable_key_rotation     = true
-  rotation_period_in_days = 90 # 🚨 90일 주기 설정 추가
+  rotation_period_in_days = 90
   is_enabled              = true
   deletion_window_in_days = 7
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "AllowCloudWatchLogsUSEast1"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.us-east-1.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt*",
+          "kms:Decrypt*",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:Describe*"
+        ]
+        Resource = "*"
+        Condition = {
+          ArnLike = {
+            "kms:EncryptionContext:aws:logs:arn" : "arn:aws:logs:us-east-1:${data.aws_caller_identity.current.account_id}:log-group:*"
+          }
+        }
+      }
+    ]
+  })
 }
 
-# 2. EKS, CloudWatch 등에서 사용할 Platform CMK Replica (ap-northeast-2)
 resource "aws_kms_replica_key" "platform_replica" {
   description     = "Platform CMK Replica Key (ap-northeast-2)"
   primary_key_arn = aws_kms_key.platform_primary.arn
-  # (Replica 키는 Primary 키의 회전 설정을 자동으로 상속받습니다)
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "AllowCloudWatchLogsAPNortheast2"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.ap-northeast-2.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt*",
+          "kms:Decrypt*",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:Describe*"
+        ]
+        Resource = "*"
+        Condition = {
+          ArnLike = {
+            "kms:EncryptionContext:aws:logs:arn" : "arn:aws:logs:ap-northeast-2:${data.aws_caller_identity.current.account_id}:log-group:*"
+          }
+        }
+      }
+    ]
+  })
 }
 
-# 3. 데이터베이스(DynamoDB) 암호화 등에 사용할 App Key
 resource "aws_kms_key" "app" {
   description             = "Application KMS Key"
   enable_key_rotation     = true
-  rotation_period_in_days = 90 # 🚨 90일 주기 설정 추가
+  rotation_period_in_days = 90
   is_enabled              = true
   deletion_window_in_days = 7
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "AllowCloudWatchLogs"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.ap-northeast-2.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt*",
+          "kms:Decrypt*",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:Describe*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
 }
 
-# 4. ECR 이미지 암호화 등에 사용할 Data Key
 resource "aws_kms_key" "data" {
   description             = "Data KMS Key"
   enable_key_rotation     = true
-  rotation_period_in_days = 90 # 🚨 90일 주기 설정 추가
+  rotation_period_in_days = 90
   is_enabled              = true
   deletion_window_in_days = 7
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "AllowCloudWatchLogs"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.ap-northeast-2.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt*",
+          "kms:Decrypt*",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:Describe*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
 }
 
-# ------------------------------------------------------------------
-# 5. KMS 별칭 (Alias) 리소스 - 🚨 app, data 별칭 추가 완료!
-# ------------------------------------------------------------------
 resource "aws_kms_alias" "replica_alias" {
   name          = "alias/unicorn-kms-platform"
   target_key_id = aws_kms_replica_key.platform_replica.key_id

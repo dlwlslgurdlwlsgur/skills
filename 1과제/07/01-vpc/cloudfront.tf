@@ -1,5 +1,3 @@
-# 요구사항 10-2. CloudFront CDN
-
 resource "aws_cloudfront_origin_access_control" "web" {
   name                              = "unicorn-s3-oac"
   origin_access_control_origin_type = "s3"
@@ -55,7 +53,6 @@ resource "aws_cloudfront_distribution" "this" {
     }
   }
 
-  # 기본: 정적 콘텐츠(S3) - GET 요청 캐싱
   default_cache_behavior {
     target_origin_id       = "s3-origin"
     viewer_protocol_policy = "redirect-to-https"
@@ -64,7 +61,6 @@ resource "aws_cloudfront_distribution" "this" {
     cache_policy_id        = data.aws_cloudfront_cache_policy.caching_optimized.id
   }
 
-  # /v1/book, /health -> Internal ALB. 캐싱 없음(예약 데이터는 항상 최신이어야 함)
   ordered_cache_behavior {
     path_pattern             = "/v1/book"
     target_origin_id         = "app-origin"

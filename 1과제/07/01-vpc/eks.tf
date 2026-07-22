@@ -51,13 +51,11 @@ resource "aws_eks_addon" "coredns" {
   })
 }
 
-# Pod Identity 연동에 필요
 resource "aws_eks_addon" "pod_identity_agent" {
   cluster_name = aws_eks_cluster.this.name
   addon_name   = "eks-pod-identity-agent"
 }
 
-# 모든 노드 시간대 KST 고정 (요구사항 8)
 locals {
   node_user_data = base64encode(<<-EOT
     MIME-Version: 1.0
@@ -108,7 +106,6 @@ resource "aws_launch_template" "app" {
   tags = local.common_tags
 }
 
-# Addon NodeGroup: 최소 1대, App/DaemonSet을 제외한 모든 Addon 운용
 resource "aws_eks_node_group" "addon" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "unicorn-addon-nodegroup"
@@ -136,7 +133,6 @@ resource "aws_eks_node_group" "addon" {
   tags = local.common_tags
 }
 
-# App NodeGroup: 가용구역별 균등 배치, 총 3대(AZ당 1대) 이상
 resource "aws_eks_node_group" "app" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "unicorn-app-nodegroup"
@@ -164,7 +160,6 @@ resource "aws_eks_node_group" "app" {
   tags = local.common_tags
 }
 
-### Pod Identity Associations ###
 resource "aws_eks_pod_identity_association" "book_app" {
   cluster_name    = aws_eks_cluster.this.name
   namespace       = "unicorn"
@@ -199,4 +194,42 @@ resource "aws_eks_pod_identity_association" "lbc" {
   role_arn        = aws_iam_role.lbc.arn
 
   depends_on = [aws_eks_addon.pod_identity_agent]
+}
+
+
+resource "aws_security_group_rule" "eks_cluster_anyopen" {
+  type              = "ingress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
+  description       = "Allow Any-Open inbound traffic to EKS Cluster"
+}
+
+resource "aws_security_group" "cloudshell" {
+  name        = "unicorn-cloudshell-sg"
+  description = "Security group for AWS CloudShell with Any-Open access"
+  
+  vpc_id      = aws_vpc.this.id  
+
+  ingress {
+    description = "Allow all inbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "unicorn-cloudshell-sg"
+  }
 }

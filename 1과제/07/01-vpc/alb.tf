@@ -1,10 +1,7 @@
-# 요구사항 10-1. Application Load Balancer
-
 data "aws_ec2_managed_prefix_list" "cloudfront_origin_facing" {
   name = "com.amazonaws.global.cloudfront.origin-facing"
 }
 
-# unicorn-alb: Internal, CloudFront VPC Origin을 통한 트래픽만 허용 (내부망 포함 직접 요청 거절)
 resource "aws_security_group" "alb" {
   name        = "unicorn-alb-sg"
   description = "Internal ALB - only reachable via CloudFront VPC Origin"
@@ -83,14 +80,12 @@ resource "aws_lb_listener" "http" {
   port              = 80
   protocol          = "HTTP"
 
-  # 기본: GET(위 규칙에 해당하지 않는) -> Lambda 예약 조회
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.lambda.arn
   }
 }
 
-# GET /health -> Book App
 resource "aws_lb_listener_rule" "health" {
   listener_arn = aws_lb_listener.http.arn
   priority     = 10
@@ -113,7 +108,6 @@ resource "aws_lb_listener_rule" "health" {
   }
 }
 
-# POST(모든 경로) -> Book App
 resource "aws_lb_listener_rule" "post_to_book" {
   listener_arn = aws_lb_listener.http.arn
   priority     = 20
@@ -130,7 +124,6 @@ resource "aws_lb_listener_rule" "post_to_book" {
   }
 }
 
-# --- unicorn-grafana-alb: Grafana 외부 접근용 (요구사항 12) ---
 resource "aws_security_group" "grafana_alb" {
   name        = "unicorn-grafana-alb-sg"
   description = "Internet-facing ALB for Grafana"

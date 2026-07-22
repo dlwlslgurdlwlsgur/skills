@@ -1,10 +1,26 @@
-## Kinesis
-- kinesis stream을 대상으로 Glue Table ( json )
+## Region
+- 서울/ap-northeast-2
 
+<br>
 
-## Kinesis flink
-- kinesis flink는 VPC 없이하고 병렬 2개
-```
+## shell
+- 01-vpc.sh
+- 02-kinesis.sh
+
+<br>
+
+## Studio 노트북
+- name: wsc2026-analytics-flink
+- IAM: wsc2026-analytics-flink-role
+- GlueDB: wsc2026_db
+- 병렬 처리: 4
+- KPU당 병렬 처리: 4
+- VPC X
+
+<br>
+
+## Zeppelin
+```bash
 %flink.ssql
 
 CREATE TABLE order_stream (
@@ -20,16 +36,15 @@ CREATE TABLE order_stream (
     'scan.stream.init-position' = 'LATEST',
     'format' = 'json'
 );
-
 ```
-```
+```bash
 %flink.ssql
 
-SELECT COUNT(*) as order_count 
-FROM order_stream 
-WHERE event_time > CURRENT_TIMESTAMP - INTERVAL '1' MINUTE;
+SELECT COUNT(*) as order_count
+FROM order_stream
+WHERE event_time > LOCALTIMESTAMP - INTERVAL '1' MINUTE;
 ```
-```
+```bash
 %flink.ssql
 
 SELECT product_name, SUM(price * quantity) as total_revenue 
@@ -37,34 +52,6 @@ FROM order_stream
 GROUP BY product_name;
 ```
 
+<br>
 
-## ec2에서 app 실행
-```
-sudo su
-mkdir /opt/app
-cd /opt/app
-yum install python3-pip -y
-pip3 install flask boto3 gunicorn
-```
-```
-sudo tee /etc/systemd/system/app.service > /dev/null << 'EOF'
-[Unit]
-Description=Flask Application for Grading
-After=network.target
-
-[Service]
-User=root
-WorkingDirectory=/opt/app
-Environment="STREAM_NAME=wsc2026-order-stream"
-Environment="AWS_REGION=ap-northeast-2"
-ExecStart=/usr/bin/python3 /opt/app/app.py
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable app
-sudo systemctl start app
-```
+## Zepplin 중지

@@ -1,9 +1,7 @@
 # 1) unicorn-mark CloudShell VPC Environment에 접근합니다. 
-# 2) rm –rf ~/.aws를 진행합니다.
+# 2) rm –rf ~/.aws
 # 3) aws configure를 입력하고 default.region을 ap-northeast-2으로 설정합니다.
-# 4) 채점 명령어에 사용될 환경 변수를 설정합니다.
 # $ export number=<선수등번호>
-# 5) 이후, 아래 명령어를 통해 Kubectl context 등을 설정합니다
 # $ source kubectl-connect unicorn-eks-cluster
 
 
@@ -237,12 +235,7 @@ curl -s "https://$CF/health"
 # Request blocked by Unicorn WAF
 
 
-
-# unicorn-grafana-alb에 접근하여 skills<선수등번호> / HelloKrSkills!<등번호>@로 로그인합니다. unicorn-grafana-dashboard로 이동한 후, 아래와 같이 대시보드가 잘 구성되었는지 확인합니다. 만약 Panel type 등이 다르거나, No Data가 있는 경우에도 오답입니다.
-# 대소문자는 채점 시 고려하지 않습니다.
-# 패널 구성은 아래 이미지를 참조하나, 필요 시 아래 설명을 참고합니다.
-
-# * 올바른 Panel 구성
+# unicorn-grafana-alb에 접근하여 skills<선수등번호> / HelloKrSkills!<등번호>@로 로그인합니다. unicorn-grafana-dashboard
 # 1. EKS Node CPU Usage (%) - Time Series
 # 2. EKS Node Memory Usage (%) - Time Series
 # 3. unicorn Namespace Pod Status - Stat, graph 포함
