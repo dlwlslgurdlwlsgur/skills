@@ -3,7 +3,6 @@ rm -rf ~/.aws
 aws sts get-caller-identity | jq .Account
 
 
-# Reservation Table 구성
 aws dynamodb describe-table --table-name bigbae-nosql-reservation-table --region ap-southeast-1 | jq -r '.Table.TableName, (.Table.KeySchema[] | .KeyType + " " + .AttributeName), (.Table.AttributeDefinitions[] | .AttributeName + " " + .AttributeType), .Table.StreamSpecification.StreamViewType, .Table.BillingModeSummary.BillingMode'
 aws dynamodb describe-continuous-backups --table-name bigbae-nosql-reservation-table --region ap-southeast-1 | jq -r .ContinuousBackupsDescription.PointInTimeRecoveryDescription.PointInTimeRecoveryStatus
 # bigbae-nosql-reservation-table
@@ -16,7 +15,6 @@ aws dynamodb describe-continuous-backups --table-name bigbae-nosql-reservation-t
 # ENABLED
 
 
-# GSI + Audit Table 구성
 aws dynamodb describe-table --table-name bigbae-nosql-reservation-table --region ap-southeast-1 | jq -r '.Table.GlobalSecondaryIndexes[] | .IndexName, (.KeySchema[] | .KeyType + " " + .AttributeName), .Projection.ProjectionType'
 aws dynamodb describe-table --table-name bigbae-nosql-audit-table --region ap-southeast-1 | jq -r '.Table.TableName, (.Table.KeySchema[] | .KeyType + " " + .AttributeName)'
 # gsi-user-reservations
@@ -27,7 +25,6 @@ aws dynamodb describe-table --table-name bigbae-nosql-audit-table --region ap-so
 # HASH event_id
 
 
-# Lambda + Streams Trigger 구성
 aws lambda get-function --function-name bigbae-nosql-reservation-audit --region ap-southeast-1 | jq -r '.Configuration.FunctionName, .Configuration.Runtime, (.Configuration.Timeout | tostring)'
 aws lambda list-event-source-mappings --function-name bigbae-nosql-reservation-audit --region ap-southeast-1 | jq -r '.EventSourceMappings[] | (.EventSourceArn | split("/")[1]), .State'
 # bigbae-nosql-reservation-audit
@@ -37,7 +34,6 @@ aws lambda list-event-source-mappings --function-name bigbae-nosql-reservation-a
 # Enabled
 
 
-# Lambda + Streams Trigger 구성
 EC2_IP=$(aws ec2 describe-instances --region ap-southeast-1 --filters "Name=tag:Name,Values=bigbae-nosql-app-ec2"  "Name=instance-state-name,Values=running" --query "Reservations[].Instances[].PublicIpAddress" --output text)
 echo "EC2 IP" ${EC2_IP}
 curl -s --max-time 10 -o /dev/null -w "healthcheck %{http_code}\n" "http://${EC2_IP}:8080/healthcheck"
@@ -45,7 +41,6 @@ curl -s --max-time 10 -o /dev/null -w "healthcheck %{http_code}\n" "http://${EC2
 # healthcheck 200
 
 
-# Conditional Write Test
 I=$(aws ec2 describe-instances --region ap-southeast-1 --filters Name=tag:Name,Values=bigbae-nosql-app-ec2 Name=instance-state-name,Values=running --query Reservations[].Instances[].PublicIpAddress --output text)
 T=train-$(date +%s) S=A1 U=user1 V=user2
 R(){ curl -s -w" %{http_code}" -X POST http://$I:8080/$1 -H Content-Type:application/json -d "{\"train_id\":\"$T\",\"seat_id\":\"$S\",\"user_id\":\"$2\"}"; echo; }
@@ -56,7 +51,6 @@ R reserve $U; R reserve $V; R cancel $V; R cancel $U
 # {"seat_id":"A1","status":"cancelled"} 200
 
 
-# Streams 후처리 + Read API Test
 I=$(aws ec2 describe-instances --region ap-southeast-1 --filters Name=tag:Name,Values=bigbae-nosql-app-ec2 Name=instance-state-name,Values=running --query Reservations[].Instances[].PublicIpAddress --output text)
 T=train-$(date +%s) S=B1 U=usr1
 P(){ curl -s -X POST http://$I:8080/$1 -H Content-Type:application/json -d "{\"train_id\":\"$T\",\"seat_id\":\"$S\",\"user_id\":\"$U\"}" >/dev/null; }

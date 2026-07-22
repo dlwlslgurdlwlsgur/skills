@@ -1,15 +1,10 @@
-## DynamoDB
-- ReservationTable: bigbae-nosql-reservation-table
-- AuditTable: bigbae-nosql-audit-table
-- PITR 활성화
-- 스트림 활성화
-
+## Region
+- 싱가포르/ap-southeast-1
 
 ## Lambda
 - name: bigbae-nosql-reservation-audit
 - handler 변경
 - 30초
-
 
 ## EC2
 - name: bigbae-nosql-app-ec2
