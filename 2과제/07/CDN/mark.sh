@@ -5,7 +5,6 @@ ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 BUCKET="skillsphone-landing-ab-${ACCOUNT_ID}"
 
 
-# S3 Bucket Configuration
 echo $BUCKET
 aws s3api list-buckets --region us-east-1 | jq -r '[.Buckets[].Name]' | grep "skillsphone-landing-ab-"
 aws s3api list-objects-v2 --bucket ${BUCKET} --region us-east-1 | jq -r '[.Contents[].Key] | "\(any(.[]; . == "version-a/index.html")) \(any(.[]; . == "version-b/index.html"))"'
@@ -18,7 +17,6 @@ aws s3api get-bucket-policy --bucket ${BUCKET} --region us-east-1 | jq -r '.Poli
 # true true
 
 
-# KeyValueStore + CF Functions 구성
 KVS=$(aws cloudfront list-key-value-stores --region us-east-1 | jq -r '.KeyValueStoreList.Items[]|select(.Name=="skillsphone-cdn-ab-config")|.ARN')
 aws cloudfront-keyvaluestore list-keys --kvs-arn "$KVS" --region us-east-1 | jq -r '.Items|sort_by(.Key)|.[]|"KVS_KV \(.Key) \(.Value)"'
 aws cloudfront describe-function --name skillsphone-cdn-ab-req-fn --stage LIVE --region us-east-1 | jq -r --arg k "$KVS" '.FunctionSummary | "ReqFn \(.Name) \(.Status) \(.FunctionConfig.Runtime) \((.FunctionConfig.KeyValueStoreAssociations.Items // []) | any(.KeyValueStoreARN == $k))"'
@@ -30,7 +28,6 @@ aws cloudfront describe-function --name skillsphone-cdn-ab-res-fn --stage LIVE -
 # ResFn skillsphone-cdn-ab-res-fn DEPLOYED cloudfront-js-2.0
 
 
-# CloudFront Distribution 구성
 CP=$(aws cloudfront list-cache-policies --region us-east-1 | jq -r '.CachePolicyList.Items[]|select(.CachePolicy.CachePolicyConfig.Name=="skillsphone-cdn-ab-cache-policy")|.CachePolicy.Id')
 DID=$(aws cloudfront list-distributions --region us-east-1 | jq -r '.DistributionList.Items[]|select(.Comment=="skillsphone-cdn-ab-distribution")|.Id')
 aws cloudfront get-cache-policy --id "$CP" --region us-east-1 | jq -r '.CachePolicy.CachePolicyConfig | "\(.Name) \(.ParametersInCacheKeyAndForwardedToOrigin.CookiesConfig.CookieBehavior) \((.ParametersInCacheKeyAndForwardedToOrigin.CookiesConfig.Cookies.Items // []) | sort | join(","))", "\(.MinTTL) \(.DefaultTTL) \(.MaxTTL)"'
@@ -42,14 +39,12 @@ aws cloudfront get-distribution-config --id "$DID" --region us-east-1 | jq -r --
 # skillsphone-cdn-ab-req-fn skillsphone-cdn-ab-res-fn
 
 
-# A/B Testing - Cookie 강제 시 동작
 D=$(aws cloudfront list-distributions --region us-east-1 | jq -r '.DistributionList.Items[]|select(.Comment=="skillsphone-cdn-ab-distribution")|.DomainName'); RH=$(curl -s -i --max-time 10 "http://$D/"); B="" S=""; for v in a b; do R=$(curl -si -m 10 -b x-sp-ab=$v "https://$D/?_$RANDOM"); grep -q "version_$v" <<<"$R" && B+=" true" || B+=" false"; grep -qi "^set-cookie:" <<<"$R" && S+=" false" || S+=" true"; done; echo "cookie_a_b_body$B"; echo "cookie_a_b_no_setcookie$S"; echo "$(echo "$RH" | head -1 | grep -qE '30[12]' && echo true || echo false) $(echo "$RH" | grep -i '^location:' | grep -q 'https://' && echo true || echo false)"
 # cookie_a_b_body true true
 # cookie_a_b_no_setcookie true true
 # true true
 
 
-# A/B Testing - 무작위 할당 & 쿠키 보존
 D=$(aws cloudfront list-distributions --region us-east-1 | jq -r '.DistributionList.Items[]|select(.Comment=="skillsphone-cdn-ab-distribution")|.DomainName')
 R1=$(curl -s -i --max-time 10 "https://$D/?_=$(date +%s%N)")
 V=$(echo "$R1" | grep -i '^set-cookie:' | sed -n 's|.*x-sp-ab=\([ab]\).*|\1|p')
@@ -69,7 +64,6 @@ echo "second_visit_no_setcookie $([ $(echo "$R2" | grep -ic '^set-cookie:') -eq 
 # second_visit_no_setcookie true
 
 
-# A/B Testing - KVS 동적 반영 테스트
 KVS=$(aws cloudfront list-key-value-stores | jq -r '.KeyValueStoreList.Items[]|select(.Name=="skillsphone-cdn-ab-config")|.ARN')
 ORIG=$(aws cloudfront-keyvaluestore get-key --kvs-arn "$KVS" --key weight | jq -r .Value)
 ETAG=$(aws cloudfront-keyvaluestore describe-key-value-store --kvs-arn "$KVS" | jq -r .ETag)
