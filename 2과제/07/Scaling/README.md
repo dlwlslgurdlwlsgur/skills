@@ -28,6 +28,5 @@ aws eks associate-access-policy \
 - 07-keda.sh
 - 08-deploy.sh
 ```bash
-# keda 확인
 kubectl get scaledobject order-scaler -n skillsmkt
 ```

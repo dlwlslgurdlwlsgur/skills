@@ -1,3 +1,9 @@
+## Region
+- 싱가포르/ap-southeast-1
+
+
+
+
 ## Name
 - VPC: skills-ceh-vpc
 - EC2: skills-ceh-ec2

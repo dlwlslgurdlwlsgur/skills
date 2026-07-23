@@ -46,10 +46,10 @@ rm -f /tmp/ct-bucket-policy.json
 
 # CloudTrail 생성 및 로깅 활성화
 aws cloudtrail create-trail --region $REGION \
-    --name "skills-ceh-cloudtrail" \
-    --s3-bucket-name $BUCKET_NAME \
-    --is-multi-region-trail \
-    --tagsList Key=Name,Value=skills-ceh-cloudtrail > /dev/null
+      --name "skills-ceh-cloudtrail" \
+      --s3-bucket-name $BUCKET_NAME \
+      --is-multi-region-trail \
+      --tags-list Key=Name,Value=skills-ceh-cloudtrail > /dev/null
 
 aws cloudtrail start-logging --region $REGION --name "skills-ceh-cloudtrail"
 echo "CloudTrail 'skills-ceh-cloudtrail' 생성 및 로깅 시작 완료 (S3: $BUCKET_NAME)"
