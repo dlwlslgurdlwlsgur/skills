@@ -1,6 +1,13 @@
 ## shell
+- 01-vpc.sh
+- 02-cluster.sh
 - 03-sqs.sh
+
+<br>
+
+## ECR
 - 04-ecr.sh
+- docker build
 
 <br>
 

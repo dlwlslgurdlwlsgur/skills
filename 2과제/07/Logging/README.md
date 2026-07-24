@@ -1,7 +1,12 @@
 ## shell
-- app.py
-- requirements.txt
+- 01-vpc.sh
+- 02-cluster.sh
+
+<br>
+
+## ECR
 - 03-ecr.sh
+- docker build
 
 <br>
 
@@ -24,8 +29,7 @@ aws eks associate-access-policy \
 <br>
 
 ## shell
-- 비번호 설정
-- 04-monitoring.sh
 ```bash
 export BNUM=<비번호>
 ```
+- 04-monitoring.sh
