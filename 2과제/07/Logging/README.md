@@ -40,3 +40,7 @@ docker push $ACCT.dkr.ecr.ap-northeast-1.amazonaws.com/o11y-log-generator:v1
 export BNUM=<비번호>
 ```
 - 04-monitoring.sh
+
+<br>
+
+<img width="1189" height="561" alt="image" src="https://github.com/user-attachments/assets/087e58d3-1d57-4acf-b31e-5fa52831ff1d" />
