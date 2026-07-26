@@ -40,4 +40,3 @@ aws ecr get-login-password --region "$REGION" | docker login --username AWS --pa
 docker build -t "${ECR_NAME}:${IMAGE_TAG}" .
 docker tag "${ECR_NAME}:${IMAGE_TAG}" "${REPOSITORY_URI}:${IMAGE_TAG}"
 docker push "${REPOSITORY_URI}:${IMAGE_TAG}"
-say "리포지토리 주소: $REPOSITORY_URI:$IMAGE_TAG"

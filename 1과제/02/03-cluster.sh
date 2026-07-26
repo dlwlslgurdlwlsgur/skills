@@ -42,6 +42,8 @@ managedNodeGroups:
   - name: wskorea26-app-ng
     instanceName: wskorea26-app-node
     instanceType: t3.medium
+    tags:
+      Name: wskorea26-app-node
     desiredCapacity: 2
     minSize: 2
     maxSize: 20
@@ -55,6 +57,8 @@ managedNodeGroups:
 
   - name: wskorea26-addon-ng
     instanceName: wskorea26-addon-node
+    tags:
+      Name: wskorea26-addon-node
     instanceType: t3.medium
     desiredCapacity: 2
     minSize: 2
@@ -63,3 +67,8 @@ managedNodeGroups:
     labels: 
       node-type: addon
 EOF
+
+curl --silent --location "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+
+eksctl create cluster -f cluster.yaml

@@ -24,9 +24,6 @@ EOF
 <br> 
 
 ## shell
-```bash
-aws configure
-```
 - 04-manifest.sh
 
 <br> 
