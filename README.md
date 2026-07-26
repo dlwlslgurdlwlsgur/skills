@@ -15,7 +15,7 @@
 - 0701: [예약 좌석 DynamoDB](https://github.com/wngnlwngnl/skills/tree/main/2%EA%B3%BC%EC%A0%9C/07/NOSQL)
 - 0702: [CF KeyValueStores](https://github.com/wngnlwngnl/skills/tree/main/2%EA%B3%BC%EC%A0%9C/07/CDN)
 - 0703: [skm - KEDA, Karpenter](https://github.com/wngnlwngnl/skills/tree/main/2%EA%B3%BC%EC%A0%9C/07/Scaling)
-<!-- - 0704: [loki](https://github.com/wngnlwngnl/skills/tree/main/2%EA%B3%BC%EC%A0%9C/07/Logging) -->
+- 0704: [loki](https://github.com/wngnlwngnl/skills/tree/main/2%EA%B3%BC%EC%A0%9C/07/Logging)
 <br></br>
 
 - 0801: [DocumentDB, Cluster, Ec2 이름 다르게](https://github.com/wngnlwngnl/skills/tree/main/2%EA%B3%BC%EC%A0%9C/08/NOSQL)
