@@ -21,7 +21,7 @@ winget install HashiCorp.Terraform
 cd ./01-vpc
 terraform init
 terraform plan
-terraform apply
+terraform apply -auto-approve
 ```
 
 <br>

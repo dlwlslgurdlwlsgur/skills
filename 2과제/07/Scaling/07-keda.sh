@@ -76,8 +76,8 @@ spec:
           value: "true"
           effect: NoSchedule
   disruption:
-    consolidationPolicy: WhenEmpty
-    consolidateAfter: 5s
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 60s
 ---
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
@@ -118,3 +118,4 @@ kubectl apply -f "./keda-and-karpenter.yaml"
 kubectl get scaledobject order-scaler -n $APP_NS
 kubectl get ec2nodeclass
 kubectl get nodepool
+echo

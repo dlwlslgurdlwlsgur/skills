@@ -1,13 +1,12 @@
+rm -rf ~/.aws
 R=ap-northeast-2
 CL=skm-eks-cluster
 T() { echo "Name=$1"; }
-echo "== VPC =="
 VPC=$(aws ec2 create-vpc --region $R --cidr-block 10.0.0.0/16 \
   --tag-specifications "ResourceType=vpc,Tags=[{Key=Name,Value=skm-vpc}]" \
   --query Vpc.VpcId --output text)
 aws ec2 modify-vpc-attribute --region $R --vpc-id $VPC --enable-dns-hostnames
 aws ec2 modify-vpc-attribute --region $R --vpc-id $VPC --enable-dns-support
-echo "VPC=$VPC"
 
 mksn() { # name cidr az
   aws ec2 create-subnet --region $R --vpc-id $VPC --cidr-block $2 --availability-zone $3 \
@@ -18,30 +17,24 @@ PUBA=$(mksn skm-pub-a 10.0.0.0/24 ${R}a)
 PUBC=$(mksn skm-pub-c 10.0.1.0/24 ${R}c)
 PRIA=$(mksn skm-priv-a 10.0.10.0/24 ${R}a)
 PRIC=$(mksn skm-priv-c 10.0.11.0/24 ${R}c)
-echo "PUBA=$PUBA PUBC=$PUBC PRIA=$PRIA PRIC=$PRIC"
 
 for s in $PUBA $PUBC; do
   aws ec2 modify-subnet-attribute --region $R --subnet-id $s --map-public-ip-on-launch >/dev/null
 done
-# ELB role tags
 aws ec2 create-tags --region $R --resources $PUBA $PUBC --tags Key=kubernetes.io/role/elb,Value=1
 aws ec2 create-tags --region $R --resources $PRIA $PRIC --tags Key=kubernetes.io/role/internal-elb,Value=1 Key=karpenter.sh/discovery,Value=$CL Key=kubernetes.io/cluster/skm-eks-cluster,Value=owned
 
-echo "== IGW =="
 IGW=$(aws ec2 create-internet-gateway --region $R \
   --tag-specifications "ResourceType=internet-gateway,Tags=[{Key=Name,Value=skm-igw}]" \
   --query InternetGateway.InternetGatewayId --output text)
 aws ec2 attach-internet-gateway --region $R --internet-gateway-id $IGW --vpc-id $VPC
 
-echo "== NAT =="
 EIP=$(aws ec2 allocate-address --region $R --domain vpc --query AllocationId --output text)
 NAT=$(aws ec2 create-nat-gateway --region $R --subnet-id $PUBA --allocation-id $EIP \
   --tag-specifications "ResourceType=natgateway,Tags=[{Key=Name,Value=skm-nat}]" \
   --query NatGateway.NatGatewayId --output text)
-echo "NAT=$NAT waiting..."
 aws ec2 wait nat-gateway-available --region $R --nat-gateway-ids $NAT
 
-echo "== Route tables =="
 RTPUB=$(aws ec2 create-route-table --region $R --vpc-id $VPC \
   --tag-specifications "ResourceType=route-table,Tags=[{Key=Name,Value=skm-rt-pub}]" \
   --query RouteTable.RouteTableId --output text)

@@ -1,3 +1,4 @@
+rm -rf ~/.aws
 set -Eeuo pipefail
 export AWS_PAGER=""
 REGION="ap-northeast-2"

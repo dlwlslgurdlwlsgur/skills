@@ -1,3 +1,4 @@
+rm -rf ~/.aws
 REGION="ap-southeast-1"
 CIDR_VPC="10.0.0.0/16"
 CIDR_SUBNET="10.0.1.0/24"

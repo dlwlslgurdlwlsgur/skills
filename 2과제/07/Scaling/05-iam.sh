@@ -6,16 +6,10 @@ APP_NS=skillsmkt
 KARPENTER_NS=kube-system
 KEDA_NS=keda
 SQS_QUEUE_NAME=skm-order-queue
-# ==============================
 
 OIDC_PROVIDER=$(aws eks describe-cluster --name $CLUSTER_NAME --region $REGION \
   --query "cluster.identity.oidc.issuer" --output text | sed 's|https://||')
 
-echo "OIDC Provider: $OIDC_PROVIDER"
-
-# ============================================================
-# 1. App IAM Policy (SQS receive/delete)
-# ============================================================
 cat > /tmp/app-sqs-policy.json <<EOF
 {
   "Version": "2012-10-17",
@@ -41,11 +35,7 @@ APP_POLICY_ARN=$(aws iam create-policy \
   aws iam get-policy \
     --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/skm-app-sqs-policy" \
     --query 'Policy.Arn' --output text)
-echo "App Policy ARN: $APP_POLICY_ARN"
 
-# ============================================================
-# 2. App IRSA Role
-# ============================================================
 cat > /tmp/app-trust.json <<EOF
 {
   "Version": "2012-10-17",
@@ -77,11 +67,7 @@ aws iam attach-role-policy \
   --policy-arn $APP_POLICY_ARN
 
 APP_ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/skm-app-sqs-role"
-echo "App Role ARN: $APP_ROLE_ARN"
 
-# ============================================================
-# 3. KEDA IAM Policy (SQS GetQueueAttributes)
-# ============================================================
 cat > /tmp/keda-sqs-policy.json <<EOF
 {
   "Version": "2012-10-17",
@@ -105,11 +91,7 @@ KEDA_POLICY_ARN=$(aws iam create-policy \
   aws iam get-policy \
     --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/skm-keda-sqs-policy" \
     --query 'Policy.Arn' --output text)
-echo "KEDA Policy ARN: $KEDA_POLICY_ARN"
 
-# ============================================================
-# 4. KEDA IRSA Role
-# ============================================================
 cat > /tmp/keda-trust.json <<EOF
 {
   "Version": "2012-10-17",
@@ -141,11 +123,7 @@ aws iam attach-role-policy \
   --policy-arn $KEDA_POLICY_ARN
 
 KEDA_ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/skm-keda-sqs-role"
-echo "KEDA Role ARN: $KEDA_ROLE_ARN"
 
-# ============================================================
-# 5. Karpenter Controller IAM Policy
-# ============================================================
 cat > /tmp/karpenter-policy.json <<EOF
 {
   "Version": "2012-10-17",
@@ -386,11 +364,7 @@ KARPENTER_POLICY_ARN=$(aws iam create-policy \
   aws iam get-policy \
     --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/skm-karpenter-controller-policy" \
     --query 'Policy.Arn' --output text)
-echo "Karpenter Policy ARN: $KARPENTER_POLICY_ARN"
 
-# ============================================================
-# 6. Karpenter Node IAM Role
-# ============================================================
 cat > /tmp/karpenter-node-trust.json <<EOF
 {
   "Version": "2012-10-17",
@@ -420,11 +394,7 @@ for policy in \
     --role-name KarpenterNodeRole-${CLUSTER_NAME} \
     --policy-arn $policy 2>/dev/null || true
 done
-echo "Karpenter Node Role: KarpenterNodeRole-${CLUSTER_NAME}"
 
-# ============================================================
-# 7. Karpenter Controller IRSA Role
-# ============================================================
 cat > /tmp/karpenter-controller-trust.json <<EOF
 {
   "Version": "2012-10-17",
@@ -456,14 +426,6 @@ aws iam attach-role-policy \
   --policy-arn $KARPENTER_POLICY_ARN 2>/dev/null || true
 
 KARPENTER_ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/skm-karpenter-controller-role"
-echo "Karpenter Controller Role ARN: $KARPENTER_ROLE_ARN"
-
-# ============================================================
-# 8. aws-auth: Karpenter Node Role 추가
-# ============================================================
-echo ""
-echo "=== aws-auth에 Karpenter Node Role 추가 필요 ==="
-echo "eksctl create iamidentitymapping 으로 처리됩니다."
 
 eksctl create iamidentitymapping \
   --cluster $CLUSTER_NAME \
@@ -472,7 +434,7 @@ eksctl create iamidentitymapping \
   --username system:node:{{EC2PrivateDNSName}} \
   --group system:bootstrappers,system:nodes 2>/dev/null || echo "mapping already exists"
 
-echo "=== IAM 설정 완료 ==="
 echo "APP_ROLE_ARN: $APP_ROLE_ARN"
 echo "KEDA_ROLE_ARN: $KEDA_ROLE_ARN"
 echo "KARPENTER_ROLE_ARN: $KARPENTER_ROLE_ARN"
+echo

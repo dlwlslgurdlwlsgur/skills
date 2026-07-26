@@ -1,37 +1,32 @@
-resource "kubernetes_deployment" "product" {
+# 1. skills 네임스페이스 생성
+resource "kubernetes_namespace" "skills" {
   metadata {
-    name = "product-app"
-    labels = { app = "product" }
+    name = "skills"
+  }
+}
+
+# ==========================================
+# [앱 1] Product 배포 및 서비스
+# ==========================================
+resource "kubernetes_deployment" "product" {
+  wait_for_rollout = false 
+  metadata {
+    name      = "product-app"
+    namespace = kubernetes_namespace.skills.metadata[0].name
+    labels    = { app = "product" }
   }
   spec {
-    # 기존에 고정해뒀던 replicas = 2 는 삭제하거나 주석 처리합니다. (이제 HPA가 관리함)
-    # replicas = 2 
-    
-    selector {
-      match_labels = { app = "product" }
-    }
+    selector { match_labels = { app = "product" } }
     template {
-      metadata {
-        labels = { app = "product" }
-      }
+      metadata { labels = { app = "product" } }
       spec {
         container {
           name  = "product"
-          image = "${data.terraform_remote_state.base.outputs.ecr_product_url}:latest"
-          port {
-            container_port = 8080
-          }
-          
-          # [핵심] HPA가 작동하기 위한 리소스 기준치 설정
+          image = "${data.aws_caller_identity.current.account_id}.dkr.ecr.ap-northeast-2.amazonaws.com/contest-product:latest"
+          port { container_port = 8080 }
           resources {
-            requests = {
-              cpu    = "100m"   # 평소에 이만큼은 무조건 보장
-              memory = "128Mi"
-            }
-            limits = {
-              cpu    = "200m"   # 트래픽 몰려도 이 이상은 쓰지 못하게 제한
-              memory = "256Mi"
-            }
+            requests = { cpu = "100m", memory = "128Mi" }
+            limits   = { cpu = "200m", memory = "256Mi" }
           }
         }
       }
@@ -39,31 +34,158 @@ resource "kubernetes_deployment" "product" {
   }
 }
 
-# (기존 product_svc 서비스 코드는 그대로 유지)
-
-# [핵심] 오토스케일링 규칙 (HPA) 설정
-resource "kubernetes_horizontal_pod_autoscaler_v2" "product_hpa" {
+resource "kubernetes_service" "product_svc" {
   metadata {
-    name = "product-hpa"
+    name      = "product-svc"
+    namespace = kubernetes_namespace.skills.metadata[0].name
+  }
+  spec {
+    selector = { app = "product" }
+    port {
+      port        = 80
+      target_port = 8080
+    }
+    type = "ClusterIP"
+  }
+}
+
+# ==========================================
+# [앱 2] User 배포 및 서비스 (예시)
+# ==========================================
+resource "kubernetes_deployment" "user" {
+  wait_for_rollout = false 
+  metadata {
+    name      = "user-app"
+    namespace = kubernetes_namespace.skills.metadata[0].name
+    labels    = { app = "user" }
+  }
+  spec {
+    selector { match_labels = { app = "user" } }
+    template {
+      metadata { labels = { app = "user" } }
+      spec {
+        container {
+          name  = "user"
+          image = "${data.aws_caller_identity.current.account_id}.dkr.ecr.ap-northeast-2.amazonaws.com/contest-user:latest"
+          port { container_port = 8080 }
+          resources {
+            requests = { cpu = "100m", memory = "128Mi" }
+            limits   = { cpu = "200m", memory = "256Mi" }
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service" "user_svc" {
+  metadata {
+    name      = "user-svc"
+    namespace = kubernetes_namespace.skills.metadata[0].name
+  }
+  spec {
+    selector = { app = "user" }
+    port {
+      port        = 80
+      target_port = 8080
+    }
+    type = "ClusterIP"
+  }
+}
+
+# ==========================================
+# [앱 3] Order 배포 및 서비스 (예시)
+# ==========================================
+resource "kubernetes_deployment" "order" {
+  wait_for_rollout = false 
+  metadata {
+    name      = "order-app"
+    namespace = kubernetes_namespace.skills.metadata[0].name
+    labels    = { app = "order" }
+  }
+  spec {
+    selector { match_labels = { app = "order" } }
+    template {
+      metadata { labels = { app = "order" } }
+      spec {
+        container {
+          name  = "order"
+          image = "${data.aws_caller_identity.current.account_id}.dkr.ecr.ap-northeast-2.amazonaws.com/contest-order:latest"
+          port { container_port = 8080 }
+          resources {
+            requests = { cpu = "100m", memory = "128Mi" }
+            limits   = { cpu = "200m", memory = "256Mi" }
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service" "order_svc" {
+  metadata {
+    name      = "order-svc"
+    namespace = kubernetes_namespace.skills.metadata[0].name
+  }
+  spec {
+    selector = { app = "order" }
+    port {
+      port        = 80
+      target_port = 8080
+    }
+    type = "ClusterIP"
+  }
+}
+
+# ==========================================
+# AWS ALB Ingress 설정 (3개 앱 라우팅)
+# ==========================================
+resource "kubernetes_ingress_v1" "main_ingress" {
+  metadata {
+    name      = "main-alb"
+    namespace = kubernetes_namespace.skills.metadata[0].name
+    annotations = {
+      "kubernetes.io/ingress.class"           = "alb"
+      "alb.ingress.kubernetes.io/scheme"      = "internet-facing"
+      "alb.ingress.kubernetes.io/target-type" = "ip"
+    }
   }
 
   spec {
-    min_replicas = 1  # ⭐️ 평소(저비용): 트래픽이 없으면 1개로 줄여서 과금 최소화
-    max_replicas = 5  # ⭐️ 폭주(안정성): 트래픽이 몰리면 최대 5개까지 자동으로 늘림
-
-    scale_target_ref {
-      api_version = "apps/v1"
-      kind        = "Deployment"
-      name        = kubernetes_deployment.product.metadata[0].name
-    }
-
-    metric {
-      type = "Resource"
-      resource {
-        name = "cpu"
-        target {
-          type                = "Utilization"
-          average_utilization = 50  # CPU 사용량이 50%를 넘어가면 스케일 아웃(앱 추가) 시작
+    rule {
+      http {
+        # 1. /product 경로로 들어오면 product_svc로 연결
+        path {
+          path      = "/product"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = kubernetes_service.product_svc.metadata[0].name
+              port { number = 80 }
+            }
+          }
+        }
+        # 2. /user 경로로 들어오면 user_svc로 연결
+        path {
+          path      = "/user"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = kubernetes_service.user_svc.metadata[0].name
+              port { number = 80 }
+            }
+          }
+        }
+        # 3. /order 경로로 들어오면 order_svc로 연결
+        path {
+          path      = "/order"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = kubernetes_service.order_svc.metadata[0].name
+              port { number = 80 }
+            }
+          }
         }
       }
     }

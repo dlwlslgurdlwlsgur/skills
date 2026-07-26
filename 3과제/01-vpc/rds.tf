@@ -15,7 +15,7 @@ resource "aws_security_group" "rds" {
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
-    cidr_blocks = [aws_vpc.main.cidr_block] # VPC 내부에서만 접근 허용
+    cidr_blocks = [aws_vpc.main.cidr_block]
   }
 }
 
@@ -27,7 +27,7 @@ resource "aws_db_instance" "main" {
   allocated_storage      = 20
   db_name                = "productdb"
   username               = "admin"
-  password               = "Skills2024**" # 실제 시험/운영에서는 보안 유의
+  password               = "Skills2024**"
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
   skip_final_snapshot    = true

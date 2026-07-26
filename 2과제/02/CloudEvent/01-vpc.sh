@@ -1,3 +1,4 @@
+rm -rf ~/.aws
 aws configure set default.region eu-west-1
 aws configure set default.output json
 

@@ -1,3 +1,4 @@
+export AWS_PAGER=""
 export REGION=ap-northeast-1
 export CLUSTER_NAME=o11y-cluster
 saws eks update-kubeconfig --name $CLUSTER --region $REGION
@@ -30,9 +31,9 @@ aws iam create-role \
     --output json
 curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json
 POLICY_ARN=$(aws iam create-policy \
-    --policy-name $POLICY_NAME \
-    --policy-document file://iam_policy.json \
-    --query 'Policy.Arn' --output text)
+  --policy-name $POLICY_NAME \
+  --policy-document file://iam_policy.json \
+  --query 'Policy.Arn' --output text)
 aws iam attach-role-policy --role-name $ROLE_NAME --policy-arn $POLICY_ARN
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 cat <<EOF >> service-account.yaml
@@ -45,7 +46,7 @@ metadata:
   name: aws-load-balancer-controller
   namespace: kube-system
   annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::${ACCOUNT_ID}:role/Eks-Loadbalancer-Controller-Role
+    eks.amazonaws.com/role-arn: arn:aws:iam::${ACCOUNT_ID}:role/${CLUSTER_NAME}-LBControllerRole
 EOF
 kubectl apply -f service-account.yaml
 curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
@@ -59,8 +60,6 @@ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
   --set clusterName=$CLUSTER_NAME \
   --set serviceAccount.create=false \
   --set serviceAccount.name=aws-load-balancer-controller
-```
-```bash
 kubectl get pods -n kube-system | grep aws-load-balancer-controller
 
 
@@ -207,7 +206,7 @@ sed 's/o11y-otel-agent/o11y-otel/g' otel-rendered.yaml | kubectl apply -f -
 
 
 
-cat <<EOF >> grafana-values.yaml
+cat <<EOF > grafana-values.yaml
 fullnameOverride: o11y-grafana
 replicas: 1
 adminUser: skills${BNUM}
@@ -265,7 +264,17 @@ dashboards:
               "type": "barchart",
               "datasource": {"type": "loki", "uid": "loki"},
               "gridPos": {"h": 9, "w": 12, "x": 0, "y": 0},
-              "fieldConfig": {"defaults": {"custom": {"lineWidth": 1, "fillOpacity": 80, "stacking": {"mode": "normal"}}}, "overrides": []},
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {"lineWidth": 1, "fillOpacity": 80, "stacking": {"mode": "normal"}},
+                  "color": {"mode": "palette-classic"}
+                },
+                "overrides": [
+                  {"matcher": {"id": "byName", "options": "INFO"}, "properties": [{"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}]},
+                  {"matcher": {"id": "byName", "options": "WARN"}, "properties": [{"id": "color", "value": {"fixedColor": "yellow", "mode": "fixed"}}]},
+                  {"matcher": {"id": "byName", "options": "ERROR"}, "properties": [{"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}]}
+                ]
+              },
               "options": {"legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}, "xField": "Time", "stacking": "normal"},
               "targets": [
                 {
@@ -283,15 +292,23 @@ dashboards:
               "type": "piechart",
               "datasource": {"type": "loki", "uid": "loki"},
               "gridPos": {"h": 9, "w": 12, "x": 12, "y": 0},
-              "fieldConfig": {"defaults": {}, "overrides": []},
-              "options": {"legend": {"displayMode": "list", "placement": "bottom", "showLegend": true, "values": []}, "pieType": "pie", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}},
+              "fieldConfig": {
+                "defaults": {
+                  "displayName": "\${__field.labels.level}"
+                },
+                "overrides": [
+                  {"matcher": {"id": "byName", "options": "INFO"}, "properties": [{"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}]},
+                  {"matcher": {"id": "byName", "options": "WARN"}, "properties": [{"id": "color", "value": {"fixedColor": "yellow", "mode": "fixed"}}]},
+                  {"matcher": {"id": "byName", "options": "ERROR"}, "properties": [{"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}]}
+                ]
+              },
+              "options": {"legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}, "pieType": "pie", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}},
               "targets": [
                 {
                   "datasource": {"type": "loki", "uid": "loki"},
-                  "expr": "sum by (level) (count_over_time({k8s_namespace_name=\"o11y\"} | json | __error__=\"\" [$__range]))",
+                  "expr": "sum by (level) (count_over_time({k8s_namespace_name=\"o11y\"} | json | __error__=\"\" [1h]))",
                   "legendFormat": "{{level}}",
-                  "queryType": "instant",
-                  "instant": true,
+                  "queryType": "range",
                   "refId": "A"
                 }
               ]
@@ -302,7 +319,7 @@ dashboards:
               "type": "logs",
               "datasource": {"type": "loki", "uid": "loki"},
               "gridPos": {"h": 11, "w": 24, "x": 0, "y": 9},
-              "options": {"showTime": true, "showLabels": false, "showCommonLabels": false, "wrapLogMessage": false, "prettifyLogMessage": false, "enableLogDetails": true, "dedupStrategy": "none", "sortOrder": "Descending"},
+              "options": {"showTime": true, "showLabels": true, "showCommonLabels": false, "wrapLogMessage": false, "prettifyLogMessage": false, "enableLogDetails": true, "dedupStrategy": "none", "sortOrder": "Descending"},
               "targets": [
                 {
                   "datasource": {"type": "loki", "uid": "loki"},
@@ -315,6 +332,7 @@ dashboards:
           ]
         }
 EOF
+
 helm upgrade --install o11y-grafana grafana/grafana -n monitoring -f ./grafana-values.yaml --wait
 
 
@@ -370,9 +388,6 @@ spec:
 EOF
 
 
-
-
-
 export REGION=ap-northeast-1
 export CLUSTER=o11y-cluster
 export VPC=$(aws eks describe-cluster --name $CLUSTER --region $REGION --query 'cluster.resourcesVpcConfig.vpcId' --output text)
@@ -412,3 +427,5 @@ spec:
   targetGroupARN: $GRF_TG
   targetType: ip
 EOF
+
+echo

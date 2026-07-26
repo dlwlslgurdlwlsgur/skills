@@ -1,9 +1,18 @@
-TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
-VPC_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/network/interfaces/macs/ | head -n1 | xargs -I {} curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/network/interfaces/macs/{}/vpc-id)
-PUB_A=$(aws ec2 describe-subnets --region us-west-2 --filters "Name=vpc-id,Values=$VPC_ID" "Name=availability-zone,Values=us-west-2a" "Name=tag:Name,Values=*pub*,*Pub*,*Public*,*public*" --query "Subnets[0].SubnetId" --output text)
-PUB_B=$(aws ec2 describe-subnets --region us-west-2 --filters "Name=vpc-id,Values=$VPC_ID" "Name=availability-zone,Values=us-west-2b" "Name=tag:Name,Values=*pub*,*Pub*,*Public*,*public*" --query "Subnets[0].SubnetId" --output text)
-PRIV_A=$(aws ec2 describe-subnets --region us-west-2 --filters "Name=vpc-id,Values=$VPC_ID" "Name=availability-zone,Values=us-west-2a" "Name=tag:Name,Values=*priv*,*Priv*,*Private*,*private*" --query "Subnets[0].SubnetId" --output text)
-PRIV_B=$(aws ec2 describe-subnets --region us-west-2 --filters "Name=vpc-id,Values=$VPC_ID" "Name=availability-zone,Values=us-west-2b" "Name=tag:Name,Values=*priv*,*Priv*,*Private*,*private*" --query "Subnets[0].SubnetId" --output text)
+VPC_ID=$(aws ec2 describe-vpcs --region us-west-2 \
+  --filters "Name=tag:Name,Values=*skills-sqs-vpc*" \
+  --query "Vpcs[0].VpcId" --output text)
+PUB_A=$(aws ec2 describe-subnets --region us-west-2 \
+  --filters "Name=vpc-id,Values=$VPC_ID" "Name=availability-zone,Values=us-west-2a" "Name=tag:Name,Values=*pub*,*Pub*,*Public*,*public*" \
+  --query "Subnets[0].SubnetId" --output text)
+PUB_B=$(aws ec2 describe-subnets --region us-west-2 \
+  --filters "Name=vpc-id,Values=$VPC_ID" "Name=availability-zone,Values=us-west-2b" "Name=tag:Name,Values=*pub*,*Pub*,*Public*,*public*" \
+  --query "Subnets[0].SubnetId" --output text)
+PRIV_A=$(aws ec2 describe-subnets --region us-west-2 \
+  --filters "Name=vpc-id,Values=$VPC_ID" "Name=availability-zone,Values=us-west-2a" "Name=tag:Name,Values=*priv*,*Priv*,*Private*,*private*" \
+  --query "Subnets[0].SubnetId" --output text)
+PRIV_B=$(aws ec2 describe-subnets --region us-west-2 \
+  --filters "Name=vpc-id,Values=$VPC_ID" "Name=availability-zone,Values=us-west-2b" "Name=tag:Name,Values=*priv*,*Priv*,*Private*,*private*" \
+  --query "Subnets[0].SubnetId" --output text)
 
 # cluster.yaml
 cat << EOF > cluster.yaml
@@ -58,17 +67,7 @@ managedNodeGroups:
         cloudWatch: true
 EOF
 
+curl --silent --location "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+
 eksctl create cluster -f cluster.yaml
-
-CLUSTER_NAME="skills-sqs-cluster"
-ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
-aws eks create-access-entry \
-  --cluster-name "$CLUSTER_NAME" \
-  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:root"
-aws eks associate-access-policy \
-  --cluster-name "$CLUSTER_NAME" \
-  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:root" \
-  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
-  --access-scope type=cluster
-
-echo

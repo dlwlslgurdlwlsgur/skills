@@ -1,3 +1,4 @@
+rm -rf ~/.aws
 REGION="ap-southeast-1"
 AZ1=$(aws ec2 describe-availability-zones --region $REGION --query 'AvailabilityZones[0].ZoneName' --output text)
 

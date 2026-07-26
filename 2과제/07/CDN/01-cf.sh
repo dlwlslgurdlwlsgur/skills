@@ -1,3 +1,4 @@
+rm -rf ~/.aws
 export AWS_PAGER=""
 aws configure set cli_binary_format raw-in-base64-out
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)

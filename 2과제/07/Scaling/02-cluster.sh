@@ -9,6 +9,16 @@ metadata:
   tags:
     Project: skillsmarket
 
+vpc:
+  id: "${VPC}"
+  subnets:
+    public:
+      ap-northeast-2a: { id: "${PUBA}" }
+      ap-northeast-2c: { id: "${PUBC}" }
+    private:
+      ap-northeast-2a: { id: "${PRIA}" }
+      ap-northeast-2c: { id: "${PRIC}" }
+
 iam:
   withOIDC: true
 
@@ -32,3 +42,8 @@ managedNodeGroups:
         - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
 EOF
+
+curl --silent --location "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+
+eksctl create cluster -f cluster.yaml

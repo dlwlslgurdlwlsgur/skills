@@ -49,26 +49,20 @@ curl -s "http://$ALB/log?level=error&count=3" | head -1 | jq -r '.level, .genera
 # 3
 
 
-echo "=== 4-5-A ==="
 echo "manual marking"
-# * mark4.sh의 하단에 해당 스크립트가 주석 처리되어 있으므로, 해당 스크립트를 사용할 수 있음에 유의합니다.
-# RESP=$(curl -s "http://$(aws elbv2 describe-load-balancers --names o11y-app-alb --query 'LoadBalancers[0].DNSName' --output text --region ap-northeast-1)/log?level=error&count=3")
-# kubectl port-forward -n monitoring svc/o11y-loki 3100:3100 > /dev/null 2>&1 &
-# PF=$!
-# sleep 2
-
+RESP=$(curl -s "http://$(aws elbv2 describe-load-balancers --names o11y-app-alb --query 'LoadBalancers[0].DNSName' --output text --region ap-northeast-1)/log?level=error&count=3")
+kubectl port-forward -n monitoring svc/o11y-loki 3100:3100 > /dev/null 2>&1 &
+PF=$!
+sleep 2
 # * 아래 명령어를 통해 로그가 정상적으로 조회되는지 확인합니다. 선수는 1분간 원하는 만큼 해당 명령어를 원하는 만큼 실행할 수 있습니다.
-# curl -s -G http://localhost:3100/loki/api/v1/query_range --data-urlencode 'query={k8s_namespace_name="o11y"} | json | level="ERROR"' --data-urlencode "start=$(date -d '3 minutes ago' +%s)000000000" --data-urlencode "end=$(date +%s)000000000" --data-urlencode 'limit=20' | jq -r '.data.result[].values[][1]'
-
+curl -s -G http://localhost:3100/loki/api/v1/query_range --data-urlencode 'query={k8s_namespace_name="o11y"} | json | level="ERROR"' --data-urlencode "start=$(date -d '3 minutes ago' +%s)000000000" --data-urlencode "end=$(date +%s)000000000" --data-urlencode 'limit=20' | jq -r '.data.result[].values[][1]'
 # {"ts":"2026-05-31T12:26:32.805Z","level":"ERROR","msg":"log generated","req_id":"75d9896e-db0a-4b98-b859-ea6df730b04f"}
 # {"ts":"2026-05-31T12:26:32.805Z","level":"ERROR","msg":"log generated","req_id":"9beba665-fb2b-4543-ade4-1cb87e793a44"}
 # 출력되는 로그 중 3분 이내로 기록된 로그가 있다면 득점 인정.
-
 # * 이후, 아래 명령어를 통해 포트포워딩 중인 프로세스를 종료합니다.
-# kill $PF 2>/dev/null
+kill $PF 2>/dev/null
 
 
-echo "=== 4-6-A ==="
 echo 'manual marking'
 # 선수의 Grafana ALB에 접속하여, skills<선수등번호> / GoodJob!Skills<선수등번호>^^로 로그인한 뒤, Log Overview 대시보드를 엽니다.
 # 1) 아래 사진과 같이 Panel 이름, 범례 등이 정상적으로 표시된다면 부분 점수 득점. (0.5점) 단, No Data로 표시되는 Panel이 하나라도 있거나, 범례가 {level="ERROR"} 등으로 표시된다면 오답 처리합니다.
@@ -78,6 +72,5 @@ echo 'manual marking'
 # - Recent Logs - 집계된 로그 출력
 
 # 2) 아래 Recent Logs에 4-5에서 전송한 로그가 존재하는지 확인합니다. 존재한다면 부분 점수 득점 인정합니다 (0.5점)
-
 # 3) Connections -> Data Sources로 접속하여 Loki Source를 선택합니다. 여러 개 있을 경우, 선수가 지정한 source를 선택합니다. (단, 선택을 바꿀 수 없습니다.) 페이지 최하단으로 이동하여 Save&Test를 클릭합니다.
 # 아래와 같이 성공으로 표시되면 부분 점수 득점 인정합니다. (0.5점)

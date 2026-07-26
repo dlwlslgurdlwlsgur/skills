@@ -22,7 +22,7 @@ terraform init
 terraform plan
 ```
 ```bash
-terraform apply
+terraform apply -auto-approve
 ```
 
 <br>

@@ -1,3 +1,8 @@
+## Region
+- 도쿄/ap-northeast-1
+
+<br>
+
 ## shell
 - 01-vpc.sh
 - 02-cluster.sh
@@ -6,25 +11,27 @@
 
 ## ECR
 - 03-ecr.sh
-- docker build
-
-<br>
-
-## EKS
 ```bash
-CLUSTER_NAME="o11y-cluster"
-ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
-eksctl utils write-kubeconfig --name $CLUSTER_NAME --region ap-northeast-2
-eksctl utils associate-iam-oidc-provider --approve --cluster $CLUSTER_NAME --region ap-northeast-2
-aws eks create-access-entry \
-  --cluster-name "$CLUSTER_NAME" \
-  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:root"
-aws eks associate-access-policy \
-  --cluster-name "$CLUSTER_NAME" \
-  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:root" \
-  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
-  --access-scope type=cluster
+echo "flask>=3.0.0" > requirements.txt
+cat > Dockerfile <<'EOF'
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app.py .
+EXPOSE 8080
+ENV PYTHONUNBUFFERED=1
+CMD ["python", "app.py"]
+EOF
 ```
+```bash
+export ACCT=$(aws sts get-caller-identity --query Account --output text)
+aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin $ACCT.dkr.ecr.ap-northeast-1.amazonaws.com
+docker build -t o11y-log-generator .
+docker tag o11y-log-generator:latest $ACCT.dkr.ecr.ap-northeast-1.amazonaws.com/o11y-log-generator:v1
+docker push $ACCT.dkr.ecr.ap-northeast-1.amazonaws.com/o11y-log-generator:v1
+```
+
 
 <br>
 

@@ -1,3 +1,4 @@
+rm -rf ~/.aws
 R=ap-northeast-1
 CL=o11y-cluster
 T() { echo "Name=$1"; }

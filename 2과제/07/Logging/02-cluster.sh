@@ -1,15 +1,25 @@
-cat <<EOF >> cluster.yaml
+cat <<EOF > cluster.yaml
 apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
+
 metadata:
   name: o11y-cluster
   region: ap-northeast-1
   version: "1.35"
-availabilityZones:
-  - ap-northeast-1a
-  - ap-northeast-1c
+
+vpc:
+  id: "${VPC}"
+  subnets:
+    public:
+      ap-northeast-1a: { id: "${PUBA}" }
+      ap-northeast-1c: { id: "${PUBC}" }
+    private:
+      ap-northeast-1a: { id: "${PRIA}" }
+      ap-northeast-1c: { id: "${PRIC}" }
+
 iam:
   withOIDC: true
+
 managedNodeGroups:
   - name: o11y-ng
     instanceType: t3.medium
@@ -23,6 +33,7 @@ managedNodeGroups:
     tags:
       Name: o11y-node
     propagateASGTags: true
+
 addons:
   - name: vpc-cni
   - name: kube-proxy
@@ -31,3 +42,8 @@ addons:
     wellKnownPolicies:
       ebsCSIController: true
 EOF
+
+curl --silent --location "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+
+eksctl create cluster -f cluster.yaml

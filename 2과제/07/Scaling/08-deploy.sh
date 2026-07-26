@@ -77,3 +77,4 @@ kubectl get deploy order-processor -n $APP_NS -o jsonpath=\
 '{.spec.replicas} {.spec.template.spec.containers[0].ports[0].containerPort} {.spec.template.spec.containers[0].resources.requests.cpu} {.spec.template.spec.containers[0].resources.requests.memory}{"\n"}'
 kubectl get deploy order-processor -n $APP_NS -o jsonpath=\
 '{range .spec.template.spec.containers[0].env[*]}{.name}={.value}{"\n"}{end}' | sort
+echo

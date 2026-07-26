@@ -42,3 +42,4 @@ helm install karpenter oci://public.ecr.aws/karpenter/karpenter \
 
 echo "Karpenter 설치 완료"
 kubectl get pod -n $KARPENTER_NS -l app.kubernetes.io/name=karpenter
+echo
