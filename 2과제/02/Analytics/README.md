@@ -54,4 +54,6 @@ GROUP BY product_name;
 
 <br>
 
-## Zepplin 중지
+## shell
+- Zepplin 중지
+- 03-ec2.sh
