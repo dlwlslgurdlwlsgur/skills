@@ -12,7 +12,7 @@ aws dynamodb describe-continuous-backups --table-name bigbae-nosql-reservation-t
 # train_id S
 # NEW_AND_OLD_IMAGES
 # PAY_PER_REQUEST
-# ENABLED
+# # ENABLED
 
 
 aws dynamodb describe-table --table-name bigbae-nosql-reservation-table --region ap-southeast-1 | jq -r '.Table.GlobalSecondaryIndexes[] | .IndexName, (.KeySchema[] | .KeyType + " " + .AttributeName), .Projection.ProjectionType'

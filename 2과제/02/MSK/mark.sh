@@ -1,7 +1,6 @@
-# ====================
-NUM=<비번호>
-# ====================
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+aws configure set region ap-northeast-1
+read -p "비번호: " NUM
 BUCKET_NAME="wsc2026-sensor-alert-bucket-${NUM}"
 CLUSTER_ARN=$(aws kafka list-clusters --cluster-name-filter wsc2026-msk-cluster --query "ClusterInfoList[0].ClusterArn" --output text)
 
@@ -14,6 +13,7 @@ aws dynamodb describe-table --table-name wsc2026-sensor-data --query "Table.[Tab
 #     "BucketRegion": "ap-northeast-1",
 #     "AccessPointAlias": false
 # }
+
 
 
 for fn in wsc2026-sensor-consumer wsc2026-sensor-alert-consumer; do aws lambda get-function --function-name $fn --query "Configuration.[FunctionName,Runtime]" --output text; done

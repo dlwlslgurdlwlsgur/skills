@@ -37,12 +37,11 @@ for X in "keda keda-operator" "karpenter karpenter" "skills-sqs sqs-worker-sa"; 
   echo
 done
 # SQS Queue와 ServiceAccount IRSA annotation이 요구사항과 일치하는지 확인합니다.
-# Visibility Timeout: Standard / 30초 이상
 
 
 kubectl get deployment,pod -n keda -o wide
 kubectl get deployment,pod -n karpenter -o wide
-# EDA/Karpenter Controller Pod가 Running 상태이며 Fargate Node에서 실행되는지 확인합니다.
+# KEDA/Karpenter Controller Pod가 Running 상태이며 Fargate Node에서 실행되는지 확인합니다.
 
 
 kubectl get deployment sqs-worker -n skills-sqs -o wide

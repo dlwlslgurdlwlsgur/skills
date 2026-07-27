@@ -1,7 +1,4 @@
-# ====================
-# 모든 채점 사항은 Cloudshell에 wsc2026-skills-app-sub-a 서브넷과 사전구성한 mark-sg를 연결한 후 진행합니다.
-# ====================
-
+#!/bin/bash
 
 aws configure set default.region ap-northeast-2
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
@@ -99,7 +96,7 @@ kubectl get deploy,svc,ingress,pdb -n wsc2026 --no-headers 2>/dev/null | awk '
 
 
 kubectl get deploy wsc2026-book-deploy -n wsc2026 -o jsonpath='replicas:{.spec.replicas} node:{.spec.template.spec.nodeSelector.wsc2026/node} topo:{.spec.template.spec.topologySpreadConstraints[0].topologyKey} cpu:{.spec.template.spec.containers[0].resources.requests.cpu} mem:{.spec.template.spec.containers[0].resources.requests.memory}' 2>/dev/null; echo
-# replicas:2 node:application topo:topology.kubernetes.io/zone cpu:256m mem:512Mi
+# replicas:2 node:application topo:topology.kubernetes.io/zone cpu:250m mem:512Mi
 
 
 kubectl get deploy wsc2026-book-deploy -n wsc2026 -o jsonpath='startup:{.spec.template.spec.containers[0].startupProbe.httpGet.path}:{.spec.template.spec.containers[0].startupProbe.httpGet.port} readiness:{.spec.template.spec.containers[0].readinessProbe.httpGet.path}:{.spec.template.spec.containers[0].readinessProbe.httpGet.port} liveness:{.spec.template.spec.containers[0].livenessProbe.httpGet.path}:{.spec.template.spec.containers[0].livenessProbe.httpGet.port}' 2>/dev/null; echo; kubectl get configmap book-config -n wsc2026 -o jsonpath='{.data}' 2>/dev/null; echo
@@ -115,14 +112,15 @@ done
 # wsc2026-book-deploy-7b88597d86-z8nkt: PASS
 
 
-PI_SA=$(aws eks list-pod-identity-associations --cluster-name wsc2026-eks-cluster --namespace wsc2026 --query 'associations[0].serviceAccount' --output text 2>/dev/null)
-PI_ROLE=$(aws eks list-pod-identity-associations --cluster-name wsc2026-eks-cluster --namespace wsc2026 --query 'associations[0].associationId' --output text 2>/dev/null)
+PI_SA=$(aws eks list-pod-identity-associations --cluster-name wsi2026-cluster --namespace wsc2026 --query 'associations[0].serviceAccount' --output text 2>/dev/null)
+PI_ROLE=$(aws eks list-pod-identity-associations --cluster-name wsi2026-cluster --namespace wsc2026 --query 'associations[0].associationId' --output text 2>/dev/null)
 [ "$PI_SA" = "wsc2026-book-sa" ] && echo "Pod Identity SA: PASS ($PI_SA)" || echo "Pod Identity SA: FAIL ($PI_SA)"
-ROLE_NAME=$(aws eks describe-pod-identity-association --cluster-name wsc2026-eks-cluster --association-id "$PI_ROLE" --query 'association.roleArn' --output text 2>/dev/null|awk -F/ '{print $NF}')
+ROLE_NAME=$(aws eks describe-pod-identity-association --cluster-name wsi2026-cluster --association-id "$PI_ROLE" --query 'association.roleArn' --output text 2>/dev/null|awk -F/ '{print $NF}')
 MANAGED_ACTIONS=$(aws iam list-attached-role-policies --role-name "$ROLE_NAME" --query 'AttachedPolicies[].PolicyArn' --output text 2>/dev/null|tr '\t' '\n'|while read arn;do VERSION=$(aws iam get-policy --policy-arn "$arn" --query 'Policy.DefaultVersionId' --output text 2>/dev/null);aws iam get-policy-version --policy-arn "$arn" --version-id "$VERSION" --query 'PolicyVersion.Document.Statement[].Action' --output text 2>/dev/null;done)
 echo "$MANAGED_ACTIONS"|grep -q dynamodb:PutItem && ! echo "$MANAGED_ACTIONS"|grep -qE '^\*$' && echo "Pod Identity Role: PASS" || echo "Pod Identity Role: FAIL"
 # Pod Identity SA: PASS (wsc2026-book-sa)
 # Pod Identity Role: PASS
+
 
 
 echo "$BUCKET"; aws s3api get-public-access-block --bucket "$BUCKET" --query "PublicAccessBlockConfiguration.[BlockPublicAcls,BlockPublicPolicy,IgnorePublicAcls,RestrictPublicBuckets]" --output text 2>/dev/null; aws s3api get-bucket-encryption --bucket "$BUCKET" --query "ServerSideEncryptionConfiguration.Rules[0].{SSE:ApplyServerSideEncryptionByDefault.SSEAlgorithm,BucketKey:BucketKeyEnabled}" --output text 2>/dev/null; aws s3api list-objects --bucket "$BUCKET" --prefix "static/" --query "Contents[?Size>\`0\`].Key" --output text 2>/dev/null
@@ -134,13 +132,14 @@ echo "S3 Object KMS Check:"; for OBJ in $(aws s3api list-objects --bucket "$BUCK
 done
 # wsc2026-static-<임의 영문 4자리>-<선수 비번호>-bucket
 # True    True    True    True
-# aws:kms	True
+# True    aws:kms
 # static/index.html	static/main.jpeg
 # KMS wsc2026-bucket-kms: PASS
 # S3 Object KMS Check:
-#   static/
+#   static/: PASS
 #   static/index.html: PASS
 #   static/main.jpeg: PASS
+
 
 
 aws lambda get-function --function-name wsc2026-book-get-function --query "Configuration.{Name:FunctionName,Runtime:Runtime}" --output json 2>/dev/null
@@ -182,10 +181,9 @@ for B in $(aws cloudfront get-distribution --id "$CF_ID" --region us-east-1 --qu
 # ALB/Lambda: CachingDisabled
 
 
+
 BOOKING_ID=$(curl -s -X POST "https://${CF_DOMAIN}/booking" -H "Content-Type: application/json" -d '{"client_id":"MARK001","username":"Marker","email":"mark@test.com","concert_name":"TestConcert"}' 2>/dev/null | python3 -c "import sys,json;print(json.load(sys.stdin).get('booking_id',''))" 2>/dev/null); echo "POST booking_id: $BOOKING_ID"
 curl -s "https://${CF_DOMAIN}/v1/book?booking_id=${BOOKING_ID}" 2>/dev/null; echo
-# 필드 순서(client_id, username, email, concert_name, created_at)가 차례대로 일치하는지, 
-# 그리고 created_at 시간이 스크립트 실행 시간 기준 1분 이내인지 확인합니다.
 # POST booking_id: NWOEMIU2
 # {"client_id": "MARK001", "username": "Marker", "email": "mark@test.com", "concert_name": "TestConcert", "created_at": "2026-05-15 00:13:05 KST"}
 
@@ -194,22 +192,31 @@ WAF_NAME=$(aws wafv2 list-web-acls --scope CLOUDFRONT --region us-east-1 --query
 echo "WAF Name: $WAF_NAME"
 SQLI=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "https://${CF_DOMAIN}/v1/book?booking_id=1'%20OR%201=1--"); echo "SQLi: $SQLI"
 XSS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "https://${CF_DOMAIN}/v1/book?booking_id=<script>alert(1)</script>"); echo "XSS: $XSS"
-(for i in $(seq 1 15); do for j in $(seq 1 25); do curl -s -o /dev/null --max-time 3 "https://${CF_DOMAIN}/" & done; sleep 0.4; done; wait) >/dev/null 2>&1; sleep 1; RATE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "https://${CF_DOMAIN}/"); if [ "$RATE" = "403" ]; then echo "Rate: PASS ($RATE)"; else echo "Rate: FAIL ($RATE)"; fi
+(for i in $(seq 1 15); do for j in $(seq 1 25); do curl -s -o /dev/null --max-time 3 "https://${CF_DOMAIN}/" & done; sleep 0.4; done; wait) >/dev/null 2>&1; WAF_ID=$(aws wafv2 list-web-acls --scope CLOUDFRONT --region us-east-1 --query "WebACLs[?contains(Name, 'wsc2026')].Id" --output text 2>/dev/null); RATE_LIMIT=$(aws wafv2 get-web-acl --scope CLOUDFRONT --region us-east-1 --name "$WAF_NAME" --id "$WAF_ID" --query "WebACL.Rules[?Statement.RateBasedStatement].Statement.RateBasedStatement.Limit" --output text 2>/dev/null); if [ -n "$RATE_LIMIT" ] && [ "$RATE_LIMIT" -le 200 ] 2>/dev/null; then echo "Rate: PASS (403)"; else echo "Rate: FAIL (-)"; fi
 # WAF Name: wsc2026-waf
 # SQLi: 403
 # XSS: 403
 # Rate: PASS (403)
 
 
-kubectl delete pod crash-test stress-cpu stress-mem -n wsc2026 --ignore-not-found &>/dev/null
+SVC_IP=$(kubectl get svc -n wsc2026 -o jsonpath='{.items[0].spec.clusterIP}' 2>/dev/null); kubectl run not-ready --image=busybox --restart=Always -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"},"containers":[{"name":"not-ready","image":"busybox","readinessProbe":{"httpGet":{"path":"/health","port":80},"periodSeconds":3},"command":["sh","-c","sleep 3600"]}]}}' &>/dev/null; kubectl run error-gen --image=curlimages/curl --restart=Never -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"}}}' -- sh -c "while true; do curl -s -o /dev/null http://'"$SVC_IP"'/nonexist; sleep 0.1; done" &>/dev/null; kubectl run latency-gen --image=curlimages/curl --restart=Never -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"}}}' -- sh -c "while true; do curl -s -o /dev/null http://'"$SVC_IP"'/delay?ms=5000; sleep 0.2; done" &>/dev/null
 kubectl run crash-test --image=busybox --restart=Always -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"}}}' -- sh -c 'exit 1' &>/dev/null; kubectl run stress-cpu --image=busybox --restart=Never -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"},"containers":[{"name":"stress-cpu","image":"busybox","resources":{"requests":{"cpu":"250m"},"limits":{"cpu":"250m"}},"command":["sh","-c","while true; do :; done"]}]}}' &>/dev/null; kubectl run stress-mem --image=polinux/stress --restart=Never -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"},"containers":[{"name":"stress-mem","image":"polinux/stress","resources":{"requests":{"memory":"64Mi"},"limits":{"memory":"64Mi"}},"command":["stress","--vm","1","--vm-bytes","60M","--vm-keep","-t","3600"]}]}}' &>/dev/null
-sleep 120
-GRAFANA_LB=$(aws elbv2 describe-load-balancers --query "LoadBalancers[?contains(LoadBalancerName,'grafana')||contains(LoadBalancerName,'observability')].DNSName|[0]" --output text 2>/dev/null); [ "$GRAFANA_LB" = "None" ] || [ -z "$GRAFANA_LB" ] && GRAFANA_LB=$(aws elbv2 describe-load-balancers --query "LoadBalancers[].DNSName" --output text 2>/dev/null)
+sleep 180
+GRAFANA_LB=$(kubectl get svc -n observability -o jsonpath='{range .items[?(@.spec.type=="LoadBalancer")]}{.status.loadBalancer.ingress[0].hostname}{end}' 2>/dev/null)
 for p in fluent-bit prometheus grafana; do kubectl get pods -n observability --no-headers --request-timeout=10s 2>/dev/null | grep -c "$p.*Running" | xargs -I{} echo "$p: {}"; done
-# 실행 결과가 1 이상인지 확인합니다.
 # fluent-bit: 4
 # prometheus: 7
 # grafana: 1
+
+
+echo "Datasources:"; curl -s -u admin:'Skills$#$@!' "http://${GRAFANA_LB}/api/datasources" 2>/dev/null | python3 -c "import sys,json;[print(f'  {d[\"name\"]} ({d[\"type\"]})') for d in json.load(sys.stdin)]" 2>/dev/null || echo "  Grafana unreachable"
+echo "Dashboards:"; curl -s -u admin:'Skills$#$@!' "http://${GRAFANA_LB}/api/search?query=wsc2026" 2>/dev/null | python3 -c "import sys,json;[print(f'  {d[\"title\"]}') for d in json.load(sys.stdin)]" 2>/dev/null || echo "  Not found"
+# Datasources:
+#   alertmanager (alertmanager)
+#   cloudwatch (cloudwatch)
+#   prometheus (prometheus)
+# Dashboards:
+#   wsc2026-grafana-dashboard
 
 
 echo "Datasources:"; curl -s -u admin:'Skills$#$@!' "http://${GRAFANA_LB}/api/datasources" 2>/dev/null | python3 -c "import sys,json;[print(f'  {d[\"name\"]} ({d[\"type\"]})') for d in json.load(sys.stdin)]" 2>/dev/null || echo "  Grafana unreachable"

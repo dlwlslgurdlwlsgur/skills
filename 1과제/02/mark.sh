@@ -15,7 +15,7 @@ aws ec2 describe-vpcs --filter Name=tag:Name,Values=wskorea26-vpc --query "Vpcs[
 # wskorea26-priv-subnet-c 172.16.201.0/24
 # wskorea26-priv-subnet-d 172.16.202.0/24
 # wskorea26-pub-subnet-c  172.16.1.0/24
-# wskorea26-pub-subnet-d  172.16.2.0/242
+# wskorea26-pub-subnet-d  172.16.2.0/24
 
 
 for subnet in wskorea26-pub-subnet-c wskorea26-pub-subnet-d; do aws ec2 describe-route-tables --filters "Name=association.subnet-id,Values=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=$subnet" --query "Subnets[0].SubnetId" --output text)" --query "RouteTables[0].Tags[?Key=='Name']|[0].Value" --output text; done | sort; for subnet in wskorea26-priv-subnet-c wskorea26-priv-subnet-d; do aws ec2 describe-route-tables --filters "Name=association.subnet-id,Values=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=$subnet" --query "Subnets[0].SubnetId" --output text)" --query "RouteTables[0].Tags[?Key=='Name']|[0].Value" --output text; done | sort; aws ec2 describe-route-tables --filters "Name=tag:Name,Values=wskorea26-public-rtb" --query "RouteTables[0].Routes[?DestinationCidrBlock=='0.0.0.0/0'].GatewayId | [0]" --output text; for rtb in wskorea26-private-rtb-c wskorea26-private-rtb-d; do aws ec2 describe-route-tables --filters "Name=tag:Name,Values=$rtb" --query "RouteTables[0].Routes[?DestinationCidrBlock=='0.0.0.0/0'].NatGatewayId | [0]" --output text; done
@@ -29,8 +29,6 @@ for subnet in wskorea26-pub-subnet-c wskorea26-pub-subnet-d; do aws ec2 describe
 
 
 echo $BUCKET && aws s3api list-objects-v2 --bucket "$BUCKET" --prefix "web/main/" --query "sort(Contents[].Key)" --output text
-# wskorea26-concert-bucket-103
-# web/main/index.html     web/main/main.jpeg
 
 
 for key in web/main/index.html web/main/main.jpeg; do kms_arn=$(aws s3api head-object --bucket "$BUCKET" --key "$key" --query "SSEKMSKeyId" --output text); key_id=$(echo "$kms_arn" | awk -F'/' '{print $NF}'); aws kms list-aliases --query "Aliases[?TargetKeyId=='$key_id'].AliasName | [0]" --output text; done; aws s3api get-public-access-block --bucket "$BUCKET" --query "PublicAccessBlockConfiguration.[BlockPublicAcls,IgnorePublicAcls,BlockPublicPolicy,RestrictPublicBuckets]" --output text; aws s3api get-bucket-policy-status --bucket "$BUCKET" --query "PolicyStatus.IsPublic" --output text
@@ -46,6 +44,7 @@ aws ecr describe-repositories --query "repositories[?repositoryName=='wskorea26-
 # {
 #     "LOW": 1
 # }
+# Critical 및 High 취약점이 존재하지 않을 경우 정답
 
 
 aws dynamodb describe-table --table-name wskorea26-data-table --query "Table.[TableName,KeySchema[0].[AttributeName,KeyType],DeletionProtectionEnabled]" --output text; aws kms list-aliases --query "Aliases[?TargetKeyId=='$(aws dynamodb describe-table --table-name wskorea26-data-table --query "Table.SSEDescription.KMSMasterKeyArn" --output text | awk -F'/' '{print $NF}')'].AliasName | [0]" --output text
@@ -57,6 +56,7 @@ aws dynamodb describe-table --table-name wskorea26-data-table --query "Table.[Ta
 aws eks describe-cluster --name wskorea26-cluster --query "cluster.[name,version]" --output text; aws eks describe-cluster --name wskorea26-cluster --query "sort(cluster.logging.clusterLogging[?enabled==\`true\`].types[])" --output text
 # wskorea26-cluster       1.35
 # api     audit   authenticator   controllerManager       scheduler
+
 
 
 aws kms list-aliases --query "Aliases[?TargetKeyId=='$(aws eks describe-cluster --name wskorea26-cluster --query "cluster.encryptionConfig[0].provider.keyArn" --output text | awk -F'/' '{print $NF}')'].AliasName | [0]" --output text; aws ec2 describe-subnets --subnet-ids $(aws eks describe-cluster --name wskorea26-cluster --query "cluster.resourcesVpcConfig.subnetIds[]" --output text) --query "sort(Subnets[*].Tags[?Key=='Name'].Value[])" --output text
@@ -128,10 +128,29 @@ curl -s -o /dev/null -w "%{http_code}\n" -X GET -H 'Content-Type: application/js
 # 400
 
 
+# 10 Monitoring Configure (수동 채점 안내 - 기준표 맞춤)
+echo ====================
+echo "  10-1 Monitoring Configure (수동)"
+echo ====================
 GRAFANA_ALB_DNS=$(aws elbv2 describe-load-balancers --names wskorea26-grafana-alb --query "LoadBalancers[0].DNSName" --output text)
 echo "URL: http://$GRAFANA_ALB_DNS/d/wskorea26/wskorea26-monitoring"
 echo "Login: skills-<비번호>-admin / \$korea26!!"
-# 파드의 CPU, Memory 지표를 확인할 수 있을 경우 정답
-# 실행 중인 Pod 개수 지표를 확인할 수 있을 경우 정답
-# 컨테이너 재시작 횟수 지표를 확인할 수 있을 경우 정답
-# 컨테이너 네트워크 수신량 지표를 확인할 수 있을 경우 정답
+
+# 1) Grafana에 다음 인증 정보로 로그인을 합니다
+# userid: skills-<비번호>-admin | password: \$korea26!!
+# 2) 대시보드에 접근이 가능하고, 파드의 CPU, Memory 지표를 확인할 수 있을 경우 정답
+
+
+# 1) Grafana에 다음 인증 정보로 로그인을 합니다
+# userid: skills-<비번호>-admin | password: \$korea26!!
+# 2) 대시보드에 접근이 가능하고, 파드의 CPU, Memory 지표를 확인할 수 있을 경우 정답
+
+
+# 1) Grafana에 다음 인증 정보로 로그인을 합니다
+# userid: skills-<비번호>-admin | password: \$korea26!!
+# 2) 대시보드에 접근이 가능하고, 컨테이너 재시작 횟수 지표를 확인할 수 있을 경우 정답
+
+
+# 1) Grafana에 다음 인증 정보로 로그인을 합니다
+# userid: skills-<비번호>-admin | password: \$korea26!!
+# 2) 대시보드에 접근이 가능하고, 컨테이너 네트워크 수신량 지표를 확인할 수 있을 경우 정답

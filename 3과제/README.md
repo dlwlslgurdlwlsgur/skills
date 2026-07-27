@@ -22,6 +22,28 @@ terraform apply -auto-approve
 
 <br>
 
+## 02-k8s
+```bash
+cd ./02-k8s
+```
+```bash
+terraform init
+terraform plan
+terraform apply -target="helm_release.aws_load_balancer_controller" -auto-approve
+terraform apply -auto-approve
+```
+
+
+
+
+
+
+
+
+
+
+<br>
+
 ## EC2
 ```bash
 export AWS_DEFAULT_REGION="ap-northeast-2"
@@ -73,20 +95,4 @@ CREATE TABLE IF NOT EXISTS product (
     image_path VARCHAR(500) DEFAULT NULL,
     PRIMARY KEY (id)
 );
-```
-
-
-
-## 02-k8s
-```bash
-aws eks update-kubeconfig --region ap-northeast-2 --name contest-cluster
-kubectl get all -A
-```
-```bash
-cd ./02-k8s
-```
-```bash
-terraform init
-terraform apply -target="helm_release.aws_load_balancer_controller" -auto-approve
-terraform apply -auto-approve
 ```

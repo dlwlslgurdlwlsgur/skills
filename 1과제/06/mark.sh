@@ -1,22 +1,18 @@
 # ========================
 # 환경변수
-# ========================
 export DistributionID="<CloudFront_Distribution_ID>"
 export BUCKET="gj2026-static-<비번호>"
-
+# ========================
 
 rm -rf ~/.aws
 mkdir -p ~/.aws
 export CF_DOMAIN=$(aws cloudfront get-distribution --id ${DistributionID} --query "Distribution.DomainName" --output text)
 export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 aws configure set default.region ap-northeast-2
-aws eks update-kubeconfig --name gj2026-eks-cluster >/dev/null 2>&1
+aws eks update-kubeconfig --`name gj2026-eks-cluster >/dev/null 2>&1
 aws ecr get-login-password --region ap-northeast-2 2>/dev/null | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com >/dev/null 2>&1
 export InvalidationID=$(aws cloudfront create-invalidation --distribution-id ${DistributionID} --paths "/*" --query "Invalidation.Id" --output text)
 aws cloudfront wait invalidation-completed --distribution-id ${DistributionID} --id ${InvalidationID}
-
-
-
 
 
 aws ec2 describe-vpcs --filter Name=tag:Name,Values=gj2026-vpc --query Vpcs[0].CidrBlock
@@ -46,7 +42,7 @@ aws ecr describe-repositories --repository-names "book" --query 'repositories[0]
 book_size_bytes=$(aws ecr describe-images --repository-name "book" --query 'imageDetails[?imageTags[0]==`latest`].imageSizeInBytes' --output text)
 book_size_mb=$(awk "BEGIN {printf \"%.2f\", $book_size_bytes / 1024 / 1024}")
 echo "${book_size_mb}mb"
-# 3MB 이하인지 확인
+# 2.66mb
 
 
 aws dynamodb describe-table --table-name books --query "{TablePK:Table.KeySchema[0].AttributeName,GSI:Table.GlobalSecondaryIndexes[*].{IndexName:IndexName,PK:KeySchema[0].AttributeName}}" --output text
@@ -82,9 +78,10 @@ kubectl get nodes -o custom-columns=NAME:.metadata.name --no-headers | while rea
 kubectl get deployment -n skills book
 # NAME   READY   UP-TO-DATE   AVAILABLE   AGE
 # book   2/2     2            2           21h
+# * 밑줄친 부분은 다를수도 있음
 
 
-kubectl delete pod -n skills nginx-test >/dev/null 2>&1
+kubectl delete pod -n skills nginx-test >/dev/null
 docker pull ${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com/ecr-public/nginx/nginx:latest >/dev/null 2>&1 && kubectl run nginx-test -n skills --image=${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com/ecr-public/nginx/nginx:latest --restart=Never 2>/dev/null && sleep 3 && kubectl exec -n skills nginx-test -- curl -m 5 -sS http://book-svc:8080/health 2>&1 | grep -v '^Defaulted container'
 # pod/nginx-test created
 # curl: (28) Connection timed out after 5002 milliseconds
@@ -130,11 +127,11 @@ curl -X POST \
      https://${CF_DOMAIN}/v1/book
 # {"booking_id":"K16MBR45"}
 # {"booking_id":"OCYGWYIO"}
+# * 밑줄친 부분은 다를수도 있음  
 
 
 date
 curl https://${CF_DOMAIN}/reservation
-# 10-2 채점을 위해 실행 시간을 기록합니다.
 # [{"username": "Bob", "email": "han@example.com", "concert_name": "Seoul2025"}, {"username": "Alice", "email": "kim@example.com", "concert_name": "Busan2025"}]
 
 
@@ -147,7 +144,7 @@ curl -s -w " %{http_code}" https://${CF_DOMAIN}/v1/book
 
 
 curl -s -w " %{http_code}" "https://${CF_DOMAIN}/reservation?client_id=123abc"; 
-curl -s -w " %{http_code}" "https://${CF_DOMAIN}/reservation?client_id=C@001"; 
+curl -s -w " %{http_code}" "https://${CF_DOMAIN}/reservation?client_id=C^001"; 
 curl -s -w " %{http_code}" "https://${CF_DOMAIN}/reservation?client_id=홍길동"; 
 # Access Denied 403
 # Access Denied 403
@@ -163,6 +160,7 @@ for s in $(aws logs describe-log-streams --log-group-name /eks/book-svc/access -
 done
 # (stream: /book-svc/ap-northeast-2a ip: 10.0.10.66)
 # (stream: /book-svc/ap-northeast-2b ip: 10.0.11.234)
+# * 밑줄친 부분은 다를수도 있음
 
 
 echo "${CF_DOMAIN}"/grafana
