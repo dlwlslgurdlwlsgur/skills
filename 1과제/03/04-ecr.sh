@@ -12,15 +12,11 @@ ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 KMS_ARN=$(aws kms describe-key --key-id "$KMS_ALIAS" --query 'KeyMetadata.Arn' --output text)
 REPOSITORY_URI="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${ECR_NAME}"
 
-if aws ecr describe-repositories --repository-names "$ECR_NAME" 2>/dev/null; then
-else
-    aws ecr create-repository \
-        --repository-name "$ECR_NAME" \
-        --image-tag-mutability IMMUTABLE \
-        --tag-mutability-exception-filters "filterType=WILDCARD,filterRule=v1*" \
-        --image-scanning-configuration scanOnPush=true \
-        --encryption-configuration encryptionType=KMS,kmsKey="$KMS_ARN" > /dev/null
-fi
+aws ecr create-repository \
+    --repository-name "$ECR_NAME" \
+    --image-tag-mutability IMMUTABLE \
+    --image-scanning-configuration scanOnPush=true \
+    --encryption-configuration encryptionType=KMS,kmsKey="$KMS_ARN" > /dev/null
 
 LIFECYCLE_POLICY=$(cat <<EOF
 {
@@ -59,23 +55,3 @@ EOF
 aws ecr put-lifecycle-policy \
     --repository-name "$ECR_NAME" \
     --lifecycle-policy-text "$LIFECYCLE_POLICY" > /dev/null
-
-say "Dockerfile 생성 중..."
-cat <<EOF > Dockerfile
-FROM alpine:latest
-WORKDIR /app
-COPY ./book /app/main
-RUN apk update && \\
-    apk add --no-cache libc6-compat libstdc++ libgcc curl openssl && \\
-    apk upgrade --no-cache busybox && \\
-    chmod +x /app/main
-EXPOSE 8080
-CMD ["/app/main"]
-EOF
-
-aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
-
-docker build -t "${ECR_NAME}:${IMAGE_TAG}" .
-docker tag "${ECR_NAME}:${IMAGE_TAG}" "${REPOSITORY_URI}:${IMAGE_TAG}"
-
-docker push "${REPOSITORY_URI}:${IMAGE_TAG}"

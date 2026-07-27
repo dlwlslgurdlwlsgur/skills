@@ -132,7 +132,6 @@ echo "S3 Object KMS Check:"; for OBJ in $(aws s3api list-objects --bucket "$BUCK
   KEY_ID=$(aws s3api head-object --bucket "$BUCKET" --key "$OBJ" --query "SSEKMSKeyId" --output text 2>/dev/null)
   if [ "$KEY_ID" = "$BUCKET_KMS_ARN" ]; then echo "  $OBJ: PASS"; else echo "  $OBJ: FAIL ($KEY_ID)"; fi
 done
-echo
 # wsc2026-static-<임의 영문 4자리>-<선수 비번호>-bucket
 # True    True    True    True
 # aws:kms	True
@@ -223,25 +222,14 @@ echo "Dashboards:"; curl -s -u admin:'Skills$#$@!' "http://${GRAFANA_LB}/api/sea
 #   wsc2026-grafana-dashboard
 
 
-echo "수동 채점: 대시보드 구성 확인"
-echo "접속: http://${GRAFANA_LB} (admin / Skills\$#\$@!)"
-echo "대시보드: wsc2026-grafana-dashboard"
-echo ""
-echo "Node 로우: CPU/Memory 시계열, Available Nodes 숫자"
-echo "Pod 로우: CPU/Memory 시계열, Pending/Restarts 숫자"
-echo "Application Pod 로우: CPU/Memory 시계열, Running/Restarts/Pending 숫자"
-echo "Application Traffic 로우: RequestCount/ResponseTime/StatusCodes 시계열, Application Logs 패널"
-echo "색상: CPU 80%↑ 빨강, 60~80% 노랑, 60%↓ 초록 / Restart 1↑ 경고"
-echo ""
-echo "Application Logs 패널 로그 형식 예시:"
-echo 'info'
-echo '{"level":"INFO","path":"/v1/book","status":"200","duration":"112.663323ms","method":"POST"}'
-echo
-
-
-echo =====11-4=====
-echo "수동 채점: Alert 확인"
-echo "Alerts 로우에서 아래 5개가 빨간색(Firing)으로 표시되는지 확인"
-echo "  PodHighCPU / PodHighMemory / PodNotReady / HighErrorRate / HighLatency"
-echo
-echo
+echo 'http://'"${GRAFANA_LB}"' (admin / Skills$#$@!)'
+# Node 로우: CPU/Memory 시계열, Available Nodes 숫자
+# Pod 로우: CPU/Memory 시계열, Pending/Restarts 숫자
+# Application Pod 로우: CPU/Memory 시계열, Running/Restarts/Pending 숫자
+# Application Traffic 로우: RequestCount/ResponseTime/StatusCodes 시계열, Application Logs 패널
+# 색상: CPU 80%↑ 빨강, 60~80% 노랑, 60%↓ 초록 / Restart 1↑ 경고
+# Application Logs 패널 로그 형식 예시:
+# info
+# {"level":"INFO","path":"/v1/book","status":"200","duration":"112.663323ms","method":"POST"}
+# Alerts 로우에서 아래 5개가 빨간색(Firing)으로 표시되는지 확인
+# PodHighCPU / PodHighMemory / PodNotReady / HighErrorRate / HighLatency
