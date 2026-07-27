@@ -2,9 +2,9 @@ ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 echo "ACCOUNT ID: $ACCOUNT_ID"
 aws configure set region ap-southeast-1
 read -p "비번호: " NUM
+
+
 BUCKET_NAME="wsc2026-student-score-bucket-${NUM}"
-
-
 aws s3api head-bucket --bucket $BUCKET_NAME 2>&1 > /dev/null && aws s3 ls s3://$BUCKET_NAME/
 # PRE error/
 # PRE input/

@@ -1,7 +1,14 @@
+## Region
+- 싱가포르/ap-southeast-1
+
+<br>
+
 ## 환경변수
 ```bash
 export CANDIDATE_NUMBER=<비번호>
 ```
+
+<br>
 
 ## template
 ```bash
@@ -10,6 +17,8 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/02/Workflow/workflow.py
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/02/Workflow/test.csv
 ```
+
+<br>
 
 ## python
 ```bash
