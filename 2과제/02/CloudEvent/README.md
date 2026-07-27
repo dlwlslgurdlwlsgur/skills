@@ -7,4 +7,4 @@
 - 02-cloudtrail.sh
 - 03-lambda.sh
 - 04-ec2.sh
-- 05-eventbridge.sh
+- 05-config.sh

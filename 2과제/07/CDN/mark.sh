@@ -11,7 +11,6 @@ aws s3api list-objects-v2 --bucket ${BUCKET} --region us-east-1 | jq -r '[.Conte
 aws s3api get-public-access-block --bucket ${BUCKET} --region us-east-1 | jq -r '.PublicAccessBlockConfiguration | (all(.[]; . == true) | tostring)'
 aws s3api get-bucket-policy --bucket ${BUCKET} --region us-east-1 | jq -r '.Policy | fromjson | .Statement[0] | (((.Principal.Service // "-") == "cloudfront.amazonaws.com") | tostring), (((.Condition.StringEquals."AWS:SourceArn" // "-") | startswith("arn:aws:cloudfront::")) | tostring)'
 # skillsphone-landing-ab-<ACCOUNT_ID>
-# skillsphone-landing-ab-<ACCOUNT_ID>
 # true true
 # true
 # true true

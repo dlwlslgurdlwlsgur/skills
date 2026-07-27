@@ -201,5 +201,5 @@ INSTANCE_ID=$(aws ec2 run-instances \
 
 aws elbv2 register-targets \
     --target-group-arn ${TG_ARN} \
-    --ids ${INSTANCE_ID} \
+    --targets Id=${INSTANCE_ID} \
     --region ${REGION}

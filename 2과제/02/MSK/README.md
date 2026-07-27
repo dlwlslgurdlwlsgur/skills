@@ -1,13 +1,17 @@
-## 01-vpc-msk.sh
+## Region
 - 도쿄/ap-northeast-1
+
+## shell
+- 01-vpc-msk.sh
 ```bash
 export EXAM_NO="<비번호>"
 ```
 
 <br>
 
-## 02-shell.sh
+## shell
 - msk 완료되면
 ```bash
 export EXAM_NO="<비번호>"
 ```
+- 02-shell.sh
