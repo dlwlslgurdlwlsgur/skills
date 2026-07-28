@@ -1,6 +1,7 @@
 import os
 import json
 import boto3
+from boto3.dynamodb.conditions import Attr
 from base64 import b64decode
 from collections import OrderedDict
 from datetime import datetime
@@ -26,14 +27,19 @@ def lambda_handler(event, context):
                 'body': json.dumps({'message': 'Missing booking_id parameter'})
             }
         
-        response = table.get_item(Key={'booking_id': booking_id})
-        item = response.get('Item')
+        # 수정: booking_id로 데이터를 찾기 위해 scan 및 FilterExpression 사용
+        response = table.scan(
+            FilterExpression=Attr('booking_id').eq(booking_id)
+        )
+        items = response.get('Items', [])
+        item = items[0] if items else None
         
         if not item:
             return {
                 'statusCode': 404,
                 'body': json.dumps({'message': 'Booking not found'})
             }
+            
         raw_created_at = item.get('created_at', '')
         formatted_created_at = raw_created_at
         

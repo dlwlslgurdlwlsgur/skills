@@ -97,3 +97,4 @@ ensure_key "$KMS_DB_ALIAS"
 ensure_key "$KMS_ECR_ALIAS"
 ensure_key "$KMS_FUNCTION_ALIAS"
 ensure_key "$KMS_BUCKET_ALIAS"
+echo

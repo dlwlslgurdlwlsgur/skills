@@ -1,5 +1,3 @@
-#!/bin/bash
-
 aws configure set default.region ap-northeast-2
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=wsc2026-skills-vpc" --query "Vpcs[0].VpcId" --output text)
@@ -64,10 +62,10 @@ check_kms "wsc2026-eks-kms" "$(aws eks describe-cluster --name wsc2026-eks-clust
 # KMS wsc2026-eks-kms: PASS
 
 
-NG1=$(aws eks describe-nodegroup --cluster-name wsc2026-eks-cluster --nodegroup-name wsc2026-addon-nodegroup --query "nodegroup.[nodegroupName,instanceTypes[0]]" --output text 2>/dev/null); echo "$NG1	wsc2026/node=addon"
+NG1=$(aws eks describe-nodegroup --cluster-name wsc2026-eks-cluster --nodegroup-name wsc2026-addon-nodegroup --query "nodegroup.[nodegroupName,instanceTypes[0]]" --output text 2>/dev/null); echo "${NG1} wsc2026/node=addon"
 ADDON_COUNT=$(kubectl get nodes -l wsc2026/node=addon --no-headers --request-timeout=10s 2>/dev/null | wc -l)
 if [ "$ADDON_COUNT" -ge 1 ]; then echo "Addon Nodes: PASS ($ADDON_COUNT)"; else echo "Addon Nodes: FAIL"; fi
-NG2=$(aws eks describe-nodegroup --cluster-name wsc2026-eks-cluster --nodegroup-name wsc2026-workload-ng --query "nodegroup.[nodegroupName,instanceTypes[0]]" --output text 2>/dev/null); echo "$NG2	wsc2026/node=application"
+NG2=$(aws eks describe-nodegroup --cluster-name wsc2026-eks-cluster --nodegroup-name wsc2026-workload-ng --query "nodegroup.[nodegroupName,instanceTypes[0]]" --output text 2>/dev/null); echo "{$NG2} wsc2026/node=application"
 WORK_COUNT=$(kubectl get nodes -l wsc2026/node=application --no-headers --request-timeout=10s 2>/dev/null | wc -l)
 if [ "$WORK_COUNT" -ge 1 ]; then echo "Workload Nodes: PASS ($WORK_COUNT)"; else echo "Workload Nodes: FAIL"; fi
 # wsc2026-addon-nodegroup t3.medium       wsc2026/node=addon
@@ -112,10 +110,10 @@ done
 # wsc2026-book-deploy-7b88597d86-z8nkt: PASS
 
 
-PI_SA=$(aws eks list-pod-identity-associations --cluster-name wsi2026-cluster --namespace wsc2026 --query 'associations[0].serviceAccount' --output text 2>/dev/null)
-PI_ROLE=$(aws eks list-pod-identity-associations --cluster-name wsi2026-cluster --namespace wsc2026 --query 'associations[0].associationId' --output text 2>/dev/null)
+PI_SA=$(aws eks list-pod-identity-associations --cluster-name wsc2026-eks-cluster --namespace wsc2026 --query 'associations[0].serviceAccount' --output text 2>/dev/null)
+PI_ROLE=$(aws eks list-pod-identity-associations --cluster-name wsc2026-eks-cluster --namespace wsc2026 --query 'associations[0].associationId' --output text 2>/dev/null)
 [ "$PI_SA" = "wsc2026-book-sa" ] && echo "Pod Identity SA: PASS ($PI_SA)" || echo "Pod Identity SA: FAIL ($PI_SA)"
-ROLE_NAME=$(aws eks describe-pod-identity-association --cluster-name wsi2026-cluster --association-id "$PI_ROLE" --query 'association.roleArn' --output text 2>/dev/null|awk -F/ '{print $NF}')
+ROLE_NAME=$(aws eks describe-pod-identity-association --cluster-name wsc2026-eks-cluster --association-id "$PI_ROLE" --query 'association.roleArn' --output text 2>/dev/null|awk -F/ '{print $NF}')
 MANAGED_ACTIONS=$(aws iam list-attached-role-policies --role-name "$ROLE_NAME" --query 'AttachedPolicies[].PolicyArn' --output text 2>/dev/null|tr '\t' '\n'|while read arn;do VERSION=$(aws iam get-policy --policy-arn "$arn" --query 'Policy.DefaultVersionId' --output text 2>/dev/null);aws iam get-policy-version --policy-arn "$arn" --version-id "$VERSION" --query 'PolicyVersion.Document.Statement[].Action' --output text 2>/dev/null;done)
 echo "$MANAGED_ACTIONS"|grep -q dynamodb:PutItem && ! echo "$MANAGED_ACTIONS"|grep -qE '^\*$' && echo "Pod Identity Role: PASS" || echo "Pod Identity Role: FAIL"
 # Pod Identity SA: PASS (wsc2026-book-sa)
@@ -139,7 +137,6 @@ done
 #   static/: PASS
 #   static/index.html: PASS
 #   static/main.jpeg: PASS
-
 
 
 aws lambda get-function --function-name wsc2026-book-get-function --query "Configuration.{Name:FunctionName,Runtime:Runtime}" --output json 2>/dev/null

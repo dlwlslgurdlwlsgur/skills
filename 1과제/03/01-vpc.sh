@@ -48,3 +48,18 @@ aws ec2 associate-route-table --route-table-id $APP_B_RT --subnet-id $APP_B
 
 aws ec2 create-tags --resources $HUB_A $HUB_B --tags Key=kubernetes.io/role/elb,Value=1
 aws ec2 create-tags --resources $APP_A $APP_B --tags Key=kubernetes.io/role/internal-elb,Value=1 Key=karpenter.sh/discovery,Value=wsc2026-eks-cluster
+
+SG_ID=$(aws ec2 create-security-group \
+  --group-name "mark-sg" \
+  --description "Security group with any open ingress" \
+  --vpc-id "$VPC_ID" \
+  --region "ap-northeast-2" \
+  --query "GroupId" --output text)
+
+aws ec2 authorize-security-group-ingress \
+  --group-id "$SG_ID" \
+  --protocol "-1" \
+  --port -1 \
+  --cidr "0.0.0.0/0" \
+  --region "ap-northeast-2"
+echo

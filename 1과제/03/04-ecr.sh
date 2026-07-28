@@ -1,3 +1,4 @@
+ensure_key "$KMS_EKS_ALIAS"
 REGION="ap-northeast-2"
 export AWS_DEFAULT_REGION="$REGION"
 
@@ -5,18 +6,15 @@ ECR_NAME="wsc2026-book-ecr"
 KMS_ALIAS="alias/wsc2026-ecr-kms"
 IMAGE_TAG="v1.0.0"
 
-say() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
-ok()  { printf '\033[1;32m[OK]\033[0m %s\n' "$*"; }
-
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 KMS_ARN=$(aws kms describe-key --key-id "$KMS_ALIAS" --query 'KeyMetadata.Arn' --output text)
 REPOSITORY_URI="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${ECR_NAME}"
 
 aws ecr create-repository \
-    --repository-name "$ECR_NAME" \
-    --image-tag-mutability IMMUTABLE \
-    --image-scanning-configuration scanOnPush=true \
-    --encryption-configuration encryptionType=KMS,kmsKey="$KMS_ARN" > /dev/null
+     --repository-name "$ECR_NAME" \
+     --image-tag-mutability IMMUTABLE \
+     --image-scanning-configuration scanOnPush=true \
+     --encryption-configuration encryptionType=KMS,kmsKey="$KMS_ARN" > /dev/null
 
 LIFECYCLE_POLICY=$(cat <<EOF
 {
@@ -55,3 +53,4 @@ EOF
 aws ecr put-lifecycle-policy \
     --repository-name "$ECR_NAME" \
     --lifecycle-policy-text "$LIFECYCLE_POLICY" > /dev/null
+echo

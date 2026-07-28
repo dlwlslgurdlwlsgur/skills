@@ -18,7 +18,7 @@ if [ -n "$CLIENT_VPC_ID" ] && [ "$CLIENT_VPC_ID" != "None" ] && [ -n "$SERVICE_V
 else
   echo "Client 또는 Service VPC 식별 실패"
 fi
-# Client/Service VPC CIDR 10.61.0.0/16, 10.62.0.0/16 가 존재하고 이 각각 인지 확인합니다
+# Client/Service VPC가 존재하고 CIDR이 각각 10.61.0.0/16, 10.62.0.0/16인지 확인합니다.
 
 
 aws ec2 describe-instances --region ap-northeast-1 --filters Name=tag:Name,Values=skills-lattice-client-ec2,skills-lattice-service-ec2 Name=instance-state-name,Values=running --query 'Reservations[].Instances[].{Name:Tags[?Key==`Name`].Value|[0],Id:InstanceId,Type:InstanceType,PublicIp:PublicIpAddress,PrivateIp:PrivateIpAddress,State:State.Name}' --output table
@@ -33,7 +33,7 @@ if [ -n "$CLIENT_IP" ] && [ "$CLIENT_IP" != "None" ]; then
 else
   echo "Client EC2 Public IP 식별 실패"
 fi
-# Client/Service EC2 , Public IP , Client /health HTTP 200 상태 조건 응답을 확인합니다.
+# Client/Service EC2 상태, Public IP 조건, Client /health HTTP 200 응답을 확인합니다.
 
 
 SERVICE_NETWORK_ID=$(aws vpc-lattice list-service-networks --region ap-northeast-1 --query 'items[?name==`skills-lattice-sn`].id|[0]' --output text 2>/dev/null || true)
@@ -53,7 +53,7 @@ if [ -n "$SERVICE_NETWORK_ID" ] && [ "$SERVICE_NETWORK_ID" != "None" ]; then
 else
   echo "skills-lattice-sn Service Network 식별 실패"
 fi
-# Service Network가 존재하고  , Service, VPC Association, Service Association이 ACTIVE 인지 확인합니다.
+# Service Network가 존재하고, Service, VPC Association, Service Association이 ACTIVE 상태인지 확인합니다.
 
 
 echo "TARGET_GROUP_ID=${TARGET_GROUP_ID}"
@@ -73,8 +73,7 @@ if [ -n "$SERVICE_SG_IDS" ] && [ "$SERVICE_SG_IDS" != "None" ]; then
 else
   echo "Service EC2 Security Group 식별 실패"
 fi
-# Target Group, Target, Listener, Service EC2 Security Group 구성이 요구사항과
-# 일치하는지 확인합니다
+# Target Group, Target, Listener, Service EC2 Security Group 구성이 요구사항과 일치하는지 확인합니다.
 
 
 if [ -n "$CLIENT_IP" ] && [ "$CLIENT_IP" != "None" ]; then
@@ -82,4 +81,4 @@ if [ -n "$CLIENT_IP" ] && [ "$CLIENT_IP" != "None" ]; then
 else
   echo "Client EC2 Public IP 식별 실패"
 fi
-# Client API HTTP 200 order_id=1001, via=vpc-lattice 가 을 반환하고 값이 포함되는지 확인합니다.
+# Client API가 HTTP 200을 반환하고 order_id=1001, via=vpc-lattice 값이 포함되는지 확인합니다.

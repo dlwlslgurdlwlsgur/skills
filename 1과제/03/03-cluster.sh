@@ -4,9 +4,6 @@ export AWS_DEFAULT_REGION="$REGION"
 KMS_EKS_ALIAS="alias/wsc2026-eks-kms"
 SG_NAME="wsc2026-eks-sg"
 
-say() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
-ok()  { printf '\033[1;32m[OK]\033[0m %s\n' "$*"; }
-
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 
 VPC_ID=$(aws ec2 describe-vpcs \
@@ -104,4 +101,4 @@ EOF
 curl --silent --location "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
 sudo mv /tmp/eksctl /usr/local/bin
 
-eksctl create cluster -f cluster.yamlREGION="ap-northeast-2"
+eksctl create cluster -f cluster.yaml

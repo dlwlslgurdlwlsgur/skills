@@ -66,3 +66,5 @@ WAF_ARN=$(aws wafv2 create-web-acl \
   --visibility-config SampledRequestsEnabled=true,CloudWatchMetricsEnabled=true,MetricName=wsc2026WafMetric \
   --region us-east-1 \
   --query "Summary.ARN" --output text)
+
+echo

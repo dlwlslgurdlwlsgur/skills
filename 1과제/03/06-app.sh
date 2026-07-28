@@ -1,4 +1,3 @@
-set -e
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 REGION_CODE="ap-northeast-2"
 EKS_CLUSTER_NAME="wsc2026-eks-cluster"
@@ -6,9 +5,6 @@ APP_EKS_NODE_GROUP_NAME="wsc2026-workload-node"
 ALB_SECURITY_GROUP_NAME="wsc2026-app-alb-sg"
 POD_ROLE_NAME="wsc2026-book-pod-role"
 KMS_KEY_ALIASE_NAME="alias/wsc2026-db-kms"
-
-say() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
-ok()  { printf '\033[1;32m[OK]\033[0m %s\n' "$*"; }
 
 kubectl get configmaps coredns -n kube-system -o yaml > coredns.yaml
 sed -i "s|cluster.local|wsc2026.skills.local|g" ./coredns.yaml
@@ -18,6 +14,11 @@ kubectl rollout restart deploy/coredns -n kube-system
 
 kubectl create ns wsc2026 --dry-run=client -o yaml | kubectl apply -f -
 kubectl create ns observability --dry-run=client -o yaml | kubectl apply -f -
+
+aws eks create-addon \
+  --cluster-name wsc2026-eks-cluster \
+  --addon-name eks-pod-identity-agent \
+  --resolve-conflicts OVERWRITE
 
 TRUST_POLICY=$(cat <<EOF
 {
@@ -44,17 +45,36 @@ aws iam attach-role-policy --role-name "$POD_ROLE_NAME" --policy-arn "arn:aws:ia
 KMS_KEY_ARN=$(aws kms describe-key --key-id "$KMS_KEY_ALIASE_NAME" --query "KeyMetadata.Arn" --output text --region "$REGION_CODE")
 aws iam put-role-policy \
   --role-name "$POD_ROLE_NAME" \
-  --policy-name allow-kms-decrypt \
+  --policy-name wsc2026-dynamodb-kms-policy \
   --policy-document "{
     \"Version\": \"2012-10-17\",
     \"Statement\": [
-      {
-        \"Effect\": \"Allow\",
-        \"Action\": \"kms:Decrypt\",
-        \"Resource\": \"${KMS_KEY_ARN}\"
-      }
+        {
+            \"Sid\": \"DynamoDBReadWrite\",
+            \"Effect\": \"Allow\",
+            \"Action\": [
+                \"dynamodb:PutItem\",
+                \"dynamodb:BatchWriteItem\",
+                \"dynamodb:GetItem\",
+                \"dynamodb:Query\",
+                \"dynamodb:Scan\",
+                \"dynamodb:UpdateItem\"
+            ],
+            \"Resource\": \"arn:aws:dynamodb:ap-northeast-2:${ACCOUNT_ID}:table/wsc2026-book-table\"
+        },
+        {
+            \"Sid\": \"KMSAccessForBook\",
+            \"Effect\": \"Allow\",
+            \"Action\": [
+                \"kms:Encrypt\",
+                \"kms:Decrypt\",
+                \"kms:DescribeKey\",
+                \"kms:GenerateDataKey*\"
+            ],
+            \"Resource\": \"${KMS_KEY_ARN}\"
+        }
     ]
-  }"
+}"
 
 kubectl create serviceaccount wsc2026-book-sa -n wsc2026 --dry-run=client -o yaml | kubectl apply -f -
 
@@ -178,16 +198,6 @@ spec:
     - protocol: TCP
       port: 8080
       targetPort: 8080
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: response-403
-  namespace: wsc2026
-spec:
-  ports:
-  - port: 80
-    targetPort: 80
 EOF
 
 cat <<EOF > values.yaml
@@ -225,6 +235,7 @@ helm upgrade -i aws-load-balancer-controller eks/aws-load-balancer-controller \
   --set clusterName=$EKS_CLUSTER_NAME \
   -f ./values.yaml
 rm -f values.yaml
+
 sleep 15
 
 VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=wsc2026-skills-vpc" --query "Vpcs[0].VpcId" --output text)
@@ -232,14 +243,15 @@ PREFIX_LIST_ID=$(aws ec2 describe-managed-prefix-lists --filters "Name=prefix-li
 
 SECURITY_GROUP_ID=$(aws ec2 describe-security-groups --filters "Name=group-name,Values=$ALB_SECURITY_GROUP_NAME" "Name=vpc-id,Values=$VPC_ID" --query "SecurityGroups[0].GroupId" --output text)
 if [ -z "$SECURITY_GROUP_ID" ] || [ "$SECURITY_GROUP_ID" = "None" ]; then
-  SECURITY_GROUP_ID=$(aws ec2 create-security-group \
-    --group-name "$ALB_SECURITY_GROUP_NAME" \
-    --description "Security group for Application ALB restricted to CloudFront" \
-    --vpc-id "$VPC_ID" \
-    --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=$ALB_SECURITY_GROUP_NAME}]" \
-    --query "GroupId" --output text)
+    SECURITY_GROUP_ID=$(aws ec2 create-security-group \
+      --group-name "$ALB_SECURITY_GROUP_NAME" \
+      --description "Security group for Application ALB restricted to CloudFront" \
+      --vpc-id "$VPC_ID" \
+      --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=$ALB_SECURITY_GROUP_NAME}]" \
+      --query "GroupId" --output text)
+    echo "새 보안 그룹 생성됨: $SECURITY_GROUP_ID"
 else
-  ok "기존 보안 그룹 발견: $SECURITY_GROUP_ID"
+    echo "기존 보안 그룹 발견: $SECURITY_GROUP_ID"
 fi
 
 aws ec2 authorize-security-group-ingress \
@@ -253,7 +265,12 @@ aws ec2 authorize-security-group-ingress \
     }
   ]" 2>/dev/null || true
 
-NODE_SG_ID=$(aws eks describe-cluster --cluster-name "$EKS_CLUSTER_NAME" --query "cluster.resourcesVpcConfig.clusterSecurityGroupId" --output text)
+# 수정: 올바른 워커 노드 보안 그룹 ID 탐색
+NODE_SG_ID=$(aws ec2 describe-security-groups --filters "Name=group-name,Values=*wsc2026*node*" --query "SecurityGroups[0].GroupId" --output text)
+if [ -z "$NODE_SG_ID" ] || [ "$NODE_SG_ID" = "None" ]; then
+    NODE_SG_ID=$(aws eks describe-cluster --cluster-name "$EKS_CLUSTER_NAME" --query "cluster.resourcesVpcConfig.clusterSecurityGroupId" --output text)
+fi
+
 aws ec2 authorize-security-group-ingress \
   --group-id "$NODE_SG_ID" \
   --protocol tcp \
@@ -299,9 +316,6 @@ spec:
             name: wsc2026-book-svc
             port:
               number: 8080
-  defaultBackend:
-      service:
-        name: response-403
-        port:
-          name: use-annotation
 EOF
+
+echo

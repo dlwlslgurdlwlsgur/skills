@@ -489,3 +489,5 @@ helm upgrade -i grafana grafana-community/grafana \
   -n observability \
   -f ./grafana-values.yaml
 rm -f grafana-values.yaml
+
+echo

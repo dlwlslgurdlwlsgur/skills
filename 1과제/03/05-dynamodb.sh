@@ -8,9 +8,6 @@ LAMBDA_POLICY_NAME="wsc2026-book-function-policy"
 LAMBDA_ROLE_NAME="wsc2026-book-function-role"
 POD_ROLE_NAME="wsc2026-book-pod-role"
 
-say() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
-ok()  { printf '\033[1;32m[OK]\033[0m %s\n' "$*"; }
-
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 KMS_ARN=$(aws kms describe-key --key-id "$KMS_ALIAS" --query 'KeyMetadata.Arn' --output text)
 TABLE_ARN="arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/${TABLE_NAME}"
@@ -164,6 +161,7 @@ aws iam create-role \
 
 aws iam attach-role-policy --role-name "$LAMBDA_ROLE_NAME" --policy-arn "$LAMBDA_POLICY_ARN"
 
+sleep 5
 
 FIXED_POLICY_JSON=$(cat <<EOF
 {
@@ -232,3 +230,4 @@ aws kms put-key-policy \
   --policy file://final_policy.json
 
 rm -f temp_statements.json lambda_statement.json final_policy.json
+echo

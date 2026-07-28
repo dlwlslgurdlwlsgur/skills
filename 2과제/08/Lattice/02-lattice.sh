@@ -2,34 +2,42 @@ REGION="ap-northeast-1"
 CLIENT_VPC_ID=$(aws ec2 describe-vpcs --region $REGION --filters "Name=tag:Name,Values=skills-lattice-client-vpc" --query "Vpcs[0].VpcId" --output text)
 SERVICE_VPC_ID=$(aws ec2 describe-vpcs --region $REGION --filters "Name=tag:Name,Values=skills-lattice-service-vpc" --query "Vpcs[0].VpcId" --output text)
 
-CLIENT_SG_ID=$(aws ec2 create-security-group --region $REGION \
-    --group-name "skills-lattice-client-assoc-sg" \
-    --description "Security group for Lattice Client VPC association" \
-    --vpc-id $CLIENT_VPC_ID \
-    --query "GroupId" --output text)
+CLIENT_SG_ID=$(aws ec2 describe-security-groups --region $REGION --filters "Name=group-name,Values=skills-lattice-client-assoc-sg" "Name=vpc-id,Values=$CLIENT_VPC_ID" --query "SecurityGroups[0].GroupId" --output text)
+if [ -z "$CLIENT_SG_ID" ] || [ "$CLIENT_SG_ID" = "None" ]; then
+    CLIENT_SG_ID=$(aws ec2 create-security-group --region $REGION \
+        --group-name "skills-lattice-client-assoc-sg" \
+        --description "Security group for Lattice Client VPC association" \
+        --vpc-id $CLIENT_VPC_ID \
+        --query "GroupId" --output text)
+    
+    aws ec2 authorize-security-group-ingress --region $REGION \
+        --group-id $CLIENT_SG_ID \
+        --protocol tcp --port 80 \
+        --cidr 10.61.0.0/16
+fi
 
-aws ec2 authorize-security-group-ingress --region $REGION \
-    --group-id $CLIENT_SG_ID \
-    --protocol tcp --port 80 \
-    --cidr 10.61.0.0/16
-
-SN_ID=$(aws vpc-lattice create-service-network --region $REGION \
-    --name skills-lattice-sn \
-    --tags "Name=skills-lattice-sn" \
-    --query "id" --output text)
+SN_ID=$(aws vpc-lattice list-service-networks --region $REGION --query "items[?name=='skills-lattice-sn'].id" --output text)
+if [ -z "$SN_ID" ] || [ "$SN_ID" = "None" ]; then
+    SN_ID=$(aws vpc-lattice create-service-network --region $REGION \
+        --name skills-lattice-sn \
+        --tags "Name=skills-lattice-sn" \
+        --query "id" --output text)
+fi
 
 aws vpc-lattice create-service-network-vpc-association --region $REGION \
     --service-network-identifier $SN_ID \
     --vpc-identifier $CLIENT_VPC_ID \
     --security-group-ids $CLIENT_SG_ID \
-    --tags "Name=skills-lattice-client-vpc-assoc"
+    --tags "Name=skills-lattice-client-vpc-assoc" || true
 
-sleep 3
+sleep 60
 
 aws vpc-lattice create-service-network-vpc-association --region $REGION \
     --service-network-identifier $SN_ID \
     --vpc-identifier $SERVICE_VPC_ID \
-    --tags "Name=skills-lattice-service-vpc-assoc"
+    --tags "Name=skills-lattice-service-vpc-assoc" || true
+
+sleep 60
 
 TG_CONFIG="{\"port\":8080,\"protocol\":\"HTTP\",\"vpcIdentifier\":\"$SERVICE_VPC_ID\",\"healthCheck\":{\"enabled\":true,\"path\":\"/health\",\"protocol\":\"HTTP\"}}"
 

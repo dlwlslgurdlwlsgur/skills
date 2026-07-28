@@ -34,13 +34,12 @@ RUN apk update && \\
 EXPOSE 8080
 CMD ["/app/main"]
 EOF
-```
-```bash
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin "${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com"
 docker build -t "wsc2026-book-ecr:v1.0.0" .
 docker tag "wsc2026-book-ecr:v1.0.0" "${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com/wsc2026-book-ecr:v1.0.0"
 docker push "${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com/wsc2026-book-ecr:v1.0.0"
+echo
 ```
 
 <br>
@@ -98,7 +97,5 @@ function handler(event) {
 - 06-app.sh
 - 07-monitoring.sh
 - 08-waf.sh
-- cloudFront 연결
-
-
-185
+- cloudFront에 WAF 연결
+- ALB에 Default 403 설정
