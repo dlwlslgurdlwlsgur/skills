@@ -14,16 +14,25 @@
 chmod 777 worker.py
 cat <<EOF >> Dockerfile
 FROM python:3.9-slim
-RUN pip install boto3
-COPY worker.py /app/worker.py
 WORKDIR /app
+COPY worker.py .
+RUN pip install boto3
 CMD ["python", "worker.py"]
 EOF
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.us-west-2.amazonaws.com
+docker build -t skills-sqs-ecr .
+docker tag skills-sqs-ecr:latest $ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/skills-sqs-ecr:latest
+docker push $ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/skills-sqs-ecr:latest
+echo
 ```
 
 <br> 
 
 ## shell
+```bash
+aws configure
+```
 - 04-manifest.sh
 
 <br> 

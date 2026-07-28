@@ -7,3 +7,5 @@ aws ecr create-repository \
   --repository-name $ECR_REPO_NAME \
   --region $REGION \
   --output text 2>/dev/null || echo "ECR repo already exists"
+
+echo

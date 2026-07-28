@@ -14,7 +14,6 @@ PRIV_B=$(aws ec2 describe-subnets --region us-west-2 \
   --filters "Name=vpc-id,Values=$VPC_ID" "Name=availability-zone,Values=us-west-2b" "Name=tag:Name,Values=*priv*,*Priv*,*Private*,*private*" \
   --query "Subnets[0].SubnetId" --output text)
 
-# cluster.yaml
 cat << EOF > cluster.yaml
 apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
