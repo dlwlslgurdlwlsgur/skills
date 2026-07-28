@@ -1,6 +1,6 @@
 ## 1과제
 - 02: [Cloudfront header 넣는](https://github.com/wngnlwngnl/skills/tree/main/1%EA%B3%BC%EC%A0%9C/02)
-<!-- - 03: [Lambda랑 app 경로 똑같은](https://github.com/wngnlwngnl/skills/tree/main/1%EA%B3%BC%EC%A0%9C/03) -->
+- 03: [Lambda랑 app 경로 똑같은](https://github.com/wngnlwngnl/skills/tree/main/1%EA%B3%BC%EC%A0%9C/03)
 - 06: [public 서브넷이 없는](https://github.com/wngnlwngnl/skills/tree/main/1%EA%B3%BC%EC%A0%9C/06)
 - 07: [unicorn](https://github.com/wngnlwngnl/skills/tree/main/1%EA%B3%BC%EC%A0%9C/07)
 <br></br>
