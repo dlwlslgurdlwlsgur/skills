@@ -22,7 +22,7 @@ EOF
 aws iam create-role --role-name $ROLE_NAME --assume-role-policy-document file://trust-policy.json
 aws iam attach-role-policy --role-name $ROLE_NAME --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 aws iam attach-role-policy --role-name $ROLE_NAME --policy-arn arn:aws:iam::aws:policy/PowerUserAccess
-sleep 5
+sleep 15
 
 ROLE_ARN=$(aws iam get-role --role-name $ROLE_NAME --query 'Role.Arn' --output text)
 
@@ -87,15 +87,16 @@ STREAM_ARN=$(aws dynamodb describe-table \
     --query 'Table.LatestStreamArn' \
     --output text)
 
-
-aws lambda create-event-source-mapping \
+UUID=$(aws lambda create-event-source-mapping \
     --function-name $FUNCTION_NAME \
     --event-source-arn $STREAM_ARN \
     --starting-position LATEST \
-    --region $REGION
+    --region $REGION \
+    --query 'UUID' \
+    --output text)
 
 aws lambda update-event-source-mapping \
-    --uuid $UUID \
+    --uuid "$UUID" \
     --enabled \
     --region $REGION
 

@@ -4,16 +4,16 @@
 <br>
 
 ## shell
-- 01-vpc-msk.sh
 ```bash
 export EXAM_NO="<비번호>"
 ```
+- 01-vpc-msk.sh
 
 <br>
 
 ## shell
-- msk 완료되면
 ```bash
 export EXAM_NO="<비번호>"
 ```
+- msk 완료되면
 - 02-shell.sh

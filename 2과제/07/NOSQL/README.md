@@ -1,19 +1,10 @@
 ## Region
 - 싱가포르/ap-southeast-1
 
-## Lambda
-- name: bigbae-nosql-reservation-audit
-- handler 변경
-- 30초
+<br>
 
-## EC2
-- name: bigbae-nosql-app-ec2
-```
-sudo yum install python3-pip -y
-pip3 install --ignore-installed -r requirements.txt
-pip3 install "jmespath<1.1.0,>=0.7.1" "python-dateutil<=2.9.0,>=2.1"
-export AWS_REGION="ap-southeast-1"
-export TABLE_NAME="bigbae-nosql-reservation-table"
-export GSI_NAME="gsi-user-reservations"
-nohup python3 app.py &
-```
+## shell
+- 01-vpc.sh
+- 02-dynamodb.sh
+- 03-lambda.sh
+- 04-ec2.sh

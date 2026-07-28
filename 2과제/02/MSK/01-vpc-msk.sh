@@ -1,8 +1,6 @@
 rm -rf ~/.aws
 if [[ -z "${EXAM_NO:-}" || "${EXAM_NO}" == "<비번호>" || "${EXAM_NO}" == "<exam-number>" ]]; then
   echo "[오류] 비번호(EXAM_NO)가 제대로 설정되지 않았습니다." >&2
-  echo "터미널에 아래 명령어를 실행하여 본인의 비번호를 먼저 설정한 뒤 다시 실행하세요:" >&2
-  echo '  export EXAM_NO="1"  # (본인의 실제 비번호로 변경)' >&2
   exit 1
 fi
 
@@ -54,7 +52,8 @@ ensure_subnet() {
 }
 
 ensure_igw() {
-  local vpc_id="$1" igw_id=$(aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=${vpc_id}" --query "InternetGateways[0].InternetGatewayId" --output text)
+  local vpc_id="$1" 
+  local igw_id=$(aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=${vpc_id}" --query "InternetGateways[0].InternetGatewayId" --output text)
   if [[ -z "$igw_id" || "$igw_id" == "None" ]]; then
     igw_id=$(aws ec2 create-internet-gateway --query "InternetGateway.InternetGatewayId" --output text)
     aws ec2 create-tags --resources "$igw_id" --tags Key=Name,Value=msk-igw
@@ -64,7 +63,8 @@ ensure_igw() {
 }
 
 ensure_nat() {
-  local pub_subnet="$1" nat_id=$(aws ec2 describe-nat-gateways --filter "Name=subnet-id,Values=${pub_subnet}" "Name=state,Values=available,pending" --query "NatGateways[0].NatGatewayId" --output text)
+  local pub_subnet="$1" 
+  local nat_id=$(aws ec2 describe-nat-gateways --filter "Name=subnet-id,Values=${pub_subnet}" "Name=state,Values=available,pending" --query "NatGateways[0].NatGatewayId" --output text)
   if [[ -z "$nat_id" || "$nat_id" == "None" ]]; then
     local alloc_id=$(aws ec2 allocate-address --domain vpc --query "AllocationId" --output text)
     nat_id=$(aws ec2 create-nat-gateway --subnet-id "$pub_subnet" --allocation-id "$alloc_id" --query "NatGateway.NatGatewayId" --output text)
@@ -75,7 +75,8 @@ ensure_nat() {
 }
 
 ensure_rtb() {
-  local vpc_id="$1" name="$2" rtb_id=$(aws ec2 describe-route-tables --filters "Name=vpc-id,Values=${vpc_id}" "Name=tag:Name,Values=${name}" --query "RouteTables[0].RouteTableId" --output text)
+  local vpc_id="$1" name="$2" 
+  local rtb_id=$(aws ec2 describe-route-tables --filters "Name=vpc-id,Values=${vpc_id}" "Name=tag:Name,Values=${name}" --query "RouteTables[0].RouteTableId" --output text)
   if [[ -z "$rtb_id" || "$rtb_id" == "None" ]]; then
     rtb_id=$(aws ec2 create-route-table --vpc-id "$vpc_id" --query "RouteTable.RouteTableId" --output text)
     aws ec2 create-tags --resources "$rtb_id" --tags Key=Name,Value="$name"
@@ -84,7 +85,8 @@ ensure_rtb() {
 }
 
 ensure_route_assoc() {
-  local subnet_id="$1" rtb_id="$2" current_rtb=$(aws ec2 describe-route-tables --filters "Name=association.subnet-id,Values=${subnet_id}" --query "RouteTables[0].RouteTableId" --output text)
+  local subnet_id="$1" rtb_id="$2" 
+  local current_rtb=$(aws ec2 describe-route-tables --filters "Name=association.subnet-id,Values=${subnet_id}" --query "RouteTables[0].RouteTableId" --output text)
   [[ "$current_rtb" == "$rtb_id" ]] && return 0
   local assoc_id=$(aws ec2 describe-route-tables --filters "Name=association.subnet-id,Values=${subnet_id}" --query "RouteTables[0].Associations[?SubnetId=='${subnet_id}'].RouteTableAssociationId|[0]" --output text)
   if [[ -n "$assoc_id" && "$assoc_id" != "None" ]]; then
@@ -95,7 +97,8 @@ ensure_route_assoc() {
 }
 
 ensure_sg() {
-  local vpc_id="$1" name="$2" desc="$3" sg_id=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=${vpc_id}" "Name=group-name,Values=${name}" --query "SecurityGroups[0].GroupId" --output text)
+  local vpc_id="$1" name="$2" desc="$3" 
+  local sg_id=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=${vpc_id}" "Name=group-name,Values=${name}" --query "SecurityGroups[0].GroupId" --output text)
   if [[ -z "$sg_id" || "$sg_id" == "None" ]]; then
     sg_id=$(aws ec2 create-security-group --group-name "$name" --description "$desc" --vpc-id "$vpc_id" --query "GroupId" --output text)
     aws ec2 create-tags --resources "$sg_id" --tags Key=Name,Value="$name"
@@ -103,7 +106,6 @@ ensure_sg() {
   echo "$sg_id"
 }
 
-echo "== 1. Network Setup =="
 VPC_ID=$(ensure_vpc)
 PUB_A=$(ensure_subnet "$VPC_ID" "$PUB_A_NAME" "$PUB_A_CIDR" "$AZ_A" true)
 PUB_B=$(ensure_subnet "$VPC_ID" "$PUB_B_NAME" "$PUB_B_CIDR" "$AZ_B" true)
@@ -118,19 +120,16 @@ aws ec2 create-route --route-table-id "$PRIV_B_RTB" --destination-cidr-block 0.0
 ensure_route_assoc "$PUB_A" "$PUB_RTB"; ensure_route_assoc "$PUB_B" "$PUB_RTB"
 ensure_route_assoc "$PRIV_A" "$PRIV_A_RTB"; ensure_route_assoc "$PRIV_B" "$PRIV_B_RTB"
 
-echo "== 2. Security Groups =="
 MSK_SG=$(ensure_sg "$VPC_ID" "$MSK_SG_NAME" "Access to MSK brokers")
 PRODUCER_SG=$(ensure_sg "$VPC_ID" "$PRODUCER_SG_NAME" "Security group for sensor producer EC2")
 LAMBDA_SG=$(ensure_sg "$VPC_ID" "$LAMBDA_SG_NAME" "Security group for sensor consumer lambdas")
 aws ec2 authorize-security-group-ingress --group-id "$MSK_SG" --ip-permissions "IpProtocol=tcp,FromPort=9098,ToPort=9098,UserIdGroupPairs=[{GroupId=$PRODUCER_SG},{GroupId=$LAMBDA_SG}]" >/dev/null 2>&1 || true
 aws ec2 authorize-security-group-ingress --group-id "$MSK_SG" --ip-permissions "IpProtocol=-1,UserIdGroupPairs=[{GroupId=$MSK_SG}]" >/dev/null 2>&1 || true
 
-echo "== 3. Shared Services (S3, SNS, DynamoDB) =="
 aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null 2>&1 || aws s3api create-bucket --bucket "$BUCKET_NAME" --create-bucket-configuration "LocationConstraint=${AWS_DEFAULT_REGION}" >/dev/null
 aws sns get-topic-attributes --topic-arn "$SNS_TOPIC_ARN" >/dev/null 2>&1 || aws sns create-topic --name "$SNS_TOPIC_NAME" >/dev/null
 aws dynamodb describe-table --table-name "$TABLE_NAME" >/dev/null 2>&1 || aws dynamodb create-table --table-name "$TABLE_NAME" --attribute-definitions AttributeName=sensorId,AttributeType=S AttributeName=timestamp,AttributeType=S --key-schema AttributeName=sensorId,KeyType=HASH AttributeName=timestamp,KeyType=RANGE --billing-mode PAY_PER_REQUEST >/dev/null
 
-echo "== 4. IAM Roles =="
 cat > /tmp/ec2-trust.json <<'JSON'
 {"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ec2.amazonaws.com"},"Action":"sts:AssumeRole"}]}
 JSON
@@ -155,7 +154,6 @@ cat > /tmp/lambda-inline.json <<JSON
 JSON
 aws iam put-role-policy --role-name "$LAMBDA_ROLE_NAME" --policy-name wsc2026-msk-lambda-inline --policy-document file:///tmp/lambda-inline.json >/dev/null
 
-echo "== 5. Initiating MSK Cluster Creation =="
 CLUSTER_ARN=$(aws kafka list-clusters-v2 --cluster-name-filter "$MSK_CLUSTER_NAME" --query "ClusterInfoList[0].ClusterArn" --output text)
 if [[ -z "$CLUSTER_ARN" || "$CLUSTER_ARN" == "None" ]]; then
   CLUSTER_ARN=$(aws kafka create-cluster \
@@ -166,7 +164,7 @@ if [[ -z "$CLUSTER_ARN" || "$CLUSTER_ARN" == "None" ]]; then
     --client-authentication "Sasl={Iam={Enabled=true}}" \
     --encryption-info "EncryptionInTransit={ClientBroker=TLS,InCluster=true}" \
     --query "ClusterArn" --output text)
-  echo "MSK 생성 요청 완료! ARN: ${CLUSTER_ARN}"
+  echo "MSK ARN: ${CLUSTER_ARN}"
 else
-  echo "기존 MSK 클러스터 발견: ${CLUSTER_ARN}"
+  echo "기존 MSK: ${CLUSTER_ARN}"
 fi
