@@ -7,6 +7,7 @@
 - 01-vpc.sh
 - 02-cluster.sh
 
+<br>
 
 ## ECR
 - 03-ecr.sh
@@ -30,10 +31,10 @@ echo
 <br> 
 
 ## shell
-```bash
-aws configure
-```
-- 04-manifest.sh
+- 04-iam.sh
+- 05-karpenter.sh
+- 06-keda.sh
+- 07-deploy.sh
 
 <br> 
 

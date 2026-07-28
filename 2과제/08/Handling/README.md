@@ -1,8 +1,7 @@
 ## Region
 - 싱가포르/ap-southeast-1
 
-
-
+<br>
 
 ## Name
 - VPC: skills-ceh-vpc
@@ -13,16 +12,19 @@
 - CloudTrail: skills-ceh-cloudtrail
 - EventBridge: skills-ceh-sg-change-rule
 
+<br>
 
 ## Lambda
 - python: remediate_security_group.py
 - handler: remediate_security_group.lambda_handler
 - env: PROTECTED_SECURITY_GROUP_ID, SNS_TOPIC_ARN
 
+<br>
 
 ## CloudTrail
 - 생성
 
+<br>
 
 ## EventBridge
 ```

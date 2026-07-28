@@ -16,7 +16,7 @@ setup_rule() {
 
 setup_rule "wsc2026-ec2-stop-rule" '{"source":["aws.ec2"],"detail-type":["EC2 Instance State-change Notification"],"detail":{"state":["stopped"]}}' "wsc2026-ec2-stop-remediation"
 setup_rule "wsc2026-ec2-terminate-rule" '{"source":["aws.ec2"],"detail-type":["EC2 Instance State-change Notification"],"detail":{"state":["terminated"]}}' "wsc2026-ec2-terminate-alert"
-setup_rule "wsc2026-sg-change-rule" '{"source":["aws.config"],"detail-type":["Config Rules Compliance Change"],"detail":{"configRuleName":["wsc2026-sg-ssh-rule"],"newEvaluationResult":{"complianceType":["NON_COMPLIANT"]}}}' "wsc2026-sg-remediation"
+setup_rule "wsc2026-sg-change-rule" '{"source":["aws.ec2"],"detail-type":["AWS API Call via CloudTrail"],"detail":{"eventName":["AuthorizeSecurityGroupIngress"]}}' "wsc2026-sg-remediation"
 setup_rule "wsc2026-role-change-rule" '{"source":["aws.iam"],"detail-type":["AWS API Call via CloudTrail"],"detail":{"eventName":["UpdateAssumeRolePolicy","PutRolePolicy","AttachRolePolicy"]}}' "wsc2026-ec2-terminate-alert"
 setup_rule "wsc2026-ec2-type-change-rule" '{"source":["aws.ec2"],"detail-type":["AWS API Call via CloudTrail"],"detail":{"eventName":["ModifyInstanceAttribute"]}}' "wsc2026-ec2-terminate-alert"
 

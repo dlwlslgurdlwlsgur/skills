@@ -49,7 +49,7 @@ spec:
   role: KarpenterNodeRole-skills-sqs-cluster
   subnetSelectorTerms:
     - tags:
-        kubernetes.io/cluster/skills-sqs-cluster: "*"
+        karpenter.sh/discovery: skills-sqs-cluster
   securityGroupSelectorTerms:
     - tags:
         kubernetes.io/cluster/skills-sqs-cluster: owned
@@ -68,9 +68,12 @@ spec:
         - key: karpenter.sh/capacity-type
           operator: In
           values: ["on-demand"]
-        - key: karpenter.k8s.aws/instance-category
+        - key: kubernetes.io/arch
           operator: In
-          values: ["t"]
+          values: ["amd64"]
+        - key: karpenter.k8s.aws/instance-family
+          operator: In
+          values: ["t3"]
       nodeClassRef:
         group: karpenter.k8s.aws
         kind: EC2NodeClass

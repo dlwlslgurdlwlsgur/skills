@@ -112,7 +112,7 @@ sns_topic_arn = os.environ.get("SNS_TOPIC_ARN")
 def lambda_handler(event, context):
     try:
         detail = event.get('detail', {})
-        resource_id = detail.get('resourceId')
+        resource_id = detail.get('resourceId') or detail.get('requestParameters', {}).get('groupId')
         if resource_id and resource_id.startswith('sg-'):
             ec2_client.revoke_security_group_ingress(
                 GroupId=resource_id,

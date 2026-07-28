@@ -50,4 +50,5 @@ eksctl create iamserviceaccount \
   --attach-policy-arn=arn:aws:iam::aws:policy/AmazonSQSFullAccess \
   --approve
 
+sleep  10
 echo
