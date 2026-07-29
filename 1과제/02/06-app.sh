@@ -1,4 +1,3 @@
-# root
 CLUSTER_NAME="wskorea26-cluster"
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 eksctl utils write-kubeconfig --name $CLUSTER_NAME
@@ -71,9 +70,6 @@ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
   --set clusterName=$CLUSTER_NAME \
   --set serviceAccount.create=false \
   --set serviceAccount.name=aws-load-balancer-controller
-
-
-
 
 
 # namespace

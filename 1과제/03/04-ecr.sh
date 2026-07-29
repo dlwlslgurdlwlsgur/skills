@@ -54,3 +54,22 @@ aws ecr put-lifecycle-policy \
     --repository-name "$ECR_NAME" \
     --lifecycle-policy-text "$LIFECYCLE_POLICY" > /dev/null
 echo
+
+chmod 777 book
+cat <<EOF > Dockerfile
+FROM alpine:latest
+WORKDIR /app
+COPY ./book /app/main
+RUN apk update && \\
+  apk add --no-cache libc6-compat libstdc++ libgcc curl openssl && \\
+  apk upgrade --no-cache busybox && \\
+  chmod +x /app/main
+EXPOSE 8080
+CMD ["/app/main"]
+EOF
+ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin "${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com"
+docker build -t "wsc2026-book-ecr:v1.0.0" .
+docker tag "wsc2026-book-ecr:v1.0.0" "${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com/wsc2026-book-ecr:v1.0.0"
+docker push "${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com/wsc2026-book-ecr:v1.0.0"
+echo

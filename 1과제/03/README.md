@@ -4,9 +4,11 @@
 <br>
 
 ## shell
-- 01-vpc.sh
-- 02-kms.sh
-- 03-cluster.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/01-vpc.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/02-kms.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/03-cluster.sh
+```
 
 <br>
 
@@ -18,34 +20,22 @@
 <br>
 
 ## ECR
-- 04-ecr.sh
 - 배포파일/book
 - v1* 설정
 ```bash
-chmod 777 book
-cat <<EOF > Dockerfile
-FROM alpine:latest
-WORKDIR /app
-COPY ./book /app/main
-RUN apk update && \\
-  apk add --no-cache libc6-compat libstdc++ libgcc curl openssl && \\
-  apk upgrade --no-cache busybox && \\
-  chmod +x /app/main
-EXPOSE 8080
-CMD ["/app/main"]
-EOF
-ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
-aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin "${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com"
-docker build -t "wsc2026-book-ecr:v1.0.0" .
-docker tag "wsc2026-book-ecr:v1.0.0" "${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com/wsc2026-book-ecr:v1.0.0"
-docker push "${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com/wsc2026-book-ecr:v1.0.0"
-echo
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/04-ecr.sh
 ```
 
 <br>
 
-## DynamoDB & Lambda
-- 05-dyanmodb.sh
+## DynamoDB
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/05-dynamodb.sh
+```
+
+<br>
+
+## Lambda
 - wsc2026-book-get-function
 - Python 3.12
 - kms 연결 ( 시작, 환경변수 )
@@ -94,8 +84,10 @@ function handler(event) {
 <br>
 
 ## shell
-- 06-app.sh
-- 07-monitoring.sh
-- 08-waf.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/06-app.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/07-monitoring.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/08-waf.sh
+```
 - cloudFront에 WAF 연결
 - ALB에 Default 403 설정
