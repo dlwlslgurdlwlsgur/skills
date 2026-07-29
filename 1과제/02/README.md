@@ -2,6 +2,11 @@
 - 01-vpc.sh
 - 02-kms.sh
 - 03-cluster.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/01-vpc.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/02-kms.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/03-cluster.sh
+```
 
 <br>
 
@@ -19,7 +24,10 @@ aws s3 rm s3://$BUCKET/web/main/
 - 배포파일/book
 - 04-ecr.sh
 - 05-dynamodb.sh
-
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/04-ecr.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/05-dynamodb.sh
+```
 
 <br>
 
@@ -33,6 +41,9 @@ aws s3 rm s3://$BUCKET/web/main/
 
 ## app
 - 06-app.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/06-app.sh
+```
 
 <br>
 
@@ -50,7 +61,10 @@ aws s3 rm s3://$BUCKET/web/main/
 <br>
 
 ## monitoring
+- 07-monitoring.sh
 ```bash
 export BNUM=<비번호>
 ```
-- 07-monitoring.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/07-monitoring.sh
+```
