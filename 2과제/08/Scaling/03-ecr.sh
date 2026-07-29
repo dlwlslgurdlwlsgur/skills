@@ -8,4 +8,16 @@ aws ecr create-repository \
   --region $REGION \
   --output text 2>/dev/null || echo "ECR repo already exists"
 
-echo
+chmod 777 worker.py
+cat <<EOF >> Dockerfile
+FROM python:3.9-slim
+WORKDIR /app
+COPY worker.py .
+RUN pip install boto3
+CMD ["python", "worker.py"]
+EOF
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.us-west-2.amazonaws.com
+docker build -t skills-sqs-ecr .
+docker tag skills-sqs-ecr:latest $ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/skills-sqs-ecr:latest
+docker push $ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/skills-sqs-ecr:latest

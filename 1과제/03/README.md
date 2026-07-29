@@ -1,11 +1,14 @@
 ## CloudShell
-- mark-sg 만들고 wsc2026-skills-app-sub-a에 연결
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/01-vpc.sh
+```
+- mark-sg
+- wsc2026-skills-app-sub-a에 연결
 
 <br>
 
 ## shell
 ```bash
-wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/01-vpc.sh
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/02-kms.sh
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/03-cluster.sh
 ```
@@ -89,5 +92,5 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/07-monitoring.sh
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/08-waf.sh
 ```
-- cloudFront에 WAF 연결
+- CloudFront에 WAF 연결
 - ALB에 Default 403 설정

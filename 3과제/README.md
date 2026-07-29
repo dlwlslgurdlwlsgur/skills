@@ -1,14 +1,19 @@
 ## shell
-- 01-vpc.sh
-- 02-ec2.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/01-vpc.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/02-ec2.sh
+```
 
 <br>
 
-## EC2
-- 03-cluster.sh
-- 04-rds.sh
-- 05-s3.sh
-- 06-ecr.sh
+## shell
+- ec2 접속
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/03-cluster.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/04-rds.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/05-s3.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/06-ecr.sh
+```
 
 <br>
 
@@ -31,4 +36,12 @@ CREATE TABLE IF NOT EXISTS product (
 );
 
 CREATE INDEX idx_user_email_cover ON user (email, username);
+```
+
+<br>
+
+## shell
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/07-manifest.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/08-monitoring.sh
 ```

@@ -4,14 +4,18 @@
 <br>
 
 ## shell
-- 01-vpc.sh
-- 02-cluster.sh
-- 03-sqs.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Scaling/01-vpc.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Scaling/02-cluster.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Scaling/03-sqs.sh
+```
 
 <br>
 
 ## ECR
-- 04-ecr.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Scaling/04-ecr.sh
+```
 - docker build
 
 <br>
@@ -26,10 +30,12 @@ eksctl utils associate-iam-oidc-provider --approve --cluster $CLUSTER_NAME --reg
 <br>
 
 ## shell
-- 05-iam.sh
-- 06-karpenter.sh
-- 07-keda.sh
-- 08-deploy.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Scaling/05-iam.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Scaling/06-karpenter.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Scaling/07-keda.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Scaling/08-deploy.sh
+```
 ```bash
 kubectl get scaledobject order-scaler -n skillsmkt
 ```

@@ -4,34 +4,18 @@
 <br>
 
 ## shell
-- 01-vpc.sh
-- 02-cluster.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Logging/01-vpc.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Logging/02-cluster.sh
+```
 
 <br>
 
 ## ECR
-- 03-ecr.sh
+- 배포파일/app.py
 ```bash
-echo "flask>=3.0.0" > requirements.txt
-cat > Dockerfile <<'EOF'
-FROM python:3.12-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY app.py .
-EXPOSE 8080
-ENV PYTHONUNBUFFERED=1
-CMD ["python", "app.py"]
-EOF
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Logging/03-ecr.sh
 ```
-```bash
-export ACCT=$(aws sts get-caller-identity --query Account --output text)
-aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin $ACCT.dkr.ecr.ap-northeast-1.amazonaws.com
-docker build -t o11y-log-generator .
-docker tag o11y-log-generator:latest $ACCT.dkr.ecr.ap-northeast-1.amazonaws.com/o11y-log-generator:v1
-docker push $ACCT.dkr.ecr.ap-northeast-1.amazonaws.com/o11y-log-generator:v1
-```
-
 
 <br>
 
@@ -39,7 +23,9 @@ docker push $ACCT.dkr.ecr.ap-northeast-1.amazonaws.com/o11y-log-generator:v1
 ```bash
 export BNUM=<비번호>
 ```
-- 04-monitoring.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Logging/04-monitoring.sh
+```
 
 <br>
 

@@ -4,5 +4,7 @@
 <br>
 
 ## shell
-- docdb_client.py, retail_dataset.json
-- 01-shell.sh
+- 배포파일/docdb_client.py, retail_dataset.json
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/08/NOSQL/01-shell.sh
+```

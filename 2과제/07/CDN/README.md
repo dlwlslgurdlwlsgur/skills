@@ -4,9 +4,11 @@
 <br>
 
 ## shell
-- 01-cf.sh
-- 02-cf-function.sh
-- 03-cf-policy.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/CDN/01-cf.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/CDN/02-cf-function.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/CDN/03-cf-policy.sh
+```
 
 <br>
 

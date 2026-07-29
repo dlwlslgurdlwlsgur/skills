@@ -7,13 +7,17 @@
 ```bash
 export EXAM_NO="<비번호>"
 ```
-- 01-vpc-msk.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/02/MSK/01-vpc-msk.sh
+```
 
 <br>
 
 ## shell
+- msk 완료되면
 ```bash
 export EXAM_NO="<비번호>"
 ```
-- msk 완료되면
-- 02-shell.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/02/MSK/02-shell.sh
+```

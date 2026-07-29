@@ -4,37 +4,28 @@
 <br> 
 
 ## shell
-- 01-vpc.sh
-- 02-cluster.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/08/Scaling/01-vpc.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/08/Scaling/02-cluster.sh
+```
 
 <br>
 
 ## ECR
-- 03-ecr.sh
+- 배포파일/worker.py
 ```bash
-chmod 777 worker.py
-cat <<EOF >> Dockerfile
-FROM python:3.9-slim
-WORKDIR /app
-COPY worker.py .
-RUN pip install boto3
-CMD ["python", "worker.py"]
-EOF
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.us-west-2.amazonaws.com
-docker build -t skills-sqs-ecr .
-docker tag skills-sqs-ecr:latest $ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/skills-sqs-ecr:latest
-docker push $ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/skills-sqs-ecr:latest
-echo
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/08/Scaling/03-ecr.sh
 ```
 
 <br> 
 
 ## shell
-- 04-iam.sh
-- 05-karpenter.sh
-- 06-keda.sh
-- 07-deploy.sh
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/08/Scaling/04-iam.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/08/Scaling/05-karpenter.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/08/Scaling/06-keda.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/08/Scaling/07-deploy.sh
+```
 
 <br> 
 
