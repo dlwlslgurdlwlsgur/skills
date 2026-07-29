@@ -1,6 +1,7 @@
-REGION="ap-northeast-2"
+export AWS_PAGER=""
 export AWS_DEFAULT_REGION="$REGION"
 
+REGION="ap-northeast-2"
 ECR_NAME="wskorea26-book-repo"
 KMS_ALIAS="alias/wskorea26-ecr-key"
 IMAGE_TAG="stable"

@@ -38,7 +38,6 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-
 class ServiceHandler(BaseHTTPRequestHandler):
     def _send_json(self, status_code, payload):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -61,13 +60,13 @@ class ServiceHandler(BaseHTTPRequestHandler):
 
         self._send_json(404, {"error": "not found"})
 
-
 if __name__ == "__main__":
     server = ThreadingHTTPServer(("0.0.0.0", 8080), ServiceHandler)
     server.serve_forever()
 APP_EOF
+chown ec2-user:ec2-user /home/ec2-user/service_app.py
 cd /home/ec2-user/
-nohup python3 service_app.py > /home/ec2-user/app.log 2>&1 &
+sudo -u ec2-user nohup python3 service_app.py > /home/ec2-user/app.log 2>&1 &
 EOF
 
 SERVICE_EC2_ID=$(aws ec2 run-instances --region $REGION \
@@ -79,15 +78,28 @@ SERVICE_EC2_ID=$(aws ec2 run-instances --region $REGION \
     --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=skills-lattice-service-ec2}]' \
     --query "Instances[0].InstanceId" --output text)
 
+echo "Waiting for Service EC2 ($SERVICE_EC2_ID) to be in 'running' state..."
+aws ec2 wait instance-running --region $REGION --instance-ids $SERVICE_EC2_ID
+
 TG_ID=$(aws vpc-lattice list-target-groups --region $REGION --query "items[?name=='skills-lattice-order-tg'].id" --output text)
 
 SERVICE_ID=$(aws vpc-lattice list-services --region $REGION --query "items[?name=='skills-lattice-order-service'].id" --output text)
-LATTICE_DOMAIN=$(aws vpc-lattice get-service --region $REGION --service-identifier $SERVICE_ID --query "dnsEntry.domainName" --output text)
+
+echo "Waiting for Lattice Domain Name to be provisioned..."
+while true; do
+    LATTICE_DOMAIN=$(aws vpc-lattice get-service --region $REGION --service-identifier $SERVICE_ID --query "dnsEntry.domainName" --output text 2>/dev/null)
+    if [ -n "$LATTICE_DOMAIN" ] && [ "$LATTICE_DOMAIN" != "None" ]; then
+        break
+    fi
+    sleep 5
+done
+echo "Lattice Domain successfully retrieved: $LATTICE_DOMAIN"
 
 read -r -d '' CLIENT_USER_DATA << EOF
 #!/bin/bash
 yum update -y
 yum install python3-pip -y
+
 cat << 'APP_EOF' > /home/ec2-user/client_app.py
 import json
 import os
@@ -95,9 +107,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
 
-
 SERVICE_URL = os.environ.get("SERVICE_URL", "").rstrip("/")
-
 
 class ClientHandler(BaseHTTPRequestHandler):
     def _send_json(self, status_code, payload):
@@ -120,21 +130,33 @@ class ClientHandler(BaseHTTPRequestHandler):
                 self._send_json(500, {"error": "SERVICE_URL is not configured"})
                 return
             request = Request(f"{SERVICE_URL}/v1/orders?id={order_id}")
-            with urlopen(request, timeout=5) as response:
-                service_payload = json.loads(response.read().decode("utf-8"))
-            self._send_json(200, {"client": "ok", "service": service_payload})
+            try:
+                with urlopen(request, timeout=5) as response:
+                    service_payload = json.loads(response.read().decode("utf-8"))
+                self._send_json(200, {"client": "ok", "service": service_payload})
+            except Exception as e:
+                self._send_json(502, {"error": str(e)})
             return
 
         self._send_json(404, {"error": "not found"})
-
 
 if __name__ == "__main__":
     server = ThreadingHTTPServer(("0.0.0.0", 80), ClientHandler)
     server.serve_forever()
 APP_EOF
+
+echo "export SERVICE_URL=http://$LATTICE_DOMAIN" > /home/ec2-user/.env
+cat << 'RUN_EOF' > /home/ec2-user/run.sh
+#!/bin/bash
+source /home/ec2-user/.env
 cd /home/ec2-user/
-export SERVICE_URL="http://$LATTICE_DOMAIN"
-sudo -E nohup python3 client_app.py > /home/ec2-user/app.log 2>&1 &
+nohup python3 client_app.py > /home/ec2-user/app.log 2>&1 &
+RUN_EOF
+
+chmod +x /home/ec2-user/run.sh
+chown ec2-user:ec2-user /home/ec2-user/client_app.py /home/ec2-user/.env /home/ec2-user/run.sh
+
+sudo -E /home/ec2-user/run.sh
 EOF
 
 CLIENT_EC2_ID=$(aws ec2 run-instances --region $REGION \
@@ -150,5 +172,4 @@ CLIENT_EC2_ID=$(aws ec2 run-instances --region $REGION \
 aws vpc-lattice register-targets --region $REGION \
     --target-group-identifier $TG_ID \
     --targets id=$SERVICE_EC2_ID,port=8080
-
 echo
