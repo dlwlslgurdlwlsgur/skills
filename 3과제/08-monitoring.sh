@@ -1,7 +1,6 @@
-#!/bin/bash
 REGION="ap-northeast-2"
 PROJECT="wsc2026"
-CLUSTER_NAME="${PROJECT}-eks"
+CLUSTER_NAME="skills-cluster"
 
 aws eks update-kubeconfig --name ${CLUSTER_NAME} --region ${REGION}
 kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -

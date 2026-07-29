@@ -1,13 +1,12 @@
 REGION="ap-northeast-2"
-PROJECT="wsc2026"
-CLUSTER_NAME="${PROJECT}-eks"
+CLUSTER_NAME="skills-cluster"
 
-VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=${PROJECT}-vpc" "Name=state,Values=available" --query "Vpcs[0].VpcId" --output text --region ${REGION})
-PUB_A_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Name,Values=${PROJECT}-public-a" "Name=state,Values=available" --query "Subnets[0].SubnetId" --output text --region ${REGION})
-PUB_C_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Name,Values=${PROJECT}-public-c" "Name=state,Values=available" --query "Subnets[0].SubnetId" --output text --region ${REGION})
-PRI_A_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Name,Values=${PROJECT}-private-a" "Name=state,Values=available" --query "Subnets[0].SubnetId" --output text --region ${REGION})
-PRI_C_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Name,Values=${PROJECT}-private-c" "Name=state,Values=available" --query "Subnets[0].SubnetId" --output text --region ${REGION})
-EKS_NODE_SG_ID=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=${VPC_ID}" "Name=group-name,Values=${PROJECT}-eks-node-sg" --query 'SecurityGroups[0].GroupId' --output text --region ${REGION})
+VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=skills-vpc" "Name=state,Values=available" --query "Vpcs[0].VpcId" --output text --region ${REGION})
+PUB_A_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Name,Values=skills-public-a" "Name=state,Values=available" --query "Subnets[0].SubnetId" --output text --region ${REGION})
+PUB_C_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Name,Values=skills-public-c" "Name=state,Values=available" --query "Subnets[0].SubnetId" --output text --region ${REGION})
+PRI_A_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Name,Values=skills-private-a" "Name=state,Values=available" --query "Subnets[0].SubnetId" --output text --region ${REGION})
+PRI_C_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Name,Values=skills-private-c" "Name=state,Values=available" --query "Subnets[0].SubnetId" --output text --region ${REGION})
+EKS_NODE_SG_ID=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=${VPC_ID}" "Name=group-name,Values=skills-eks-node-sg" --query 'SecurityGroups[0].GroupId' --output text --region ${REGION})
 
 cat << EOF > cluster.yaml
 apiVersion: eksctl.io/v1alpha5
@@ -17,8 +16,24 @@ metadata:
   name: ${CLUSTER_NAME}
   region: ${REGION}
   version: "1.35"
-  tags:
-    Project: ${PROJECT}
+
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["*"]
+
+iam:
+  withOIDC: true
+  serviceAccounts:
+  - metadata:
+      name: aws-load-balancer-controller
+      namespace: kube-system
+    wellKnownPolicies:
+      awsLoadBalancerController: true
+  - metadata:
+      name: cert-manager
+      namespace: cert-manager
+    wellKnownPolicies:
+      certManager: true
 
 vpc:
   id: "${VPC_ID}"
@@ -31,17 +46,15 @@ vpc:
       ap-northeast-2c: { id: "${PRI_C_ID}" }
 
 managedNodeGroups:
-  - name: ${PROJECT}-nodegroup
+  - name: skills-nodegroup
     instanceType: t3.medium
     minSize: 2
-    maxSize: 4
+    maxSize: 5
     desiredCapacity: 2
     privateNetworking: true
     securityGroups:
       attachIDs:
         - "${EKS_NODE_SG_ID}"
-    tags:
-      Project: ${PROJECT}
     iam:
       withAddonPolicies:
         autoScaler: true
