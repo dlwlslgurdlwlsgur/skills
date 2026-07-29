@@ -1,4 +1,3 @@
-rm -rf ~/.aws
 REGION="ap-northeast-1"
 AZ1=$(aws ec2 describe-availability-zones --region $REGION --query 'AvailabilityZones[0].ZoneName' --output text)
 AZ2=$(aws ec2 describe-availability-zones --region $REGION --query 'AvailabilityZones[1].ZoneName' --output text)
@@ -45,11 +44,11 @@ aws ec2 associate-route-table --region $REGION --subnet-id $SERVICE_PUB_SUB2_ID 
 SERVICE_EIP_ID=$(aws ec2 allocate-address --region $REGION --domain vpc --tag-specifications 'ResourceType=elastic-ip,Tags=[{Key=Name,Value=skills-lattice-service-nat-eip}]' --query 'AllocationId' --output text)
 SERVICE_NAT_ID=$(aws ec2 create-nat-gateway --region $REGION --allocation-id $SERVICE_EIP_ID --subnet-id $SERVICE_PUB_SUB1_ID --tag-specifications 'ResourceType=natgateway,Tags=[{Key=Name,Value=skills-lattice-service-nat}]' --query 'NatGateway.NatGatewayId' --output text)
 
+echo "Waiting for NAT Gateway to become available..."
 aws ec2 wait nat-gateway-available --region $REGION --nat-gateway-ids $SERVICE_NAT_ID
 
 SERVICE_PRIV_RT_ID=$(aws ec2 create-route-table --region $REGION --vpc-id $SERVICE_VPC_ID --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=skills-lattice-service-priv-rt}]' --query 'RouteTable.RouteTableId' --output text)
 aws ec2 create-route --region $REGION --route-table-id $SERVICE_PRIV_RT_ID --destination-cidr-block 0.0.0.0/0 --nat-gateway-id $SERVICE_NAT_ID
 aws ec2 associate-route-table --region $REGION --subnet-id $SERVICE_PRIV_SUB1_ID --route-table-id $SERVICE_PRIV_RT_ID
 aws ec2 associate-route-table --region $REGION --subnet-id $SERVICE_PRIV_SUB2_ID --route-table-id $SERVICE_PRIV_RT_ID
-
 echo

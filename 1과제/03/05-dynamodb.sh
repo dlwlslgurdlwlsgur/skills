@@ -1,6 +1,7 @@
-REGION="ap-northeast-2"
+export AWS_PAGER=""
 export AWS_DEFAULT_REGION="$REGION"
 
+REGION="ap-northeast-2"
 TABLE_NAME="wsc2026-book-table"
 KMS_ALIAS="alias/wsc2026-db-kms"
 

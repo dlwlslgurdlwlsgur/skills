@@ -24,20 +24,32 @@ if [ -z "$SN_ID" ] || [ "$SN_ID" = "None" ]; then
         --query "id" --output text)
 fi
 
-aws vpc-lattice create-service-network-vpc-association --region $REGION \
+CLIENT_ASSOC_ID=$(aws vpc-lattice create-service-network-vpc-association --region $REGION \
     --service-network-identifier $SN_ID \
     --vpc-identifier $CLIENT_VPC_ID \
     --security-group-ids $CLIENT_SG_ID \
-    --tags "Name=skills-lattice-client-vpc-assoc" || true
+    --tags "Name=skills-lattice-client-vpc-assoc" \
+    --query "id" --output text)
 
-sleep 60
+echo "Waiting for Client VPC Association ($CLIENT_ASSOC_ID) to become ACTIVE..."
+while true; do
+    STATUS=$(aws vpc-lattice get-service-network-vpc-association --region $REGION --service-network-vpc-association-identifier "$CLIENT_ASSOC_ID" --query "status" --output text 2>/dev/null)
+    if [ "$STATUS" == "ACTIVE" ]; then break; fi
+    sleep 5
+done
 
-aws vpc-lattice create-service-network-vpc-association --region $REGION \
+SERVICE_ASSOC_ID=$(aws vpc-lattice create-service-network-vpc-association --region $REGION \
     --service-network-identifier $SN_ID \
     --vpc-identifier $SERVICE_VPC_ID \
-    --tags "Name=skills-lattice-service-vpc-assoc" || true
+    --tags "Name=skills-lattice-service-vpc-assoc" \
+    --query "id" --output text)
 
-sleep 60
+echo "Waiting for Service VPC Association ($SERVICE_ASSOC_ID) to become ACTIVE..."
+while true; do
+    STATUS=$(aws vpc-lattice get-service-network-vpc-association --region $REGION --service-network-vpc-association-identifier "$SERVICE_ASSOC_ID" --query "status" --output text 2>/dev/null)
+    if [ "$STATUS" == "ACTIVE" ]; then break; fi
+    sleep 5
+done
 
 TG_CONFIG="{\"port\":8080,\"protocol\":\"HTTP\",\"vpcIdentifier\":\"$SERVICE_VPC_ID\",\"healthCheck\":{\"enabled\":true,\"path\":\"/health\",\"protocol\":\"HTTP\"}}"
 
@@ -53,13 +65,24 @@ SERVICE_ID=$(aws vpc-lattice create-service --region $REGION \
     --tags "Name=skills-lattice-order-service" \
     --query "id" --output text)
 
-sleep 10
+while true; do
+    STATUS=$(aws vpc-lattice get-service --region $REGION --service-identifier "$SERVICE_ID" --query "status" --output text 2>/dev/null)
+    if [ "$STATUS" == "ACTIVE" ]; then break; fi
+    sleep 5
+done
 
 ASSOC_ID=$(aws vpc-lattice create-service-network-service-association --region $REGION \
     --service-network-identifier $SN_ID \
     --service-identifier $SERVICE_ID \
     --tags "Name=skills-lattice-order-service-assoc" \
     --query "id" --output text)
+
+echo "Waiting for Service Network Service Association ($ASSOC_ID) to become ACTIVE..."
+while true; do
+    STATUS=$(aws vpc-lattice get-service-network-service-association --region $REGION --service-network-service-association-identifier "$ASSOC_ID" --query "status" --output text 2>/dev/null)
+    if [ "$STATUS" == "ACTIVE" ]; then break; fi
+    sleep 5
+done
 
 DEFAULT_ACTION="{\"forward\":{\"targetGroups\":[{\"targetGroupIdentifier\":\"$TG_ID\",\"weight\":100}]}}"
 LISTENER_ID=$(aws vpc-lattice create-listener --region $REGION \
@@ -70,5 +93,4 @@ LISTENER_ID=$(aws vpc-lattice create-listener --region $REGION \
     --default-action "$DEFAULT_ACTION" \
     --tags "Name=skills-lattice-http-listener" \
     --query "id" --output text)
-
 echo
