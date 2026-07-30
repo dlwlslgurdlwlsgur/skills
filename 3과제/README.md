@@ -64,6 +64,8 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3
 
 
 <!-- ============================ -->
+<!-- service account 추가 -->
 <!-- 노드 오토스케일링 추가 -->
 <!-- 대기중인 pod에 api 안가도록 수정 -->
+<!-- cloudwatch 대시보드 정렬 -->
 <!-- ============================ -->
