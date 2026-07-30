@@ -13,13 +13,6 @@ aws eks create-addon \
   --addon-name amazon-cloudwatch-observability \
   --region ap-northeast-2
 
-aws eks describe-addon \
-  --cluster-name skills-cluster \
-  --addon-name amazon-cloudwatch-observability \
-  --region ap-northeast-2 \
-  --query "addon.status" \
-  --output text
-
 # 끝낧때 까지 대기
 # 끝낧때 까지 대기
 # 끝낧때 까지 대기

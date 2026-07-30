@@ -52,6 +52,7 @@ mysql -h <DB_HOST> -P 3306 -u admin -p skills < load_user.dump
 ## shell
 ```bash
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/07-manifest.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/09-ca.sh
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/08-monitoring.sh
 ```
 
@@ -64,8 +65,5 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3
 
 
 <!-- ============================ -->
-<!-- service account 추가 -->
-<!-- 노드 오토스케일링 추가 -->
-<!-- 대기중인 pod에 api 안가도록 수정 -->
 <!-- cloudwatch 대시보드 정렬 -->
 <!-- ============================ -->

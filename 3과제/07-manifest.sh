@@ -17,37 +17,34 @@ POLICY_NAME="${CLUSTER_NAME}-LBControllerPolicy"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 CLUSTER_OIDC=$(aws eks describe-cluster --name $CLUSTER_NAME --query "cluster.identity.oidc.issuer" --output text | sed 's/https:\/\///')
 
-# 역할 생성
 aws iam create-role \
-    --role-name $ROLE_NAME \
-    --assume-role-policy-document '{
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Principal": {
-                    "Federated": "arn:aws:iam::'"$ACCOUNT_ID"':oidc-provider/'"$CLUSTER_OIDC"'"
-                },
-                "Action": "sts:AssumeRoleWithWebIdentity",
-                "Condition": {
-                    "StringEquals": {
-                        "'"$CLUSTER_OIDC"':aud": "sts.amazonaws.com",
-                        "'"$CLUSTER_OIDC"':sub": "system:serviceaccount:kube-system:aws-load-balancer-controller"
-                    }
-                }
-            }
-        ]
-    }' \
-    --output json
+  --role-name $ROLE_NAME \
+  --assume-role-policy-document '{
+      "Version": "2012-10-17",
+      "Statement": [
+          {
+              "Effect": "Allow",
+              "Principal": {
+                  "Federated": "arn:aws:iam::'"$ACCOUNT_ID"':oidc-provider/'"$CLUSTER_OIDC"'"
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                  "StringEquals": {
+                      "'"$CLUSTER_OIDC"':aud": "sts.amazonaws.com",
+                      "'"$CLUSTER_OIDC"':sub": "system:serviceaccount:kube-system:aws-load-balancer-controller"
+                  }
+              }
+          }
+      ]
+  }' \
+  --output json
 
-# 정책 생성
 curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json
 POLICY_ARN=$(aws iam create-policy \
-    --policy-name $POLICY_NAME \
-    --policy-document file://iam_policy.json \
-    --query 'Policy.Arn' --output text)
+  --policy-name $POLICY_NAME \
+  --policy-document file://iam_policy.json \
+  --query 'Policy.Arn' --output text)
 
-# 정책 연결
 aws iam attach-role-policy --role-name $ROLE_NAME --policy-arn $POLICY_ARN
 
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -72,7 +69,6 @@ helm repo add eks https://aws.github.io/eks-charts
 helm repo update
 rm -f get_helm.sh
 
-# AWS Load Balancer Controller를 지정한 네임스페이스에 설치합니다.
 helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
   -n kube-system \
   --set clusterName=$CLUSTER_NAME \
@@ -88,6 +84,46 @@ kubectl create namespace ${APP_NAMESPACE} --dry-run=client -o yaml | kubectl app
 mkdir -p manifest
 rm -f manifest/*.yaml
 
+
+# serviceAccount
+aws iam create-role \
+  --role-name $SKILLS_ROLE_NAME \
+  --assume-role-policy-document '{
+      "Version": "2012-10-17",
+      "Statement": [
+          {
+              "Effect": "Allow",
+              "Principal": {
+                  "Federated": "arn:aws:iam::'"$ACCOUNT_ID"':oidc-provider/'"$CLUSTER_OIDC"'"
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                  "StringEquals": {
+                      "'"$CLUSTER_OIDC"':aud": "sts.amazonaws.com",
+                      "'"$CLUSTER_OIDC"':sub": "system:serviceaccount:'"$APP_NAMESPACE"':'"$SKILLS_SA_NAME"'"
+                  }
+              }
+          }
+      ]
+  }' --output json
+
+aws iam attach-role-policy \
+  --role-name $SKILLS_ROLE_NAME \
+  --policy-arn arn:aws:iam::aws:policy/PowerUserAccess
+
+cat <<EOF > manifest/skills-sa.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ${SKILLS_SA_NAME}
+  namespace: ${APP_NAMESPACE}
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::${ACCOUNT_ID}:role/${SKILLS_ROLE_NAME}
+EOF
+kubectl apply -f manifest/skills-sa.yaml
+
+
+# deployment
 for APP in product stress user; do
 cat <<EOF >> manifest/deployment.yaml
 apiVersion: apps/v1
@@ -105,6 +141,7 @@ spec:
       labels:
         app: ${APP}
     spec:
+      serviceAccountName: ${SKILLS_SA_NAME}
       containers:
       - name: ${APP}
         image: ${ECR_REGISTRY}/${APP}:latest

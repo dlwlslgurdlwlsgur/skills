@@ -23,6 +23,9 @@ cloudWatch:
   clusterLogging:
     enableTypes: ["*"]
 
+addons:
+  - name: amazon-cloudwatch-observability
+
 iam:
   withOIDC: true
   serviceAccounts:
@@ -51,7 +54,7 @@ managedNodeGroups:
   - name: skills-nodegroup
     instanceType: t3.medium
     minSize: 2
-    maxSize: 5
+    maxSize: 4
     desiredCapacity: 2
     privateNetworking: true
     securityGroups:
