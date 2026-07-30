@@ -21,7 +21,7 @@ cat << EOF > trust-policy.json
 EOF
 
 aws iam create-role --role-name ${ROLE_NAME} --assume-role-policy-document file://trust-policy.json 2>/dev/null || true
-aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/PowerUserAccess
+aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
 aws iam create-instance-profile --instance-profile-name ${PROFILE_NAME} 2>/dev/null || true
 aws iam add-role-to-instance-profile --instance-profile-name ${PROFILE_NAME} --role-name ${ROLE_NAME} 2>/dev/null || true
 rm -f trust-policy.json

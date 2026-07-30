@@ -5,9 +5,6 @@ REGION="ap-northeast-2"
 CLUSTER_NAME="wskorea26-cluster"
 NAMESPACE="monitoring"
 
-GRAFANA_USER="skills-${BNUM}-admin"
-GRAFANA_PASS="\$korea26!!"
-
 kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 
 PUB_SUBNET_C=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=wskorea26-pub-subnet-c" --region $REGION --query "Subnets[0].SubnetId" --output text)
@@ -28,31 +25,36 @@ eksctl create iamserviceaccount \
 
 cat <<EOF > prometheus-values.yaml
 prometheusOperator:
-  nodeSelector: { node-type: addon }
+  nodeSelector:
+    node-type: addon
 
 prometheus:
   prometheusSpec:
-    nodeSelector: { node-type: addon }
+    nodeSelector:
+      node-type: addon
 
 alertmanager:
   alertmanagerSpec:
-    nodeSelector: { node-type: addon }
+    nodeSelector:
+      node-type: addon
 
 kube-state-metrics:
-  nodeSelector: { node-type: addon }
+  nodeSelector:
+    node-type: addon
 
 grafana:
   adminUser: "skills-${BNUM}-admin"
-  adminPassword: "\\\$korea26!!"
-  nodeSelector: { node-type: addon }
+  adminPassword: '\\\$korea26!!'
+  nodeSelector:
+    node-type: addon
   defaultDashboardsEnabled: false
 
 prometheus-node-exporter:
   tolerations:
-  - key: "node-type"
-    operator: "Equal"
-    value: "app"
-    effect: "NoSchedule"
+    - key: "node-type"
+      operator: "Equal"
+      value: "app"
+      effect: "NoSchedule"
 EOF
 
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \

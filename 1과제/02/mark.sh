@@ -143,7 +143,7 @@ echo "Login: skills-<비번호>-admin / \$korea26!!"
 
 # 1) Grafana에 다음 인증 정보로 로그인을 합니다
 # userid: skills-<비번호>-admin | password: \$korea26!!
-# 2) 대시보드에 접근이 가능하고, 파드의 CPU, Memory 지표를 확인할 수 있을 경우 정답
+# 2) 대시보드에 접근이 가능하고, 실행 중인 Pod 개수 지표를 확인할 수 있을 경우 정답
 
 
 # 1) Grafana에 다음 인증 정보로 로그인을 합니다

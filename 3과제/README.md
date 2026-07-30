@@ -19,6 +19,9 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3
 
 ## RDS
 ```bash
+CREATE DATABASE skills CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+```
+```bash
 CREATE TABLE IF NOT EXISTS user (
   id       VARCHAR(255) NOT NULL,
   username VARCHAR(255) NOT NULL,
@@ -34,7 +37,6 @@ CREATE TABLE IF NOT EXISTS product (
   image_path VARCHAR(500) DEFAULT NULL,
   PRIMARY KEY (id)
 );
-
 CREATE INDEX idx_user_email_cover ON user (email, username);
 ```
 
