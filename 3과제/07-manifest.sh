@@ -11,36 +11,82 @@ PUB_SUBNETS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" 
 DB_HOST=$(aws rds describe-db-instances --db-instance-identifier "skills-mysql80" --query "DBInstances[0].Endpoint.Address" --output text --region ${REGION} 2>/dev/null)
 aws eks update-kubeconfig --name ${CLUSTER_NAME} --region ${REGION}
 
+ROLE_NAME="${CLUSTER_NAME}-LBControllerRole"
+POLICY_NAME="${CLUSTER_NAME}-LBControllerPolicy"
 
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+CLUSTER_OIDC=$(aws eks describe-cluster --name $CLUSTER_NAME --query "cluster.identity.oidc.issuer" --output text | sed 's/https:\/\///')
 
-# =====================
-# =====================
-# =====================
-# =====================
-# =====================
-# 3. ALB Controller 설치 (Helm)
+# 역할 생성
+aws iam create-role \
+    --role-name $ROLE_NAME \
+    --assume-role-policy-document '{
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "Federated": "arn:aws:iam::'"$ACCOUNT_ID"':oidc-provider/'"$CLUSTER_OIDC"'"
+                },
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Condition": {
+                    "StringEquals": {
+                        "'"$CLUSTER_OIDC"':aud": "sts.amazonaws.com",
+                        "'"$CLUSTER_OIDC"':sub": "system:serviceaccount:kube-system:aws-load-balancer-controller"
+                    }
+                }
+            }
+        ]
+    }' \
+    --output json
+
+# 정책 생성
+curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json
+POLICY_ARN=$(aws iam create-policy \
+    --policy-name $POLICY_NAME \
+    --policy-document file://iam_policy.json \
+    --query 'Policy.Arn' --output text)
+
+# 정책 연결
+aws iam attach-role-policy --role-name $ROLE_NAME --policy-arn $POLICY_ARN
+
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+cat <<EOF >> service-account.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: aws-load-balancer-controller
+  name: aws-load-balancer-controller
+  namespace: kube-system
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}
+EOF
+kubectl apply -f service-account.yaml
+
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+chmod +x get_helm.sh
+./get_helm.sh
 helm repo add eks https://aws.github.io/eks-charts
 helm repo update
-helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
-  --namespace kube-system \
-  --set clusterName=${CLUSTER_NAME} \
+rm -f get_helm.sh
+
+# AWS Load Balancer Controller를 지정한 네임스페이스에 설치합니다.
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+  -n kube-system \
+  --set clusterName=$CLUSTER_NAME \
   --set serviceAccount.create=false \
   --set serviceAccount.name=aws-load-balancer-controller
-# =====================
-# =====================
-# =====================
-# =====================
-# =====================
 
-
-
-
+kubectl get pods -n kube-system | grep aws-load-balancer-controller
 
 # namespace
 kubectl create namespace ${APP_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+mkdir manifest
 
 for APP in product stress user; do
-cat <<EOF >> deployment.yaml
+cat <<EOF >> manifest/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -70,12 +116,9 @@ spec:
         - name: MYSQL_USER
           value: "admin"
         - name: MYSQL_DBNAME
-          value: "wsc2026db"
+          value: "skills"
         - name: MYSQL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: db-secret
-              key: password
+          value: "Skills2024**"
         resources:
           requests:
             cpu: 100m
@@ -86,7 +129,7 @@ spec:
 ---
 EOF
 
-cat <<EOF >> service.yaml
+cat <<EOF >> manifest/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -102,7 +145,7 @@ spec:
 ---
 EOF
 
-cat <<EOF >> hpa.yaml
+cat <<EOF >> manifest/hpa.yaml
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -127,7 +170,7 @@ EOF
 done
 
 # ingress
-cat <<EOF > ingress.yaml
+cat <<EOF > manifest/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -166,7 +209,7 @@ spec:
                   number: 8080
 EOF
 
-kubectl apply -f deployment.yaml
-kubectl apply -f service.yaml
-kubectl apply -f hpa.yaml
-kubectl apply -f ingress.yaml
+kubectl apply -f manifest/deployment.yaml
+kubectl apply -f manifest/service.yaml
+kubectl apply -f manifest/hpa.yaml
+kubectl apply -f manifest/ingress.yaml

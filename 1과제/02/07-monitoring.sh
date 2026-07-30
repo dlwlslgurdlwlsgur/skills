@@ -102,7 +102,7 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/load-balancer-name: wskorea26-grafana-alb
     alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/subnets: $PUB_SUBNET_C, $PUB_SUBNET_D
+    alb.ingress.kubernetes.io/subnets: $PUB_SUBNET_C,$PUB_SUBNET_D
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/healthcheck-path: /login
 spec:
@@ -133,6 +133,7 @@ data:
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
       "id": null,
+      "uid": "wskorea26",
       "links": [],
       "liveNow": false,
       "panels": [
@@ -142,7 +143,12 @@ data:
           "type": "timeseries",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
           "datasource": {"type": "prometheus"},
-          "targets": [{ "expr": "sum(rate(container_cpu_usage_seconds_total{container!=''}[5m])) by (container, pod)", "refId": "A" }]
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{container!=''}[5m])) by (container, pod)",
+              "refId": "A"
+            }
+          ]
         },
         {
           "id": 2,
@@ -150,7 +156,12 @@ data:
           "type": "timeseries",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
           "datasource": {"type": "prometheus"},
-          "targets": [{ "expr": "sum(container_memory_working_set_bytes{container!=''}) by (container, pod)", "refId": "A" }]
+          "targets": [
+            {
+              "expr": "sum(container_memory_working_set_bytes{container!=''}) by (container, pod)",
+              "refId": "A"
+            }
+          ]
         },
         {
           "id": 3,
@@ -158,7 +169,12 @@ data:
           "type": "stat",
           "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
           "datasource": {"type": "prometheus"},
-          "targets": [{ "expr": "count(kube_pod_status_phase{phase='Running'})", "refId": "A" }]
+          "targets": [
+            {
+              "expr": "count(kube_pod_status_phase{phase='Running'})",
+              "refId": "A"
+            }
+          ]
         },
         {
           "id": 4,
@@ -166,7 +182,12 @@ data:
           "type": "timeseries",
           "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
           "datasource": {"type": "prometheus"},
-          "targets": [{ "expr": "sum(kube_pod_container_status_restarts_total) by (container, pod)", "refId": "A" }]
+          "targets": [
+            {
+              "expr": "sum(kube_pod_container_status_restarts_total) by (container, pod)",
+              "refId": "A"
+            }
+          ]
         },
         {
           "id": 5,
@@ -174,18 +195,27 @@ data:
           "type": "timeseries",
           "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
           "datasource": {"type": "prometheus"},
-          "targets": [{ "expr": "sum(rate(container_network_receive_bytes_total[5m])) by (pod)", "refId": "A" }]
+          "targets": [
+            {
+              "expr": "sum(rate(container_network_receive_bytes_total[5m])) by (pod)",
+              "refId": "A"
+            }
+          ]
         }
       ],
       "refresh": "5s",
       "schemaVersion": 38,
       "style": "dark",
       "tags": [],
-      "time": { "from": "now-1h", "to": "now" },
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
       "timepicker": {},
       "timezone": "",
       "title": "wskorea26-monitoring",
       "version": 1
     }
 EOF
+
 kubectl apply -f grafana-ingress.yaml
