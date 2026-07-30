@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 ensure_key "$KMS_EKS_ALIAS"
 REGION="ap-northeast-2"
 export AWS_DEFAULT_REGION="$REGION"

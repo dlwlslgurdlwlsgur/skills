@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 aws configure set cli_binary_format raw-in-base64-out
 REGION="eu-west-1"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)

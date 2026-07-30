@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 export AWS_PAGER=""
 REGION="ap-northeast-2"
 DDB_KEY_ARN=$(aws kms describe-key --key-id alias/wskorea26-dynamodb-key --region $REGION --query 'KeyMetadata.Arn' --output text)

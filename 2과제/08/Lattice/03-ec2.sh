@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 REGION="ap-northeast-1"
 CLIENT_VPC_ID=$(aws ec2 describe-vpcs --region $REGION --filters "Name=tag:Name,Values=skills-lattice-client-vpc" --query "Vpcs[0].VpcId" --output text)
 SERVICE_VPC_ID=$(aws ec2 describe-vpcs --region $REGION --filters "Name=tag:Name,Values=skills-lattice-service-vpc" --query "Vpcs[0].VpcId" --output text)

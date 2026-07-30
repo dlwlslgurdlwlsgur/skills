@@ -1,3 +1,5 @@
+#!/bin/bash
+set -x
 REGION="ap-northeast-2"
 INSTANCE_NAME="concert-bastion"
 ROLE_NAME="${INSTANCE_NAME}-role"
@@ -68,7 +70,6 @@ EOF
 
 AMI_ID=$(aws ssm get-parameters --names /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64 --query 'Parameters[0].Value' --output text --region ${REGION})
 
-echo "EC2 인스턴스 생성 중..."
 aws ec2 run-instances \
   --image-id ${AMI_ID} \
   --instance-type t3.small \

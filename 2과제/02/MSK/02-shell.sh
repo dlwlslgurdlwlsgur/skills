@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 if [[ -z "${EXAM_NO:-}" || "${EXAM_NO}" == "<비번호>" || "${EXAM_NO}" == "<exam-number>" ]]; then
   echo "[오류] 비번호(EXAM_NO)가 제대로 설정되지 않았습니다." >&2
   echo "터미널에 아래 명령어를 실행하여 본인의 비번호를 먼저 설정한 뒤 다시 실행하세요:" >&2

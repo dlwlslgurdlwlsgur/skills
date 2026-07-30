@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 rm -rf ~/.aws
 REGION="ap-northeast-2"
 VPC_ID=$(aws ec2 create-vpc \

@@ -1,3 +1,5 @@
+#!/bin/bash
+set -x
 REGION="ap-northeast-2"
 LIFECYCLE='{"rules":[{"rulePriority":1,"description":"keep last 5 images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":5},"action":{"type":"expire"}}]}'
 

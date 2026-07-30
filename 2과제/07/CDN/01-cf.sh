@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 rm -rf ~/.aws
 export AWS_PAGER=""
 aws configure set cli_binary_format raw-in-base64-out

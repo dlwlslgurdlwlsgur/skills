@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 export AWS_PAGER=""
 aws dynamodb create-table \
     --table-name bigbae-nosql-reservation-table \

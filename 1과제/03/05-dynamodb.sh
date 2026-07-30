@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 export AWS_PAGER=""
 export AWS_DEFAULT_REGION="$REGION"
 

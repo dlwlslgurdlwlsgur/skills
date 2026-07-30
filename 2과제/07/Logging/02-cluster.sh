@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 cat <<EOF > cluster.yaml
 apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig

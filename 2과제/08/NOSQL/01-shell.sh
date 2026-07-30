@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 rm -rf ~/.aws
 set -Eeuo pipefail
 export AWS_PAGER=""

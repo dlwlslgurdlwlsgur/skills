@@ -1,3 +1,5 @@
+#!/bin/bash
+set -x
 REGION="ap-northeast-2"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 BUCKET="skills-${ACCOUNT_ID}"

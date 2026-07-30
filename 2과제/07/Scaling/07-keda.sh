@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 REGION="ap-northeast-2"
 

@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 REGION="us-west-2"
 CLUSTER_NAME="skills-sqs-cluster"

@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 REGION="ap-northeast-2"
 
 VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=analytics-vpc" --query "Vpcs[0].VpcId" --output text --region ${REGION})

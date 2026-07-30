@@ -1,3 +1,5 @@
+#!/bin/bash
+set -x
 export AWS_PAGER=""
 REGION="ap-northeast-2"
 DB_USER="admin"

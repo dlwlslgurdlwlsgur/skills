@@ -1,3 +1,5 @@
+#!/bin/bash
+set -x
 REGION="ap-northeast-2"
 CLUSTER_NAME="skills-cluster"
 APP_NAMESPACE="skills"

@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 export REGION=ap-northeast-1
 export ACCT=$(aws sts get-caller-identity --query Account --output text)
 

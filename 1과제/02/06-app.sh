@@ -1,15 +1,8 @@
+#!/bin/bash
+set -x
+set -e
 CLUSTER_NAME="wskorea26-cluster"
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
-eksctl utils write-kubeconfig --name $CLUSTER_NAME
-eksctl utils associate-iam-oidc-provider --approve --cluster $CLUSTER_NAME
-aws eks create-access-entry \
-  --cluster-name "$CLUSTER_NAME" \
-  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:root"
-aws eks associate-access-policy \
-  --cluster-name "$CLUSTER_NAME" \
-  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:root" \
-  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
-  --access-scope type=cluster
 
 # LB Controller
 ROLE_NAME="${CLUSTER_NAME}-LBControllerRole"

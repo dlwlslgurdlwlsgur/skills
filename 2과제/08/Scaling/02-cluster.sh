@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 VPC_ID=$(aws ec2 describe-vpcs --region us-west-2 \
   --filters "Name=tag:Name,Values=*skills-sqs-vpc*" \
   --query "Vpcs[0].VpcId" --output text)

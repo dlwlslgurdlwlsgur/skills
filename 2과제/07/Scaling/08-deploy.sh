@@ -1,3 +1,6 @@
+#!/bin/bash
+set -x
+set -e
 APP_NS=skillsmkt
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
