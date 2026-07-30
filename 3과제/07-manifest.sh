@@ -79,11 +79,14 @@ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
   --set serviceAccount.create=false \
   --set serviceAccount.name=aws-load-balancer-controller
 
-kubectl get pods -n kube-system | grep aws-load-balancer-controller
+curl -o cluster-autoscaler-autodiscover.yaml https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-run-template.yaml
+sed -i "s/<YOUR CLUSTER NAME>/${CLUSTER_NAME}/g" cluster-autoscaler-autodiscover.yaml
+kubectl apply -f cluster-autoscaler-autodiscover.yaml
 
 # namespace
 kubectl create namespace ${APP_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
-mkdir manifest
+mkdir -p manifest
+rm -f manifest/*.yaml
 
 for APP in product stress user; do
 cat <<EOF >> manifest/deployment.yaml

@@ -1,31 +1,80 @@
-#!/bin/bash
-set -x
-REGION="ap-northeast-2"
-PROJECT="wsc2026"
-CLUSTER_NAME="skills-cluster"
+ClusterName="skills-cluster"
+Region="ap-northeast-2"
 
-aws eks update-kubeconfig --name ${CLUSTER_NAME} --region ${REGION}
-kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace amazon-cloudwatch
 
-# 1. Prometheus & Grafana 설치
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
+kubectl create configmap cluster-info \
+  --from-literal=cluster.name=${ClusterName} \
+  --from-literal=aws.region=${Region} \
+  -n amazon-cloudwatch
 
-helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-  --namespace monitoring \
-  --set alertmanager.enabled=false \
-  --set grafana.adminPassword="admin" \
-  --set prometheus.prometheusSpec.storageSpec.emptyDir.medium="Memory"
+aws eks create-addon \
+  --cluster-name skills-cluster \
+  --addon-name amazon-cloudwatch-observability \
+  --region ap-northeast-2
 
-# 2. Loki & Promtail 설치 (앱에서 출력하는 stdout 로그를 수집해 Grafana에서 악성 헤더 분석)
-helm repo add grafana https://grafana.github.io/helm-charts
-helm repo update
+aws eks describe-addon \
+  --cluster-name skills-cluster \
+  --addon-name amazon-cloudwatch-observability \
+  --region ap-northeast-2 \
+  --query "addon.status" \
+  --output text
 
-helm upgrade --install loki grafana/loki-stack \
-  --namespace monitoring \
-  --set loki.persistence.enabled=false \
-  --set promtail.enabled=true
+# 끝낧때 까지 대기
+# 끝낧때 까지 대기
+# 끝낧때 까지 대기
+# 끝낧때 까지 대기
+# 끝낧때 까지 대기
 
-echo "Grafana 접속: kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80"
-echo "ID: admin / PW: admin"
-echo "Grafana에서 Loki Datasource (http://loki:3100) 추가 후 로그 확인 가능"
+kubectl get pods -n amazon-cloudwatch
+
+cat <<EOF >> cw-dashboard.json
+{
+  "widgets": [
+    {
+      "type": "log",
+      "x": 0,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "query": "SOURCE \"/aws/containerinsights/skills-cluster/application\" | fields @timestamp, @message | filter kubernetes.pod_name like /user/ | sort @timestamp desc",
+        "region": "ap-northeast-2",
+        "title": "🟢 [USER] App Logs",
+        "view": "table"
+      }
+    },
+    {
+      "type": "log",
+      "x": 12,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "query": "SOURCE \"/aws/containerinsights/skills-cluster/application\" | fields @timestamp, @message | filter kubernetes.pod_name like /product/ | sort @timestamp desc",
+        "region": "ap-northeast-2",
+        "title": "🔵 [PRODUCT] App Logs",
+        "view": "table"
+      }
+    },
+    {
+      "type": "log",
+      "x": 0,
+      "y": 6,
+      "width": 24,
+      "height": 6,
+      "properties": {
+        "query": "SOURCE \"/aws/containerinsights/skills-cluster/application\" | fields @timestamp, @message | filter kubernetes.pod_name like /stress/ | sort @timestamp desc",
+        "region": "ap-northeast-2",
+        "title": "🟠 [STRESS] App Logs",
+        "view": "table"
+      }
+    }
+  ]
+}
+EOF
+
+aws cloudwatch put-dashboard \
+  --dashboard-name "Skills-App-Logs-Dashboard" \
+  --dashboard-body file://cw-dashboard.json \
+  --region ap-northeast-2

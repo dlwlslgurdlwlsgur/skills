@@ -42,8 +42,28 @@ CREATE INDEX idx_user_email_cover ON user (email, username);
 
 <br>
 
+## dump
+```bash
+mysql -h <DB_HOST> -P 3306 -u admin -p skills < load_user.dump
+```
+
+<br>
+
 ## shell
 ```bash
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/07-manifest.sh
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/08-monitoring.sh
 ```
+
+<br>
+
+## CloudFront
+- ALB: *
+- ALB: Caching Disabled, AllViewer
+- S3: /images/*
+
+
+<!-- ============================ -->
+<!-- 노드 오토스케일링 추가 -->
+<!-- 대기중인 pod에 api 안가도록 수정 -->
+<!-- ============================ -->

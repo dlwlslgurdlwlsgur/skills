@@ -1,7 +1,7 @@
 #!/bin/bash
 set -x
 REGION="ap-northeast-2"
-INSTANCE_NAME="concert-bastion"
+INSTANCE_NAME="apdev-bastion"
 ROLE_NAME="${INSTANCE_NAME}-role"
 PROFILE_NAME="${INSTANCE_NAME}-profile"
 SG_NAME="${INSTANCE_NAME}-sg"

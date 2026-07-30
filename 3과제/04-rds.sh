@@ -16,7 +16,7 @@ aws rds create-db-subnet-group --db-subnet-group-name "${DB_SUBNET_GROUP}" \
     --subnet-ids ${PRI_A_ID} ${PRI_C_ID} --region ${REGION} >/dev/null 2>&1 || echo "DB Subnet Group already exists"
 
 aws rds create-db-instance \
-    --db-instance-identifier "skills-mysql80" \
+    --db-instance-identifier "apdev-rds-instance" \
     --engine mysql \
     --engine-version "8.0" \
     --db-instance-class db.t3.micro \
