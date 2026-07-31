@@ -1,3 +1,5 @@
+#!/bin/bash
+set -x
 CLUSTER_NAME="skills-cluster"
 REGION="ap-northeast-2"
 NODEGROUP_NAME="skills-nodegroup"

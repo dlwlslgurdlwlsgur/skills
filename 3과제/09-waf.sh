@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -x
 export AWS_PAGER=""
 
 REGION="us-east-1"

@@ -1,3 +1,5 @@
+#!/bin/bash
+set -x
 ClusterName="skills-cluster"
 Region="ap-northeast-2"
 
