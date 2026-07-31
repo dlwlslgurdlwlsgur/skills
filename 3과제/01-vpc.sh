@@ -28,11 +28,16 @@ PUB_C_ID=$(aws ec2 create-subnet --vpc-id ${VPC_ID} --cidr-block 10.0.16.0/20 --
     --query 'Subnet.SubnetId' --output text --region ${REGION})
 aws ec2 modify-subnet-attribute --subnet-id ${PUB_C_ID} --map-public-ip-on-launch --region ${REGION}
 
+# Multi-AZ RDS 배포 시 에러 방지를 위해 3번째 AZ(b) 프라이빗 서브넷 추가 확보
 PRI_A_ID=$(aws ec2 create-subnet --vpc-id ${VPC_ID} --cidr-block 10.0.128.0/20 --availability-zone ${REGION}a \
     --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=skills-private-a},{Key=kubernetes.io/role/internal-elb,Value=1},{Key=kubernetes.io/cluster/skills-cluster,Value=shared}]" \
     --query 'Subnet.SubnetId' --output text --region ${REGION})
 
-PRI_C_ID=$(aws ec2 create-subnet --vpc-id ${VPC_ID} --cidr-block 10.0.144.0/20 --availability-zone ${REGION}c \
+PRI_B_ID=$(aws ec2 create-subnet --vpc-id ${VPC_ID} --cidr-block 10.0.144.0/20 --availability-zone ${REGION}b \
+    --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=skills-private-b},{Key=kubernetes.io/role/internal-elb,Value=1},{Key=kubernetes.io/cluster/skills-cluster,Value=shared}]" \
+    --query 'Subnet.SubnetId' --output text --region ${REGION})
+
+PRI_C_ID=$(aws ec2 create-subnet --vpc-id ${VPC_ID} --cidr-block 10.0.160.0/20 --availability-zone ${REGION}c \
     --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=skills-private-c},{Key=kubernetes.io/role/internal-elb,Value=1},{Key=kubernetes.io/cluster/skills-cluster,Value=shared}]" \
     --query 'Subnet.SubnetId' --output text --region ${REGION})
 
@@ -60,6 +65,7 @@ PRI_RTB_ID=$(aws ec2 create-route-table --vpc-id ${VPC_ID} \
 
 aws ec2 create-route --route-table-id ${PRI_RTB_ID} --destination-cidr-block 0.0.0.0/0 --nat-gateway-id ${NGW_ID} --region ${REGION}
 aws ec2 associate-route-table --route-table-id ${PRI_RTB_ID} --subnet-id ${PRI_A_ID} --region ${REGION}
+aws ec2 associate-route-table --route-table-id ${PRI_RTB_ID} --subnet-id ${PRI_B_ID} --region ${REGION}
 aws ec2 associate-route-table --route-table-id ${PRI_RTB_ID} --subnet-id ${PRI_C_ID} --region ${REGION}
 
 aws ec2 create-vpc-endpoint --vpc-id ${VPC_ID} \
@@ -85,5 +91,3 @@ RDS_SG_ID=$(get_or_create_sg "skills-rds-sg" "RDS from EKS nodes only")
 aws ec2 authorize-security-group-ingress --group-id ${ALB_SG_ID} --protocol -1 --port all --cidr 0.0.0.0/0 --region ${REGION} 2>/dev/null || echo "Ingress rule already exists."
 aws ec2 authorize-security-group-ingress --group-id ${EKS_NODE_SG_ID} --protocol -1 --port all --cidr 0.0.0.0/0 --region ${REGION} 2>/dev/null || echo "Ingress rule already exists."
 aws ec2 authorize-security-group-ingress --group-id ${RDS_SG_ID} --protocol -1 --port all --cidr 0.0.0.0/0 --region ${REGION} 2>/dev/null || echo "Ingress rule already exists."
-
-echo "VPC setup completed: ${VPC_ID}"

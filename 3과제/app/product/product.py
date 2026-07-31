@@ -1,6 +1,5 @@
 import os
 import json
-import boto3
 import pymysql
 from flask import Flask, request, jsonify
 
@@ -50,20 +49,29 @@ def product_api():
             
             elif request.method == "PUT":
                 pid = request.form.get("id") or request.args.get("id")
-                file = request.files.get("file")
+                file = request.files.get("file") or request.files.get("image")
                 if not file or not pid:
                     return jsonify({"error": "bad_request"}), 400
 
-                # Boto3를 이용한 S3 파일 업로드
-                s3_bucket = os.environ.get("S3_BUCKET")
-                s3_region = os.environ.get("AWS_REGION", "ap-northeast-2")
-                s3_client = boto3.client("s3", region_name=s3_region)
-
                 filename = file.filename
-                s3_key = f"images/{filename}"
-                s3_client.upload_fileobj(file, s3_bucket, s3_key, ExtraArgs={"ContentType": file.mimetype})
+                s3_bucket = os.environ.get("S3_BUCKET")
 
-                image_path = f"/{filename}"
+                # 1. 환경 변수(S3_BUCKET)가 있으면 Boto3를 이용해 S3에 직접 업로드
+                if s3_bucket:
+                    import boto3
+                    s3_region = os.environ.get("AWS_REGION", "ap-northeast-2")
+                    s3_client = boto3.client("s3", region_name=s3_region)
+                    s3_key = f"images/{filename}"
+                    s3_client.upload_fileobj(file, s3_bucket, s3_key, ExtraArgs={"ContentType": file.mimetype})
+                    image_path = f"/{filename}"
+                
+                # 2. 환경 변수가 없으면 로컬 폴더(/images)에 저장 (마운트 방식 호환)
+                else:
+                    os.makedirs("/images", exist_ok=True)
+                    local_path = os.path.join("/images", filename)
+                    file.save(local_path)
+                    image_path = f"/{filename}"
+
                 cur.execute("UPDATE product SET image_path=%s WHERE id=%s", (image_path, pid))
                 conn.commit()
                 

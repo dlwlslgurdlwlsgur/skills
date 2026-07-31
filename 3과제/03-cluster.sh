@@ -8,7 +8,7 @@ PUB_A_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Na
 PUB_C_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Name,Values=skills-public-c" "Name=state,Values=available" --query "Subnets[0].SubnetId" --output text --region ${REGION})
 PRI_A_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Name,Values=skills-private-a" "Name=state,Values=available" --query "Subnets[0].SubnetId" --output text --region ${REGION})
 PRI_C_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Name,Values=skills-private-c" "Name=state,Values=available" --query "Subnets[0].SubnetId" --output text --region ${REGION})
-EKS_NODE_SG_ID=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=${VPC_ID}" "Name=group-name,Values=skills-eks-node-sg" --query 'SecurityGroups[0].GroupId' --output text --region ${REGION})
+EKS_NODE_SG_ID=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=${VPC_ID}" "Name=group-name,Values=skills-cluster-node-sg" --query 'SecurityGroups[0].GroupId' --output text --region ${REGION})
 
 cat << EOF > cluster.yaml
 apiVersion: eksctl.io/v1alpha5

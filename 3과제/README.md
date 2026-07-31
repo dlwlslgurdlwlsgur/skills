@@ -49,21 +49,91 @@ mysql -h <DB_HOST> -P 3306 -u admin -p skills < load_user.dump
 
 <br>
 
-## shell
+## manifest
 ```bash
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/07-manifest.sh
-wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/09-ca.sh
-wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/08-monitoring.sh
+```
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/07-manifest-mount.sh
+```
+```bash
+kubectl apply -f manifest/deployment.yaml
+kubectl apply -f manifest/service.yaml
+kubectl apply -f manifest/ingress.yaml
+```
+
+<br>
+
+## shell
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/08-ca.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/09-waf.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/10-monitoring.sh
 ```
 
 <br>
 
 ## CloudFront
+- WAF 연결
 - ALB: *
 - ALB: Caching Disabled, AllViewer
 - S3: /images/*
 
+<br>
 
-<!-- ============================ -->
-<!-- cloudwatch 대시보드 정렬 -->
-<!-- ============================ -->
+## API user
+```bash
+export URL=""
+```
+```bash
+curl -X POST "$URL/v1/user" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "requestid": "999999999999",
+    "uuid": "7c5a3c6a-758f-4bc5-9bdf-3e573a0ad729",
+    "username": "dbdump500001",
+    "email": "dbdump500001@example.org"
+  }'
+```
+```bash
+curl -X GET "$URL/v1/user?email=dbdump500001@example.org&requestid=999999999999&uuid=7c5a3c6a-758f-4bc5-9bdf-3e573a0ad729"
+```
+
+<br>
+
+## API product
+```bash
+curl -X POST "$URL/v1/product" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "requestid": "999999999999",
+    "uuid": "7c5a3c6a-758f-4bc5-9bdf-3e573a0ad729",
+    "id": "dbdump500001",
+    "name": "dbdump500001",
+    "price": 1234
+  }'
+```
+```bash
+curl -X GET "$URL/v1/product?id=dbdump500001&requestid=999999999999&uuid=7c5a3c6a-758f-4bc5-9bdf-3e573a0ad729"
+```
+```bash
+echo "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=" | base64 -d > image.jpg
+curl -X PUT "<ALB-주소>/v1/product" \
+  -F "requestid=999999999999" \
+  -F "uuid=7c5a3c6a-758f-4bc5-9bdf-3e573a0ad729" \
+  -F "id=dbdump500001" \
+  -F "image=@./image.jpg;type=image/jpeg"
+```
+
+<br>
+
+## API stress
+```bash
+curl -X POST "$URL/v1/stress" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "requestid": "999999999999",
+    "uuid": "7c5a3c6a-758f-4bc5-9bdf-3e573a0ad729",
+    "length": 256
+  }'
+```

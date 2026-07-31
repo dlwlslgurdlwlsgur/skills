@@ -23,25 +23,29 @@ DURATION = 1800
 START_TIME = time.time()
 END_TIME = START_TIME + DURATION
 
-# 스레드 안전(Thread-safe)한 점수 집계를 위한 락과 딕셔너리
 lock = threading.Lock()
 stats = {
-    "user_success": 0,      # 유저 API 성공 (200/201)
+    "user_success": 0,
     "user_fail": 0,
-    "product_success": 0,   # 제품 API / 이미지 PUT 성공 (200/201)
+    "product_success": 0,
     "product_fail": 0,
-    "stress_success": 0,    # 스트레스 API 성공 (201)
+    "stress_success": 0,
     "stress_fail": 0,
-    "image_success": 0,     # S3 이미지 다운로드 성공 (/images/... -> 200)
+    "image_success": 0,
     "image_fail": 0,
-    "attack_blocked": 0,    # WAF 차단 성공 (403)
-    "attack_missed": 0      # 방어 실패
+    "attack_blocked": 0,
+    "attack_missed": 0
 }
 
 BAD_WORDS = ["hacker", "bad", "unknown", "admin_bypass", "drop_table", "script_alert", "etc_passwd"]
-DUMMY_PNG = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9c\x63\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
 
-# 1. user API 워커 (GET /v1/user 에 requestid, uuid, email 쿼리스트링 필수 포함)[cite: 1]
+# 코드로 생성한 Red, Blue, Yellow 1x1 픽셀 PNG 바이트[cite: 1]
+COLORED_IMAGES = {
+    "red": b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cce\xf8\xff\x00\x00\x04\xfe\x01\xff\x1c\x83\x82\x06\x00\x00\x00\x00IEND\xaeB`\x82',
+    "blue": b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xfb\xcf\x00\x00\x03\x01\x01\x00\x18\x14\xdf\xcb\x00\x00\x00\x00IEND\xaeB`\x82',
+    "yellow": b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xfb\xff\xff\x00\x06\xfe\x02\xfe\r\x9b\xa6\x8d\x00\x00\x00\x00IEND\xaeB`\x82'
+}
+
 def user_worker():
     while time.time() < END_TIME:
         req_id = "999999999999"
@@ -60,20 +64,20 @@ def user_worker():
                 stats["user_fail"] += 1
         time.sleep(0.05)
 
-# 2. product API 워커 (PUT /v1/product 요청 시 소형 이미지 파일 포함)[cite: 1]
+# 2. product API 워커 (Red, Blue, Yellow 이미지 랜덤 선택 후 업로드)[cite: 1]
 def product_worker():
     while time.time() < END_TIME:
         req_id = "999999999999"
         u_id = str(uuid.uuid4())
         try:
-            # 문제지 규격: PUT 요청에 JSON 데이터와 small image 파일 포함
             data = {
                 "requestid": req_id,
                 "uuid": u_id,
                 "id": "dbdump500001"
             }
+            color_name, img_bytes = random.choice(list(COLORED_IMAGES.items()))
             files = {
-                'image': ('product50001.jpg', DUMMY_PNG, 'image/jpeg')
+                'image': (f'product_{color_name}.png', img_bytes, 'image/png')
             }
             res = requests.put(f"{target_url}/v1/product", data=data, files=files, timeout=3)
             with lock:
@@ -86,7 +90,7 @@ def product_worker():
                 stats["product_fail"] += 1
         time.sleep(0.05)
 
-# 3. stress API 워커 (POST /v1/stress)[cite: 1]
+# 3. stress API 워커[cite: 1]
 def stress_worker():
     while time.time() < END_TIME:
         try:
@@ -106,11 +110,12 @@ def stress_worker():
                 stats["stress_fail"] += 1
         time.sleep(0.05)
 
-# 4. S3 이미지 다운로드 워커 (/images/<object path> GET 요청)[cite: 1]
+# 4. S3 이미지 다운로드 워커 (랜덤 색상의 이미지 경로 GET 요청)[cite: 1]
 def image_download_worker():
     while time.time() < END_TIME:
+        color_name = random.choice(["red", "blue", "yellow"])
         try:
-            res = requests.get(f"{target_url}/images/product50001.jpg", timeout=3)
+            res = requests.get(f"{target_url}/images/product_{color_name}.png", timeout=3)
             with lock:
                 if res.status_code == 200:
                     stats["image_success"] += 1
@@ -121,7 +126,7 @@ def image_download_worker():
                 stats["image_fail"] += 1
         time.sleep(0.05)
 
-# 5. 악성 공격 워커 (WAF 차단 테스트)
+# 5. 악성 공격 워커[cite: 1]
 def attack_worker():
     while time.time() < END_TIME:
         rand_word = random.choice(BAD_WORDS)
@@ -138,18 +143,16 @@ def attack_worker():
                 stats["attack_missed"] += 1
         time.sleep(0.05)
 
-# 스레드 분배 및 실행
 threads = []
 workers = [user_worker, product_worker, stress_worker, image_download_worker, attack_worker]
 
 for worker_func in workers:
-    for _ in range(8):  # 총 40개 스레드 동시 가동
+    for _ in range(8):
         t = threading.Thread(target=worker_func)
         t.daemon = True
         t.start()
         threads.append(t)
 
-# 실시간 모니터링 루프
 try:
     while time.time() < END_TIME:
         time.sleep(10)
@@ -176,7 +179,6 @@ try:
 except KeyboardInterrupt:
     print("\n채점이 중단되었습니다.")
 
-# 최종 점수 집계
 print("\n===================================================")
 print("🏁 평가 종료! 공식 규격 기준 최종 결과를 집계합니다.")
 print("===================================================")

@@ -6,7 +6,6 @@ ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 TIMESTAMP=$(date +%s)
 
 
-echo "=== 1. SNS Topic 생성 ==="
 SNS_TOPIC_ARN=$(aws sns create-topic --region $REGION \
     --name "skills-ceh-alert-topic" \
     --tags Key=Name,Value=skills-ceh-alert-topic \
@@ -14,7 +13,6 @@ SNS_TOPIC_ARN=$(aws sns create-topic --region $REGION \
 echo "SNS Topic ARN: $SNS_TOPIC_ARN"
 
 
-echo "=== 2. CloudTrail 및 S3 버킷 생성 ==="
 # CloudTrail 로그 저장을 위한 고유한 S3 버킷 생성
 BUCKET_NAME="skills-ceh-cloudtrail-logs-${ACCOUNT_ID}-${TIMESTAMP}"
 aws s3api create-bucket --region $REGION \
@@ -58,7 +56,6 @@ aws cloudtrail start-logging --region $REGION --name "skills-ceh-cloudtrail"
 echo "CloudTrail 'skills-ceh-cloudtrail' 생성 및 로깅 시작 완료 (S3: $BUCKET_NAME)"
 
 
-echo "=== 3. Lambda용 IAM 역할(Role) 및 권한 정책 생성 ==="
 # Trust Policy
 cat << EOF > /tmp/lambda-trust.json
 {
@@ -110,7 +107,6 @@ echo "IAM Role 생성 완료. 권한 전파 대기 중 (10초)..."
 sleep 10
 
 
-echo "=== 4. Lambda 함수 코드 작성 및 배포 ==="
 mkdir -p /tmp/lambda_build
 cd /tmp/lambda_build
 
@@ -254,7 +250,6 @@ rm -rf /tmp/lambda_build
 echo "Lambda 함수 ARN: $LAMBDA_ARN"
 
 
-echo "=== 5. EventBridge Rule 생성 및 Lambda 타겟 연결 ==="
 cat << EOF > /tmp/eb-pattern.json
 {
   "source": ["aws.ec2"],

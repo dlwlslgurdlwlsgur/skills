@@ -65,4 +65,4 @@ else
     aws ec2 revoke-security-group-ingress --region ap-southeast-1 --group-id "$SG_ID" --protocol tcp --port 22 --cidr 0.0.0.0/0 >/dev/null 2>&1 || true
   fi
 fi
-# 180 Inbound 0 초 이내 규칙이 다시 개가 되고 Lambda Log Group이 생성되는지 확인합니다.
+# 180 초 이내 Inbound 규칙이 다시 0개가 되고 Lambda Log Group이 생성되는지 확인합니다.
