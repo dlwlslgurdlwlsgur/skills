@@ -40,7 +40,7 @@ rm -f s3-policy.json
 aws s3 website s3://${BUCKET}/ --index-document index.html --error-document error.html
 S3_WEBSITE_ENDPOINT="${BUCKET}.s3-website.${REGION}.amazonaws.com"
 
-# 2. ALB Controller 설치 (CSI 드라이버 설치 제외됨)
+# 2. ALB Controller 및 S3 CSI 드라이버 설치
 ROLE_NAME="${CLUSTER_NAME}-LBControllerRole"
 POLICY_NAME="${CLUSTER_NAME}-LBControllerPolicy"
 SKILLS_ROLE_NAME="${CLUSTER_NAME}-skills-role"
@@ -49,8 +49,8 @@ SKILLS_SA_NAME="skills-sa"
 CLUSTER_OIDC=$(aws eks describe-cluster --name $CLUSTER_NAME --query "cluster.identity.oidc.issuer" --output text | sed 's/https:\/\///')
 
 aws iam create-role --role-name $ROLE_NAME --assume-role-policy-document '{
-  "Version": "2012-10-17",
-  "Statement": [{"Effect": "Allow", "Principal": {"Federated": "arn:aws:iam::'"$ACCOUNT_ID"':oidc-provider/'"$CLUSTER_OIDC"'"}, "Action": "sts:AssumeRoleWithWebIdentity", "Condition": {"StringEquals": {"'"$CLUSTER_OIDC"':aud": "sts.amazonaws.com", "'"$CLUSTER_OIDC"':sub": "system:serviceaccount:kube-system:aws-load-balancer-controller"}}}]}' >/dev/null 2>&1 || true
+    "Version": "2012-10-17",
+    "Statement": [{"Effect": "Allow", "Principal": {"Federated": "arn:aws:iam::'"$ACCOUNT_ID"':oidc-provider/'"$CLUSTER_OIDC"'"}, "Action": "sts:AssumeRoleWithWebIdentity", "Condition": {"StringEquals": {"'"$CLUSTER_OIDC"':aud": "sts.amazonaws.com", "'"$CLUSTER_OIDC"':sub": "system:serviceaccount:kube-system:aws-load-balancer-controller"}}}]}' >/dev/null 2>&1 || true
 
 curl -s -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json
 POLICY_ARN=$(aws iam create-policy --policy-name $POLICY_NAME --policy-document file://iam_policy.json --query 'Policy.Arn' --output text 2>/dev/null || aws iam list-policies --query 'Policies[?PolicyName==`'"$POLICY_NAME"'`].Arn' --output text)
@@ -71,7 +71,10 @@ curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scr
 helm repo add eks https://aws.github.io/eks-charts && helm repo update
 helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=$CLUSTER_NAME --set serviceAccount.create=false --set serviceAccount.name=aws-load-balancer-controller
 
-# 3. K8s 리소스 배포 준비 (PV/PVC 설정 제외됨)
+aws eks create-addon --cluster-name ${CLUSTER_NAME} --addon-name aws-s3-csi-driver --region ${REGION} 2>/dev/null || true
+sleep 10
+
+# 3. K8s 리소스 배포 준비
 kubectl create namespace ${APP_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
 mkdir -p manifest && rm -f manifest/*.yaml
 
@@ -90,7 +93,55 @@ metadata:
     eks.amazonaws.com/role-arn: arn:aws:iam::${ACCOUNT_ID}:role/${SKILLS_ROLE_NAME}
 EOF
 
+# S3 PV/PVC 생성
+cat <<EOF > manifest/s3-pv.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: s3-pv
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteMany
+  mountOptions:
+    - allow-delete
+    - region=${REGION}
+  csi:
+    driver: s3.csi.aws.com
+    volumeHandle: s3-csi-driver-volume
+    volumeAttributes:
+      bucketName: ${BUCKET}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: s3-pvc
+  namespace: ${APP_NAMESPACE}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 100Gi
+EOF
+
+# 4. 앱 배포 (Product에 S3_BUCKET 환경변수 및 마운트 적용)
 for APP in product stress user; do
+if [ "$APP" == "product" ]; then
+  MOUNT_CONFIG="
+        volumeMounts:
+        - name: s3-volume
+          mountPath: /images
+      volumes:
+      - name: s3-volume
+        persistentVolumeClaim:
+          claimName: s3-pvc"
+else
+  MOUNT_CONFIG=""
+fi
+
 cat <<EOF >> manifest/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -125,13 +176,17 @@ spec:
           value: "skills"
         - name: MYSQL_PASSWORD
           value: "Skills2024**"
+        - name: S3_BUCKET
+          value: "${BUCKET}"
+        - name: AWS_REGION
+          value: "${REGION}"
         resources:
           requests:
             cpu: 100m
             memory: 128Mi
           limits:
             cpu: 500m
-            memory: 256Mi
+            memory: 256Mi${MOUNT_CONFIG}
 ---
 EOF
 
@@ -152,21 +207,7 @@ spec:
 EOF
 done
 
-cat <<EOF >> manifest/service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: s3-external-svc
-  namespace: ${APP_NAMESPACE}
-spec:
-  type: ExternalName
-  externalName: ${S3_WEBSITE_ENDPOINT}
-  ports:
-  - port: 80
-    targetPort: 80
----
-EOF
-
+# ALB Ingress (API 경로만 처리)
 cat <<EOF > manifest/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -205,17 +246,88 @@ spec:
                 name: stress-svc
                 port:
                   number: 8080
-          - path: /images
-            pathType: Prefix
-            backend:
-              service:
-                name: s3-external-svc
-                port:
-                  number: 80
 EOF
 
 kubectl wait --namespace kube-system --for=condition=ready pod --selector=app.kubernetes.io/name=aws-load-balancer-controller --timeout=120s
 kubectl apply -f manifest/skills-sa.yaml
-# kubectl apply -f manifest/deployment.yaml
-# kubectl apply -f manifest/service.yaml
-# kubectl apply -f manifest/ingress.yaml
+kubectl apply -f manifest/s3-pv.yaml
+kubectl apply -f manifest/deployment.yaml
+kubectl apply -f manifest/service.yaml
+kubectl apply -f manifest/ingress.yaml
+
+# 5. CloudFront 배포 자동화
+echo "⏳ ALB 생성 대기 중... (약 3~5분 소요)"
+ALB_DNS=""
+while [ -z "$ALB_DNS" ]; do
+  sleep 10
+  ALB_DNS=$(kubectl get ingress skills-ingress -n ${APP_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+done
+echo "✅ ALB Provisioned: $ALB_DNS"
+
+echo "⏳ CloudFront 배포 생성 중..."
+cat <<EOF > cf-config.json
+{
+  "CallerReference": "skills-cf-$(date +%s)",
+  "Comment": "Skills CloudFront Distribution",
+  "Enabled": true,
+  "Origins": {
+    "Quantity": 2,
+    "Items": [
+      {
+        "Id": "ALBOrigin",
+        "DomainName": "${ALB_DNS}",
+        "CustomOriginConfig": {
+          "HTTPPort": 80,
+          "HTTPSPort": 443,
+          "OriginProtocolPolicy": "http-only"
+        }
+      },
+      {
+        "Id": "S3Origin",
+        "DomainName": "${S3_WEBSITE_ENDPOINT}",
+        "CustomOriginConfig": {
+          "HTTPPort": 80,
+          "HTTPSPort": 443,
+          "OriginProtocolPolicy": "http-only"
+        }
+      }
+    ]
+  },
+  "DefaultCacheBehavior": {
+    "TargetOriginId": "ALBOrigin",
+    "ViewerProtocolPolicy": "allow-all",
+    "MinTTL": 0,
+    "DefaultTTL": 0,
+    "MaxTTL": 0,
+    "ForwardedValues": {
+      "QueryString": true,
+      "Cookies": { "Forward": "all" },
+      "Headers": {
+        "Quantity": 1,
+        "Items": ["*"]
+      }
+    }
+  },
+  "CacheBehaviors": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "PathPattern": "/images/*",
+        "TargetOriginId": "S3Origin",
+        "ViewerProtocolPolicy": "allow-all",
+        "MinTTL": 0,
+        "DefaultTTL": 86400,
+        "MaxTTL": 31536000,
+        "ForwardedValues": {
+          "QueryString": false,
+          "Cookies": { "Forward": "none" }
+        }
+      }
+    ]
+  }
+}
+EOF
+
+CF_DOMAIN=$(aws cloudfront create-distribution --distribution-config file://cf-config.json --query 'Distribution.DomainName' --output text)
+echo "🎉 CloudFront 생성이 완료되었습니다!"
+echo "👉 채점 시스템에 제출할 최종 단일 엔드포인트: http://${CF_DOMAIN}"
