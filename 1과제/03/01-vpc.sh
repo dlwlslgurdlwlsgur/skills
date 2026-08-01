@@ -55,7 +55,7 @@ aws ec2 create-tags --resources $APP_A $APP_B --tags Key=kubernetes.io/role/inte
 SG_ID=$(aws ec2 create-security-group \
   --group-name "mark-sg" \
   --description "Security group with any open ingress" \
-  --vpc-id "$VPC_ID" \
+  --vpc-id "$VPC" \
   --region "ap-northeast-2" \
   --query "GroupId" --output text)
 

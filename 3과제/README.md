@@ -60,6 +60,7 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3
 kubectl apply -f manifest/deployment.yaml
 kubectl apply -f manifest/service.yaml
 kubectl apply -f manifest/ingress.yaml
+kubectl apply -f manifest/hpa.yaml
 ```
 
 <br>
@@ -82,7 +83,7 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3
 
 <br>
 
-## API user
+## user
 ```bash
 export URL=""
 ```
@@ -102,7 +103,7 @@ curl -X GET "$URL/v1/user?email=dbdump500001@example.org&requestid=999999999999&
 
 <br>
 
-## API product
+## product
 ```bash
 curl -X POST "$URL/v1/product" \
   -H "Content-Type: application/json" \
@@ -119,7 +120,7 @@ curl -X GET "$URL/v1/product?id=dbdump500001&requestid=999999999999&uuid=7c5a3c6
 ```
 ```bash
 echo "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=" | base64 -d > image.jpg
-curl -X PUT "<ALB-주소>/v1/product" \
+curl -X PUT "$URL/v1/product" \
   -F "requestid=999999999999" \
   -F "uuid=7c5a3c6a-758f-4bc5-9bdf-3e573a0ad729" \
   -F "id=dbdump500001" \
@@ -128,7 +129,7 @@ curl -X PUT "<ALB-주소>/v1/product" \
 
 <br>
 
-## API stress
+## stress
 ```bash
 curl -X POST "$URL/v1/stress" \
   -H "Content-Type: application/json" \

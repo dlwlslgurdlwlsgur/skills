@@ -1,13 +1,13 @@
 #!/bin/bash
 set -x
 ClusterName="skills-cluster"
-Region="ap-northeast-2"
+REGION="ap-northeast-2"
 
 kubectl create namespace amazon-cloudwatch
 
 kubectl create configmap cluster-info \
   --from-literal=cluster.name=${ClusterName} \
-  --from-literal=aws.region=${Region} \
+  --from-literal=aws.REGION=${REGION} \
   -n amazon-cloudwatch
 
 kubectl get pods -n amazon-cloudwatch
@@ -20,7 +20,7 @@ cat <<EOF > cw-dashboard.json
       "type": "metric",
       "x": 0,
       "y": 0,
-      "width": 8,
+      "width": 12,
       "height": 6,
       "properties": {
         "view": "timeSeries",
@@ -29,19 +29,19 @@ cat <<EOF > cw-dashboard.json
         "metrics": [
           [ { "expression": "SEARCH('{AWS/ApplicationELB,LoadBalancer} MetricName=\"TargetResponseTime\" LoadBalancer=~\"app/skills-alb.*\"', 'Average', 60)", "id": "e1", "period": 60 } ]
         ],
-        "title": "⏱️ ALB Target Response Time"
+        "title": "ALB Target Response Time"
       }
     },
     {
       "type": "log",
-      "x": 8,
+      "x": 12,
       "y": 0,
-      "width": 16,
+      "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | fields @timestamp, httpRequest.clientIp, httpRequest.uri, action, terminatingRuleId | filter action = 'BLOCK' | sort @timestamp desc",
+        "query": "SOURCE \"aws-waf-logs-skills\" | parse @message /\"headers\":(?<HeaderList>\\\\[.*?\\\\])/ | display @timestamp, httpRequest.uri, httpRequest.args, HeaderList | filter action = 'BLOCK' | sort @timestamp desc",
         "region": "us-east-1",
-        "title": "🛡️ WAF Blocked Requests",
+        "title": "WAF Blocked",
         "view": "table"
       }
     },
@@ -49,6 +49,19 @@ cat <<EOF > cw-dashboard.json
       "type": "log",
       "x": 0,
       "y": 6,
+      "width": 24,
+      "height": 6,
+      "properties": {
+        "query": "SOURCE \"aws-waf-logs-skills\" | parse @message /\"headers\":(?<HeaderList>\\\\[.*?\\\\])/ | display @timestamp, httpRequest.uri, httpRequest.args, HeaderList | filter action = 'ALLOW' | sort @timestamp desc",
+        "region": "us-east-1",
+        "title": "🔍 All Requests (Query & Headers)",
+        "view": "table"
+      }
+    },
+    {
+      "type": "log",
+      "x": 0,
+      "y": 12,
       "width": 12,
       "height": 6,
       "properties": {
@@ -61,7 +74,7 @@ cat <<EOF > cw-dashboard.json
     {
       "type": "log",
       "x": 12,
-      "y": 6,
+      "y": 12,
       "width": 12,
       "height": 6,
       "properties": {
@@ -74,7 +87,7 @@ cat <<EOF > cw-dashboard.json
     {
       "type": "log",
       "x": 0,
-      "y": 12,
+      "y": 18,
       "width": 12,
       "height": 6,
       "properties": {
@@ -87,7 +100,7 @@ cat <<EOF > cw-dashboard.json
     {
       "type": "log",
       "x": 12,
-      "y": 12,
+      "y": 18,
       "width": 12,
       "height": 6,
       "properties": {
@@ -100,7 +113,7 @@ cat <<EOF > cw-dashboard.json
     {
       "type": "log",
       "x": 0,
-      "y": 18,
+      "y": 24,
       "width": 12,
       "height": 6,
       "properties": {
@@ -113,7 +126,7 @@ cat <<EOF > cw-dashboard.json
     {
       "type": "log",
       "x": 12,
-      "y": 18,
+      "y": 24,
       "width": 12,
       "height": 6,
       "properties": {

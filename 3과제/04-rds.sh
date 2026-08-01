@@ -82,4 +82,4 @@ aws rds register-db-proxy-targets \
   --db-proxy-name "skills-rds-proxy" \
   --target-group-name "default" \
   --db-instance-identifiers "apdev-rds-instance" \
-  --region ${REGION}[cite: 1]
+  --region ap-northeast-2

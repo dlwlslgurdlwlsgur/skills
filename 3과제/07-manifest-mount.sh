@@ -39,6 +39,11 @@ rm -f s3-policy.json
 aws s3 website s3://${BUCKET}/ --index-document index.html --error-document error.html
 S3_WEBSITE_ENDPOINT="${BUCKET}.s3-website.${REGION}.amazonaws.com"
 
+NODE_ROLE_NAME=$(aws iam list-roles --query "Roles[?contains(RoleName, 'NodeInstanceRole')].RoleName" --output text --region ${REGION} | head -n 1)
+if [ -n "$NODE_ROLE_NAME" ]; then
+  aws iam attach-role-policy --role-name "${NODE_ROLE_NAME}" --policy-arn "arn:aws:iam::aws:policy/AmazonS3FullAccess" || true
+fi
+
 # 2. ALB Controller 및 S3 CSI 드라이버 설치
 ROLE_NAME="${CLUSTER_NAME}-LBControllerRole"
 POLICY_NAME="${CLUSTER_NAME}-LBControllerPolicy"
@@ -69,6 +74,14 @@ kubectl apply -f service-account.yaml
 curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && chmod +x get_helm.sh && ./get_helm.sh && rm -f get_helm.sh
 helm repo add eks https://aws.github.io/eks-charts && helm repo update
 helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=$CLUSTER_NAME --set serviceAccount.create=false --set serviceAccount.name=aws-load-balancer-controller
+
+
+## S3 CSI
+helm repo add aws-mountpoint-s3-csi-driver https://awslabs.github.io/mountpoint-s3-csi-driver
+helm repo update
+
+helm upgrade --install aws-s3-csi-driver aws-mountpoint-s3-csi-driver/aws-mountpoint-s3-csi-driver \
+  --namespace kube-system
 
 aws eks create-addon --cluster-name ${CLUSTER_NAME} --addon-name aws-s3-csi-driver --region ${REGION} 2>/dev/null || true
 sleep 15
@@ -182,6 +195,29 @@ spec:
 ---
 EOF
 
+cat <<EOF >> manifest/hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ${APP}-hpa
+  namespace: ${APP_NAMESPACE}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ${APP}-deployment
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+---
+EOF
+
 cat <<EOF >> manifest/service.yaml
 apiVersion: v1
 kind: Service
@@ -240,9 +276,7 @@ spec:
                   number: 8080
 EOF
 
+rm iam_policy.json service-account.yaml
 kubectl wait --namespace kube-system --for=condition=ready pod --selector=app.kubernetes.io/name=aws-load-balancer-controller --timeout=120s
 kubectl apply -f manifest/skills-sa.yaml
 kubectl apply -f manifest/s3-pv.yaml
-# kubectl apply -f manifest/deployment.yaml
-# kubectl apply -f manifest/service.yaml
-# kubectl apply -f manifest/ingress.yaml

@@ -73,4 +73,4 @@ aws wafv2 put-logging-configuration \
     --logging-configuration file://waf-logging-config.json \
     --region "${REGION}"
 
-rm waf-rules.json
+rm waf-rules.json waf-logging-config.json

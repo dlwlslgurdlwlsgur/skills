@@ -1,7 +1,6 @@
 #!/bin/bash
 set -x
 set -e
-ensure_key "$KMS_EKS_ALIAS"
 REGION="ap-northeast-2"
 export AWS_DEFAULT_REGION="$REGION"
 
@@ -14,10 +13,10 @@ KMS_ARN=$(aws kms describe-key --key-id "$KMS_ALIAS" --query 'KeyMetadata.Arn' -
 REPOSITORY_URI="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${ECR_NAME}"
 
 aws ecr create-repository \
-     --repository-name "$ECR_NAME" \
-     --image-tag-mutability IMMUTABLE \
-     --image-scanning-configuration scanOnPush=true \
-     --encryption-configuration encryptionType=KMS,kmsKey="$KMS_ARN" > /dev/null
+    --repository-name "$ECR_NAME" \
+    --image-tag-mutability IMMUTABLE \
+    --image-scanning-configuration scanOnPush=true \
+    --encryption-configuration encryptionType=KMS,kmsKey="$KMS_ARN" > /dev/null
 
 LIFECYCLE_POLICY=$(cat <<EOF
 {

@@ -139,6 +139,29 @@ spec:
 ---
 EOF
 
+cat <<EOF >> manifest/hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ${APP}-hpa
+  namespace: ${APP_NAMESPACE}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ${APP}-deployment
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+---
+EOF
+
 cat <<EOF >> manifest/service.yaml
 apiVersion: v1
 kind: Service
@@ -197,8 +220,6 @@ spec:
                   number: 8080
 EOF
 
+rm iam_policy.json service-account.yaml
 kubectl wait --namespace kube-system --for=condition=ready pod --selector=app.kubernetes.io/name=aws-load-balancer-controller --timeout=120s
 kubectl apply -f manifest/skills-sa.yaml
-# kubectl apply -f manifest/deployment.yaml
-# kubectl apply -f manifest/service.yaml
-# kubectl apply -f manifest/ingress.yaml
