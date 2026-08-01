@@ -95,5 +95,5 @@ function handler(event) {
 }
 ```
 
-<img width="788" height="775" alt="image" src="https://github.com/user-attachments/assets/aae8107c-3310-4b95-82e9-0c81716313f9" />
-<img width="608" height="247" alt="image" src="https://github.com/user-attachments/assets/90d72ae5-54fd-4fbe-a6cf-1e56dbcd9991" />
+<img alt="image" src="https://github.com/user-attachments/assets/aae8107c-3310-4b95-82e9-0c81716313f9" />
+<img alt="image" src="https://github.com/user-attachments/assets/90d72ae5-54fd-4fbe-a6cf-1e56dbcd9991" />
