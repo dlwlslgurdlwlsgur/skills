@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 export AWS_PAGER=""
 export REGION=ap-northeast-1
 export CLUSTER_NAME=o11y-cluster

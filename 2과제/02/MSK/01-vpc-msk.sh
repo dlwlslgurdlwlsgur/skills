@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 rm -rf ~/.aws
 if [[ -z "${EXAM_NO:-}" || "${EXAM_NO}" == "<비번호>" || "${EXAM_NO}" == "<exam-number>" ]]; then
   echo "[오류] 비번호(EXAM_NO)가 제대로 설정되지 않았습니다." >&2

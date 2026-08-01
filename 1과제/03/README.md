@@ -47,8 +47,19 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3
 
 <br>
 
+## shell
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/06-app.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/07-monitoring.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/08-waf.sh
+```
+- ALB에 Default 403 설정
+
+<br>
+
 ## CloudFront
 - wsc2026-cdn
+- WAF 연결
 - origin: /static
 - origin: index.html
 - Viewer Requests ( ALB )
@@ -83,14 +94,3 @@ function handler(event) {
   return request;
 }
 ```
-
-<br>
-
-## shell
-```bash
-wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/06-app.sh
-wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/07-monitoring.sh
-wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/03/08-waf.sh
-```
-- CloudFront에 WAF 연결
-- ALB에 Default 403 설정

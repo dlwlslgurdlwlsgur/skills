@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 EKS_KEY_ARN=$(aws kms describe-key --key-id alias/wskorea26-eks-key --query 'KeyMetadata.Arn' --output text)
 PRIV_SUBNET_C=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=wskorea26-priv-subnet-c" --query "Subnets[0].SubnetId" --output text)
 PRIV_SUBNET_D=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=wskorea26-priv-subnet-d" --query "Subnets[0].SubnetId" --output text)

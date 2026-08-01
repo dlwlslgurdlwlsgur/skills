@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 cat << 'EOF' > waf-rules.json
 [
   {

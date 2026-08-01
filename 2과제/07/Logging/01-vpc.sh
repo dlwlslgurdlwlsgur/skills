@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 rm -rf ~/.aws
 R=ap-northeast-1
 CL=o11y-cluster

@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 cat << EOF > cache-policy.json
 {
   "Name": "skillsphone-cdn-ab-cache-policy",

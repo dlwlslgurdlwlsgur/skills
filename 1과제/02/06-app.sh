@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 CLUSTER_NAME="wskorea26-cluster"
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 

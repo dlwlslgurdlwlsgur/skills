@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 REGION_CODE="ap-northeast-2"
 EKS_CLUSTER_NAME="wsc2026-eks-cluster"
@@ -268,10 +268,9 @@ aws ec2 authorize-security-group-ingress \
     }
   ]" 2>/dev/null || true
 
-# 수정: 올바른 워커 노드 보안 그룹 ID 탐색
 NODE_SG_ID=$(aws ec2 describe-security-groups --filters "Name=group-name,Values=*wsc2026*node*" --query "SecurityGroups[0].GroupId" --output text)
 if [ -z "$NODE_SG_ID" ] || [ "$NODE_SG_ID" = "None" ]; then
-    NODE_SG_ID=$(aws eks describe-cluster --cluster-name "$EKS_CLUSTER_NAME" --query "cluster.resourcesVpcConfig.clusterSecurityGroupId" --output text)
+    NODE_SG_ID=$(aws eks describe-cluster --name "$EKS_CLUSTER_NAME" --query "cluster.resourcesVpcConfig.clusterSecurityGroupId" --output text)
 fi
 
 aws ec2 authorize-security-group-ingress \

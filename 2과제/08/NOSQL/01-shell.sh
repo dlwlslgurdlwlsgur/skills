@@ -1,8 +1,8 @@
 #!/bin/bash
 set -x
-set -e
+
 rm -rf ~/.aws
-set -Eeuo pipefail
+euo pipefail
 export AWS_PAGER=""
 REGION="ap-northeast-2"
 VPC_NAME="skills-nosql-vpc"
@@ -438,7 +438,7 @@ CLIENT_PY_GZ="$(gzip -9c "$DOCDB_CLIENT" | base64 | tr -d '\r\n')"
 DATASET_GZ="$(gzip -9c "$DATASET" | base64 | tr -d '\r\n')"
 cat >"${TMP_DIR}/user-data.sh" <<USERDATA
 #!/usr/bin/env bash
-set -Eeuo pipefail
+euo pipefail
 exec > >(tee /var/log/skills-nosql-bootstrap.log | logger -t user-data -s 2>/dev/console) 2>&1
 
 yum install python3-pip -y

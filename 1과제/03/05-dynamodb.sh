@@ -1,10 +1,8 @@
 #!/bin/bash
 set -x
-set -e
 export AWS_PAGER=""
-export AWS_DEFAULT_REGION="$REGION"
-
 REGION="ap-northeast-2"
+export AWS_DEFAULT_REGION="$REGION"
 TABLE_NAME="wsc2026-book-table"
 KMS_ALIAS="alias/wsc2026-db-kms"
 
@@ -175,19 +173,29 @@ FIXED_POLICY_JSON=$(cat <<EOF
       "Sid": "AllowPodWrite",
       "Effect": "Allow",
       "Principal": {
-        "AWS": "arn:aws:iam::${ACCOUNT_ID}:role/${POD_ROLE_NAME}"
+        "AWS": "arn:aws:iam::${ACCOUNT_ID}:root"
       },
       "Action": "dynamodb:PutItem",
-      "Resource": "${TABLE_ARN}"
+      "Resource": "${TABLE_ARN}",
+      "Condition": {
+        "ArnEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::${ACCOUNT_ID}:role/${POD_ROLE_NAME}"
+        }
+      }
     },
     {
       "Sid": "AllowLambdaQuery",
       "Effect": "Allow",
       "Principal": {
-        "AWS": "arn:aws:iam::${ACCOUNT_ID}:role/${LAMBDA_ROLE_NAME}"
+        "AWS": "arn:aws:iam::${ACCOUNT_ID}:root"
       },
       "Action": "dynamodb:Query",
-      "Resource": "${TABLE_ARN}"
+      "Resource": "${TABLE_ARN}",
+      "Condition": {
+        "ArnEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::${ACCOUNT_ID}:role/${LAMBDA_ROLE_NAME}"
+        }
+      }
     }
   ]
 }
@@ -234,4 +242,3 @@ aws kms put-key-policy \
   --policy file://final_policy.json
 
 rm -f temp_statements.json lambda_statement.json final_policy.json
-echo

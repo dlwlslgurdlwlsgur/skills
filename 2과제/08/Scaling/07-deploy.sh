@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 AWS_REGION="us-west-2"
 IMAGE_URL="${ACCOUNT_ID}.dkr.ecr.us-west-2.amazonaws.com/skills-sqs-ecr:latest"

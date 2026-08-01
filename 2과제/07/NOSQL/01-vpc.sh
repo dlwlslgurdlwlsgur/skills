@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 rm -rf ~/.aws
 REGION="ap-southeast-1"
 CIDR_VPC="10.0.0.0/16"

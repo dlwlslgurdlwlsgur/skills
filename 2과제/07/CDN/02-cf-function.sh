@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 KVS_ARN=$(aws cloudfront describe-key-value-store --name skillsphone-cdn-ab-config --query 'KeyValueStore.ARN' --output text)
 KVS_ETAG=$(aws cloudfront-keyvaluestore describe-key-value-store --kvs-arn $KVS_ARN --query 'ETag' --output text)
 KVS_ETAG=$(aws cloudfront-keyvaluestore put-key \

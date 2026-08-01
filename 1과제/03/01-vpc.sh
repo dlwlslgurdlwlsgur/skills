@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 aws configure set default.region ap-northeast-2
 aws configure set default.output json
 

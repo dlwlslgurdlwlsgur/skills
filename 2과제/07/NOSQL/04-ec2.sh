@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 REGION="ap-southeast-1"
 INSTANCE_NAME="bigbae-nosql-app-ec2"
 INSTANCE_type="t3.micro"

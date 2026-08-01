@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 REGION="ap-northeast-1"
 AZ1=$(aws ec2 describe-availability-zones --region $REGION --query 'AvailabilityZones[0].ZoneName' --output text)
 AZ2=$(aws ec2 describe-availability-zones --region $REGION --query 'AvailabilityZones[1].ZoneName' --output text)

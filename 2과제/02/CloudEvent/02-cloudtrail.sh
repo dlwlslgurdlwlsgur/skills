@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 aws configure set cli_pager ""
 export AWS_PAGER=""
 aws configure set default.region eu-west-1

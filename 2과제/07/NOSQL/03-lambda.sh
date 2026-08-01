@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 REGION="ap-southeast-1"
 ROLE_NAME="bigbae-lambda-audit-role"
 FUNCTION_NAME="bigbae-nosql-reservation-audit"

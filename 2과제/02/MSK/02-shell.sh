@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 if [[ -z "${EXAM_NO:-}" || "${EXAM_NO}" == "<비번호>" || "${EXAM_NO}" == "<exam-number>" ]]; then
   echo "[오류] 비번호(EXAM_NO)가 제대로 설정되지 않았습니다." >&2
   echo "터미널에 아래 명령어를 실행하여 본인의 비번호를 먼저 설정한 뒤 다시 실행하세요:" >&2
@@ -47,7 +47,7 @@ echo "BOOTSTRAP_SERVER=${BOOTSTRAP_SERVER}"
 echo "== 3. Producer EC2 Instance Setup =="
 cat <<EOF_USERDATA > /tmp/producer_userdata.sh
 #!/bin/bash
-set -euxo pipefail
+uxo pipefail
 if command -v dnf >/dev/null 2>&1; then dnf install -y python3-pip; else apt-get update && apt-get install -y python3-pip; fi
 python3 -m pip install --quiet kafka-python aws-msk-iam-sasl-signer-python
 mkdir -p /opt/msk-producer

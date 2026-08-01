@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 REGION="ap-northeast-2"
 CLUSTER_NAME="wskorea26-cluster"
 NAMESPACE="monitoring"

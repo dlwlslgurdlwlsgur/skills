@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-set -e
+
 REGION="ap-southeast-1"
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 TIMESTAMP=$(date +%s)
