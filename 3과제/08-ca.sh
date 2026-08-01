@@ -61,3 +61,5 @@ curl -s -O https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluste
 sed -i "s/<YOUR CLUSTER NAME>/${CLUSTER_NAME}/g" cluster-autoscaler-autodiscover.yaml
 
 kubectl apply -f cluster-autoscaler-autodiscover.yaml
+
+rm cluster-autoscaler-autodiscover.yaml cluster-autoscaler-policy.json

@@ -76,6 +76,7 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3
 ## CloudFront
 - WAF 연결
 - ALB: *
+- ALB: http
 - ALB: Caching Disabled, AllViewer
 - S3: /images/*
 

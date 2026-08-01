@@ -39,7 +39,7 @@ rm -f s3-policy.json
 aws s3 website s3://${BUCKET}/ --index-document index.html --error-document error.html
 S3_WEBSITE_ENDPOINT="${BUCKET}.s3-website.${REGION}.amazonaws.com"
 
-# 2. ALB Controller 및 S3 CSI 드라이버 설치
+# 2. ALB Controller 설치 (S3 CSI 드라이버 설치 제거됨)
 ROLE_NAME="${CLUSTER_NAME}-LBControllerRole"
 POLICY_NAME="${CLUSTER_NAME}-LBControllerPolicy"
 SKILLS_ROLE_NAME="${CLUSTER_NAME}-skills-role"
@@ -70,9 +70,7 @@ curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scr
 helm repo add eks https://aws.github.io/eks-charts && helm repo update
 helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=$CLUSTER_NAME --set serviceAccount.create=false --set serviceAccount.name=aws-load-balancer-controller
 
-aws eks create-addon --cluster-name ${CLUSTER_NAME} --addon-name aws-s3-csi-driver --region ${REGION} 2>/dev/null || true
-sleep 10
-
+# K8s 리소스 배포 준비 (PV/PVC 생성 파일 제거됨)
 kubectl create namespace ${APP_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
 mkdir -p manifest && rm -f manifest/*.yaml
 
@@ -91,53 +89,8 @@ metadata:
     eks.amazonaws.com/role-arn: arn:aws:iam::${ACCOUNT_ID}:role/${SKILLS_ROLE_NAME}
 EOF
 
-cat <<EOF > manifest/s3-pv.yaml
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: s3-pv
-spec:
-  capacity:
-    storage: 100Gi
-  accessModes:
-    - ReadWriteMany
-  mountOptions:
-    - allow-delete
-    - region=${REGION}
-  csi:
-    driver: s3.csi.aws.com
-    volumeHandle: s3-csi-driver-volume
-    volumeAttributes:
-      bucketName: ${BUCKET}
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: s3-pvc
-  namespace: ${APP_NAMESPACE}
-spec:
-  accessModes:
-    - ReadWriteMany
-  storageClassName: ""
-  resources:
-    requests:
-      storage: 100Gi
-EOF
-
+# 4. 앱 배포 (MOUNT_CONFIG 삭제 및 순수 환경 변수만 유지)
 for APP in product stress user; do
-if [ "$APP" == "product" ]; then
-  MOUNT_CONFIG="
-        volumeMounts:
-        - name: s3-volume
-          mountPath: /images
-      volumes:
-      - name: s3-volume
-        persistentVolumeClaim:
-          claimName: s3-pvc"
-else
-  MOUNT_CONFIG=""
-fi
-
 cat <<EOF >> manifest/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -182,7 +135,7 @@ spec:
             memory: 128Mi
           limits:
             cpu: 500m
-            memory: 256Mi${MOUNT_CONFIG}
+            memory: 256Mi
 ---
 EOF
 
@@ -246,7 +199,6 @@ EOF
 
 kubectl wait --namespace kube-system --for=condition=ready pod --selector=app.kubernetes.io/name=aws-load-balancer-controller --timeout=120s
 kubectl apply -f manifest/skills-sa.yaml
-kubectl apply -f manifest/s3-pv.yaml
 # kubectl apply -f manifest/deployment.yaml
 # kubectl apply -f manifest/service.yaml
 # kubectl apply -f manifest/ingress.yaml

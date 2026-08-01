@@ -70,9 +70,7 @@ curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scr
 helm repo add eks https://aws.github.io/eks-charts && helm repo update
 helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=$CLUSTER_NAME --set serviceAccount.create=false --set serviceAccount.name=aws-load-balancer-controller
 
-# S3 CSI Addon 설치 (마운트 핵심)
 aws eks create-addon --cluster-name ${CLUSTER_NAME} --addon-name aws-s3-csi-driver --region ${REGION} 2>/dev/null || true
-echo "⏳ CSI 드라이버 설치 대기 중..."
 sleep 15
 
 kubectl create namespace ${APP_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -

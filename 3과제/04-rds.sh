@@ -60,24 +60,26 @@ PROXY_ROLE_ARN=$(aws iam create-role \
     --assume-role-policy-document file://proxy-trust-policy.json \
     --query 'Role.Arn' --output text)
 
+rm proxy-trust-policy.json
+
 aws iam attach-role-policy \
-    --role-name $(basename ${PROXY_ROLE_ARN}) \
-    --policy-arn "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
+  --role-name $(basename ${PROXY_ROLE_ARN}) \
+  --policy-arn "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
 
 sleep 15
 
 aws rds create-db-proxy \
   --db-proxy-name "skills-rds-proxy" \
   --engine-family "MYSQL" \
-  --auth "[{\"AuthScheme\":\"SECRETS\",\"SecretArn\":\"${SECRET_ARN}\",\"IAMAuth\":\"DISABLED\"}]" \
+  --auth "[{\"AuthScheme\":\"SECRETS\",\"SecretArn\":\"${SECRET_ARN}\",\"IAMAuth\":\"DISABLED\",\"ClientPasswordAuthType\":\"MYSQL_NATIVE_PASSWORD\"}]" \
   --role-arn "${PROXY_ROLE_ARN}" \
   --vpc-subnet-ids "${PRI_A_ID}" "${PRI_B_ID}" "${PRI_C_ID}" \
   --vpc-security-group-ids "${RDS_SG_ID}" \
   --no-require-tls \
-  --region ${REGION} || echo "RDS Proxy creation failed or already exists."
+  --region ${REGION} || echo "RDS Proxy creation failed or already exists."[cite: 1]
   
 aws rds register-db-proxy-targets \
   --db-proxy-name "skills-rds-proxy" \
   --target-group-name "default" \
   --db-instance-identifiers "apdev-rds-instance" \
-  --region ${REGION}
+  --region ${REGION}[cite: 1]

@@ -11,7 +11,8 @@ def get_db_connection():
         user=os.environ.get("MYSQL_USER"),
         password=os.environ.get("MYSQL_PASSWORD"),
         database=os.environ.get("MYSQL_DBNAME", "wsc2026db"),
-        cursorclass=pymysql.cursors.DictCursor
+        cursorclass=pymysql.cursors.DictCursor,
+        ssl={"check_hostname": False} # 반드시 추가 (TLS 암호화 연결 활성화)
     )
 
 def detect_threat(req):

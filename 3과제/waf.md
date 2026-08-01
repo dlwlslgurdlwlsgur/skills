@@ -1,7 +1,7 @@
 ## header
 ```bash
 {
-    "Name": "header-hacker",
+    "Name": "header-block",
     "Priority": 4,
     "Statement": {
         "RegexMatchStatement": {
@@ -22,7 +22,7 @@
     "VisibilityConfig": {
         "SampledRequestsEnabled": true,
         "CloudWatchMetricsEnabled": true,
-        "MetricName": "header-hacker"
+        "MetricName": "header-block"
     },
     "Action": {
         "Block": {

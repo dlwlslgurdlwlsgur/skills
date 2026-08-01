@@ -12,6 +12,7 @@ kubectl create configmap cluster-info \
 
 kubectl get pods -n amazon-cloudwatch
 
+
 cat <<EOF > cw-dashboard.json
 {
   "widgets": [
@@ -130,3 +131,5 @@ aws cloudwatch put-dashboard \
   --dashboard-name "skills" \
   --dashboard-body file://cw-dashboard.json \
   --region ap-northeast-2
+
+rm cw-dashboard.json
