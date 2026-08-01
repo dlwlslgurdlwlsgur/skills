@@ -73,9 +73,9 @@ aws rds create-db-proxy \
   --role-arn "${PROXY_ROLE_ARN}" \
   --vpc-subnet-ids "${PRI_A_ID}" "${PRI_B_ID}" "${PRI_C_ID}" \
   --vpc-security-group-ids "${RDS_SG_ID}" \
-  --require-tls \
+  --no-require-tls \
   --region ${REGION} || echo "RDS Proxy creation failed or already exists."
-
+  
 aws rds register-db-proxy-targets \
   --db-proxy-name "skills-rds-proxy" \
   --target-group-name "default" \

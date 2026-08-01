@@ -26,7 +26,7 @@ cat <<EOF > cw-dashboard.json
         "stacked": false,
         "region": "ap-northeast-2",
         "metrics": [
-          [ { "expression": "SEARCH('{AWS/ApplicationELB,LoadBalancer} MetricName=\"TargetResponseTime\"', 'Average', 60)", "id": "e1", "period": 60 } ]
+          [ { "expression": "SEARCH('{AWS/ApplicationELB,LoadBalancer} MetricName=\"TargetResponseTime\" LoadBalancer=~\"app/skills-alb.*\"', 'Average', 60)", "id": "e1", "period": 60 } ]
         ],
         "title": "⏱️ ALB Target Response Time"
       }
@@ -39,7 +39,7 @@ cat <<EOF > cw-dashboard.json
       "height": 6,
       "properties": {
         "query": "SOURCE \"aws-waf-logs-skills\" | fields @timestamp, httpRequest.clientIp, httpRequest.uri, action, terminatingRuleId | filter action = 'BLOCK' | sort @timestamp desc",
-        "region": "ap-northeast-2",
+        "region": "us-east-1",
         "title": "🛡️ WAF Blocked Requests",
         "view": "table"
       }

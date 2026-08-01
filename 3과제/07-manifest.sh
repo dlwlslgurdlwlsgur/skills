@@ -13,7 +13,6 @@ PUB_SUBNETS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" 
 DB_HOST=$(aws rds describe-db-proxies --db-proxy-name "skills-rds-proxy" --query "DBProxies[0].Endpoint" --output text --region ${REGION} 2>/dev/null)
 aws eks update-kubeconfig --name ${CLUSTER_NAME} --region ${REGION}
 
-# 1. S3 버킷 생성 및 퍼블릭 설정
 aws s3api create-bucket --bucket "${BUCKET}" \
     --create-bucket-configuration "LocationConstraint=${REGION}" --region ${REGION} >/dev/null 2>&1 || echo "Bucket ${BUCKET} already exists"
 
@@ -74,7 +73,6 @@ helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-contro
 aws eks create-addon --cluster-name ${CLUSTER_NAME} --addon-name aws-s3-csi-driver --region ${REGION} 2>/dev/null || true
 sleep 10
 
-# 3. K8s 리소스 배포 준비
 kubectl create namespace ${APP_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
 mkdir -p manifest && rm -f manifest/*.yaml
 
@@ -93,7 +91,6 @@ metadata:
     eks.amazonaws.com/role-arn: arn:aws:iam::${ACCOUNT_ID}:role/${SKILLS_ROLE_NAME}
 EOF
 
-# S3 PV/PVC 생성
 cat <<EOF > manifest/s3-pv.yaml
 apiVersion: v1
 kind: PersistentVolume
@@ -127,7 +124,6 @@ spec:
       storage: 100Gi
 EOF
 
-# 4. 앱 배포 (Product에 S3_BUCKET 환경변수 및 마운트 적용)
 for APP in product stress user; do
 if [ "$APP" == "product" ]; then
   MOUNT_CONFIG="
@@ -207,7 +203,6 @@ spec:
 EOF
 done
 
-# ALB Ingress (API 경로만 처리)
 cat <<EOF > manifest/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -215,6 +210,7 @@ metadata:
   name: skills-ingress
   namespace: ${APP_NAMESPACE}
   annotations:
+    alb.ingress.kubernetes.io/load-balancer-name: skills-alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/subnets: ${PUB_SUBNETS}
@@ -251,83 +247,6 @@ EOF
 kubectl wait --namespace kube-system --for=condition=ready pod --selector=app.kubernetes.io/name=aws-load-balancer-controller --timeout=120s
 kubectl apply -f manifest/skills-sa.yaml
 kubectl apply -f manifest/s3-pv.yaml
-kubectl apply -f manifest/deployment.yaml
-kubectl apply -f manifest/service.yaml
-kubectl apply -f manifest/ingress.yaml
-
-# 5. CloudFront 배포 자동화
-echo "⏳ ALB 생성 대기 중... (약 3~5분 소요)"
-ALB_DNS=""
-while [ -z "$ALB_DNS" ]; do
-  sleep 10
-  ALB_DNS=$(kubectl get ingress skills-ingress -n ${APP_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-done
-echo "✅ ALB Provisioned: $ALB_DNS"
-
-echo "⏳ CloudFront 배포 생성 중..."
-cat <<EOF > cf-config.json
-{
-  "CallerReference": "skills-cf-$(date +%s)",
-  "Comment": "Skills CloudFront Distribution",
-  "Enabled": true,
-  "Origins": {
-    "Quantity": 2,
-    "Items": [
-      {
-        "Id": "ALBOrigin",
-        "DomainName": "${ALB_DNS}",
-        "CustomOriginConfig": {
-          "HTTPPort": 80,
-          "HTTPSPort": 443,
-          "OriginProtocolPolicy": "http-only"
-        }
-      },
-      {
-        "Id": "S3Origin",
-        "DomainName": "${S3_WEBSITE_ENDPOINT}",
-        "CustomOriginConfig": {
-          "HTTPPort": 80,
-          "HTTPSPort": 443,
-          "OriginProtocolPolicy": "http-only"
-        }
-      }
-    ]
-  },
-  "DefaultCacheBehavior": {
-    "TargetOriginId": "ALBOrigin",
-    "ViewerProtocolPolicy": "allow-all",
-    "MinTTL": 0,
-    "DefaultTTL": 0,
-    "MaxTTL": 0,
-    "ForwardedValues": {
-      "QueryString": true,
-      "Cookies": { "Forward": "all" },
-      "Headers": {
-        "Quantity": 1,
-        "Items": ["*"]
-      }
-    }
-  },
-  "CacheBehaviors": {
-    "Quantity": 1,
-    "Items": [
-      {
-        "PathPattern": "/images/*",
-        "TargetOriginId": "S3Origin",
-        "ViewerProtocolPolicy": "allow-all",
-        "MinTTL": 0,
-        "DefaultTTL": 86400,
-        "MaxTTL": 31536000,
-        "ForwardedValues": {
-          "QueryString": false,
-          "Cookies": { "Forward": "none" }
-        }
-      }
-    ]
-  }
-}
-EOF
-
-CF_DOMAIN=$(aws cloudfront create-distribution --distribution-config file://cf-config.json --query 'Distribution.DomainName' --output text)
-echo "🎉 CloudFront 생성이 완료되었습니다!"
-echo "👉 채점 시스템에 제출할 최종 단일 엔드포인트: http://${CF_DOMAIN}"
+# kubectl apply -f manifest/deployment.yaml
+# kubectl apply -f manifest/service.yaml
+# kubectl apply -f manifest/ingress.yaml

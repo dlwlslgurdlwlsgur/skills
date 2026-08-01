@@ -13,7 +13,6 @@ PUB_SUBNETS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" 
 DB_HOST=$(aws rds describe-db-proxies --db-proxy-name "skills-rds-proxy" --query "DBProxies[0].Endpoint" --output text --region ${REGION} 2>/dev/null)
 aws eks update-kubeconfig --name ${CLUSTER_NAME} --region ${REGION}
 
-# 1. S3 버킷 생성 및 퍼블릭 설정
 aws s3api create-bucket --bucket "${BUCKET}" \
     --create-bucket-configuration "LocationConstraint=${REGION}" --region ${REGION} >/dev/null 2>&1 || echo "Bucket ${BUCKET} already exists"
 
@@ -71,11 +70,11 @@ curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scr
 helm repo add eks https://aws.github.io/eks-charts && helm repo update
 helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=$CLUSTER_NAME --set serviceAccount.create=false --set serviceAccount.name=aws-load-balancer-controller
 
-# S3 CSI Addon 설치
+# S3 CSI Addon 설치 (마운트 핵심)
 aws eks create-addon --cluster-name ${CLUSTER_NAME} --addon-name aws-s3-csi-driver --region ${REGION} 2>/dev/null || true
-sleep 10
+echo "⏳ CSI 드라이버 설치 대기 중..."
+sleep 15
 
-# 3. K8s 리소스 배포 준비
 kubectl create namespace ${APP_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
 mkdir -p manifest && rm -f manifest/*.yaml
 
@@ -94,7 +93,6 @@ metadata:
     eks.amazonaws.com/role-arn: arn:aws:iam::${ACCOUNT_ID}:role/${SKILLS_ROLE_NAME}
 EOF
 
-# S3 PV/PVC 생성
 cat <<EOF > manifest/s3-pv.yaml
 apiVersion: v1
 kind: PersistentVolume
@@ -128,7 +126,6 @@ spec:
       storage: 100Gi
 EOF
 
-# 4. 앱 배포 (Product에 S3 마운트 적용)
 for APP in product stress user; do
 if [ "$APP" == "product" ]; then
   MOUNT_CONFIG="
@@ -204,21 +201,6 @@ spec:
 EOF
 done
 
-cat <<EOF >> manifest/service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: s3-external-svc
-  namespace: ${APP_NAMESPACE}
-spec:
-  type: ExternalName
-  externalName: ${S3_WEBSITE_ENDPOINT}
-  ports:
-  - port: 80
-    targetPort: 80
----
-EOF
-
 cat <<EOF > manifest/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -226,6 +208,7 @@ metadata:
   name: skills-ingress
   namespace: ${APP_NAMESPACE}
   annotations:
+    alb.ingress.kubernetes.io/load-balancer-name: skills-alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/subnets: ${PUB_SUBNETS}
@@ -257,13 +240,6 @@ spec:
                 name: stress-svc
                 port:
                   number: 8080
-          - path: /images
-            pathType: Prefix
-            backend:
-              service:
-                name: s3-external-svc
-                port:
-                  number: 80
 EOF
 
 kubectl wait --namespace kube-system --for=condition=ready pod --selector=app.kubernetes.io/name=aws-load-balancer-controller --timeout=120s
