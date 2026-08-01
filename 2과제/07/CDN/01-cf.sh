@@ -26,6 +26,8 @@ EOF
 OAC_ID=$(aws cloudfront create-origin-access-control \
     --cli-input-json file://oac-config.json \
     --query 'OriginAccessControl.Id' \
+    --output text 2>/dev/null || aws cloudfront list-origin-access-controls \
+    --query "OriginAccessControlList.Items[?Name=='skillsphone-oac-${ACCOUNT_ID}'].Id | [0]" \
     --output text)
 
 cat << EOF > dist-config.json
@@ -61,6 +63,10 @@ cat << EOF > dist-config.json
   }
 }
 EOF
+
+aws cloudfront create-distribution --distribution-config file://dist-config.json > /dev/null
+
+sleep 5
 
 CF_ARN=$(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='skillsphone-cdn-ab-distribution'].ARN | [0]" --output text)
 
