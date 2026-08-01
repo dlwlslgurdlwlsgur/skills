@@ -234,6 +234,7 @@ EOF
 
 zip -q remediate_fn.zip remediate_security_group.py
 
+PROTECTED_SG_ID=$(aws ec2 describe-security-groups --region $REGION --filters Name=tag:Name,Values=skills-ceh-protected-sg --query 'SecurityGroups[0].GroupId' --output text)
 LAMBDA_ARN=$(aws lambda create-function --region $REGION \
     --function-name "skills-ceh-remediate-fn" \
     --runtime "python3.12" \

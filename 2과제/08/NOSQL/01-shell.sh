@@ -43,7 +43,6 @@ done
 
 aws sts get-caller-identity >/dev/null
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
-echo "[1/9] 리전 및 가용 영역 확인"
 mapfile -t AZS < <(
   aws ec2 describe-availability-zones \
     --region "$REGION" \
@@ -51,17 +50,12 @@ mapfile -t AZS < <(
     --query 'AvailabilityZones[:2].ZoneName' \
     --output text | tr '\t' '\n'
 )
-[[ ${#AZS[@]} -ge 2 ]] || {
-  echo "ERROR: 사용 가능한 가용 영역이 2개 미만입니다." >&2
-  exit 1
-}
 
 tag_name() {
   aws ec2 create-tags --region "$REGION" --resources "$1" \
     --tags Key=Name,Value="$2" >/dev/null
 }
 
-echo "[2/9] KMS 키 생성"
 KMS_KEY_ID="$(
   aws kms list-aliases --region "$REGION" \
     --query "Aliases[?AliasName=='${KMS_ALIAS}'].TargetKeyId | [0]" \
@@ -84,7 +78,6 @@ KMS_KEY_ARN="$(
     --query KeyMetadata.Arn --output text
 )"
 
-echo "[3/9] VPC, Public Subnet 2개, Private Subnet 2개 생성"
 VPC_ID="$(
   aws ec2 describe-vpcs --region "$REGION" \
     --filters "Name=tag:Name,Values=${VPC_NAME}" \
@@ -211,7 +204,6 @@ for subnet_id in "${PRIVATE_SUBNETS[@]}"; do
   fi
 done
 
-echo "[4/9] 보안 그룹 및 DocumentDB Subnet Group 생성"
 CLIENT_SG_ID="$(
   aws ec2 describe-security-groups --region "$REGION" \
     --filters "Name=vpc-id,Values=${VPC_ID}" "Name=group-name,Values=${CLIENT_SG_NAME}" \
@@ -257,7 +249,6 @@ if ! aws docdb describe-db-subnet-groups --region "$REGION" \
     --tags Key=Name,Value="$DB_SUBNET_GROUP" >/dev/null
 fi
 
-echo "[5/9] DocumentDB Cluster와 Instance 생성"
 SECRET_EXISTS=false
 if aws secretsmanager describe-secret --region "$REGION" \
   --secret-id "$SECRET_NAME" >/dev/null 2>&1; then
@@ -275,8 +266,6 @@ if [[ -z "$DB_PASSWORD" ]]; then
   DB_PASSWORD="$(openssl rand -base64 36 | tr -dc 'A-Za-z0-9' | cut -c1-30)"
 fi
 
-# Cluster 생성 전에 비밀번호를 Secret에 보존하여 중간 실패 후 재실행해도
-# Cluster와 Secret의 비밀번호가 달라지지 않게 합니다.
 if [[ "$SECRET_EXISTS" != true ]]; then
   INITIAL_SECRET_JSON="$(
     jq -cn \
@@ -326,7 +315,7 @@ if ! aws docdb describe-db-instances --region "$REGION" \
     --db-cluster-identifier "$CLUSTER_ID" \
     --tags Key=Name,Value="$INSTANCE_ID" >/dev/null
 fi
-echo "DocumentDB가 available 상태가 될 때까지 기다립니다."
+
 CLUSTER_READY=false
 for attempt in {1..120}; do
   CLUSTER_STATUS="$(
@@ -358,7 +347,6 @@ DOCDB_HOST="$(
     --query 'DBClusters[0].Endpoint' --output text
 )"
 
-echo "[6/9] Secrets Manager Secret 생성"
 SECRET_JSON="$(
   jq -cn \
     --arg username "$DB_USERNAME" \
@@ -380,7 +368,6 @@ else
     --tags Key=Name,Value="$SECRET_NAME" >/dev/null
 fi
 
-echo "[7/9] Client EC2 IAM Role 생성"
 cat >"${TMP_DIR}/trust-policy.json" <<'JSON'
 {
   "Version": "2012-10-17",
@@ -402,7 +389,10 @@ cat >"${TMP_DIR}/client-policy.json" <<JSON
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": "secretsmanager:GetSecretValue",
+      "Action": [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ],
       "Resource": "arn:aws:secretsmanager:${REGION}:${ACCOUNT_ID}:secret:${SECRET_NAME}-*"
     },
     {
@@ -433,12 +423,11 @@ if [[ -z "$PROFILE_ROLE" || "$PROFILE_ROLE" == "None" ]]; then
   sleep 10
 fi
 
-echo "[8/9] Python 앱과 데이터를 포함한 Client EC2 생성"
 CLIENT_PY_GZ="$(gzip -9c "$DOCDB_CLIENT" | base64 | tr -d '\r\n')"
 DATASET_GZ="$(gzip -9c "$DATASET" | base64 | tr -d '\r\n')"
 cat >"${TMP_DIR}/user-data.sh" <<USERDATA
 #!/usr/bin/env bash
-euo pipefail
+set -euo pipefail
 exec > >(tee /var/log/skills-nosql-bootstrap.log | logger -t user-data -s 2>/dev/console) 2>&1
 
 yum install python3-pip -y
@@ -580,7 +569,6 @@ CLIENT_IP="$(
     --query 'Reservations[0].Instances[0].PublicIpAddress' --output text
 )"
 
-echo "[9/9] 애플리케이션 준비 상태 확인"
 APP_READY=false
 for attempt in {1..60}; do
   if curl --silent --show-error --fail --max-time 5 \

@@ -41,6 +41,30 @@ while true; do
     sleep 5
 done
 
+ASSOC_VPC_ID=$(aws vpc-lattice get-service-network-vpc-association --region ap-northeast-1 --service-network-vpc-association-identifier "$VPC_ASSOCIATION_ID" --query 'vpcId' --output text)
+    echo "ASSOC_VPC_ID=${ASSOC_VPC_ID}"
+
+    NEW_SG_ID=$(aws ec2 create-security-group \
+      --region ap-northeast-1 \
+      --group-name "skills-lattice-assoc-sg-final" \
+      --description "VPC Lattice Association SG for Associated VPC" \
+      --vpc-id "$ASSOC_VPC_ID" \
+      --output json | jq -r '.GroupId')
+    
+    echo "SUCCESS_SG_ID: ${NEW_SG_ID}"
+
+    aws ec2 authorize-security-group-ingress \
+      --region ap-northeast-1 \
+      --group-id "$NEW_SG_ID" \
+      --protocol tcp \
+      --port 80 \
+      --cidr "10.61.0.0/16"
+
+    aws vpc-lattice update-service-network-vpc-association \
+       --region ap-northeast-1 \
+       --service-network-vpc-association-identifier "$VPC_ASSOCIATION_ID" \
+       --security-group-ids "$NEW_SG_ID"
+
 SERVICE_ASSOC_ID=$(aws vpc-lattice create-service-network-vpc-association --region $REGION \
     --service-network-identifier $SN_ID \
     --vpc-identifier $SERVICE_VPC_ID \
