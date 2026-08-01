@@ -173,7 +173,7 @@ FIXED_POLICY_JSON=$(cat <<EOF
       "Sid": "AllowPodWrite",
       "Effect": "Allow",
       "Principal": {
-        "AWS": "arn:aws:iam::${ACCOUNT_ID}:root"
+        "AWS": "arn:aws:iam::${ACCOUNT_ID}:role/${POD_ROLE_NAME}"
       },
       "Action": "dynamodb:PutItem",
       "Resource": "${TABLE_ARN}",
@@ -187,7 +187,7 @@ FIXED_POLICY_JSON=$(cat <<EOF
       "Sid": "AllowLambdaQuery",
       "Effect": "Allow",
       "Principal": {
-        "AWS": "arn:aws:iam::${ACCOUNT_ID}:root"
+        "AWS": "arn:aws:iam::${ACCOUNT_ID}:role/${LAMBDA_ROLE_NAME}"
       },
       "Action": "dynamodb:Query",
       "Resource": "${TABLE_ARN}",

@@ -216,24 +216,10 @@ echo "Dashboards:"; curl -s -u admin:'Skills$#$@!' "http://${GRAFANA_LB}/api/sea
 #   wsc2026-grafana-dashboard
 
 
-echo "Datasources:"; curl -s -u admin:'Skills$#$@!' "http://${GRAFANA_LB}/api/datasources" 2>/dev/null | python3 -c "import sys,json;[print(f'  {d[\"name\"]} ({d[\"type\"]})') for d in json.load(sys.stdin)]" 2>/dev/null || echo "  Grafana unreachable"
-echo "Dashboards:"; curl -s -u admin:'Skills$#$@!' "http://${GRAFANA_LB}/api/search?query=wsc2026" 2>/dev/null | python3 -c "import sys,json;[print(f'  {d[\"title\"]}') for d in json.load(sys.stdin)]" 2>/dev/null || echo "  Not found"
-# Datasources:
-#   alertmanager (alertmanager)
-#   cloudwatch (cloudwatch)
-#   prometheus (prometheus)
-# Dashboards:
-#   wsc2026-grafana-dashboard
-
-
 echo 'http://'"${GRAFANA_LB}"' (admin / Skills$#$@!)'
-# Node 로우: CPU/Memory 시계열, Available Nodes 숫자
-# Pod 로우: CPU/Memory 시계열, Pending/Restarts 숫자
-# Application Pod 로우: CPU/Memory 시계열, Running/Restarts/Pending 숫자
-# Application Traffic 로우: RequestCount/ResponseTime/StatusCodes 시계열, Application Logs 패널
-# 색상: CPU 80%↑ 빨강, 60~80% 노랑, 60%↓ 초록 / Restart 1↑ 경고
+# 1) 출력된 Grafana URL을 통해 admin/Skills$#$@!에 로그인 후 wsc2026-grafana-dashboard에서 메트릭과 로그 형식이 채점지 사진과 일치하는지 확인하며, 모든 메트릭은 빈값이 없어야합니다.
 # Application Logs 패널 로그 형식 예시:
-# info
-# {"level":"INFO","path":"/v1/book","status":"200","duration":"112.663323ms","method":"POST"}
-# Alerts 로우에서 아래 5개가 빨간색(Firing)으로 표시되는지 확인
-# PodHighCPU / PodHighMemory / PodNotReady / HighErrorRate / HighLatency
+# INFO {"level":"INFO","path":"/v1/book","status":"200","duration":"112.663323ms","method":"POST"}
+
+
+# Active Alerts 패널에 Edit을 선택해 나온 결과와 채점지 사진과 일치하는지 확인합니다.
