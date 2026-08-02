@@ -1,6 +1,13 @@
 #!/bin/bash
 set -x
 
+R="ap-northeast-1"
+VPC=$(aws ec2 describe-vpcs --region $R --filters "Name=tag:Name,Values=o11y-vpc" --query "Vpcs[0].VpcId" --output text)
+PUBA=$(aws ec2 describe-subnets --region $R --filters "Name=tag:Name,Values=o11y-pub-a" --query "Subnets[0].SubnetId" --output text)
+PUBC=$(aws ec2 describe-subnets --region $R --filters "Name=tag:Name,Values=o11y-pub-c" --query "Subnets[0].SubnetId" --output text)
+PRIA=$(aws ec2 describe-subnets --region $R --filters "Name=tag:Name,Values=o11y-priv-a" --query "Subnets[0].SubnetId" --output text)
+PRIC=$(aws ec2 describe-subnets --region $R --filters "Name=tag:Name,Values=o11y-priv-c" --query "Subnets[0].SubnetId" --output text)
+
 cat <<EOF > cluster.yaml
 apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
