@@ -95,7 +95,7 @@ spec:
         kubernetes.io/cluster/skm-eks-cluster: "*"
   securityGroupSelectorTerms:
     - tags:
-        alpha.eksctl.io/cluster-name: skm-eks-cluster
+        kubernetes.io/cluster/skm-eks-cluster: owned
   tags:
     Name: skm-app-nodeclass-node
 EOF
