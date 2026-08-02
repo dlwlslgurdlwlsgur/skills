@@ -99,27 +99,37 @@ aws eks update-cluster-config \
   --resources-vpc-config endpointPublicAccess=false,endpointPrivateAccess=true
 ```
 
-alb 보안그룹에 vpc origin 연결
-
 <br>
 
-- ALB 접근 제한
+- ALB, Cluster 보안그룹
 ```bash
 export AWS_PAGER=""
-ALB_SG=$(aws elbv2 describe-load-balancers --names unicorn-alb --query "LoadBalancers[0].SecurityGroups[0]" --output text)
+ALB_SG=$(aws ec2 describe-security-groups \
+  --filters "Name=group-name,Values=unicorn-alb-sg" \
+  --query "SecurityGroups[0].GroupId" \
+  --output text)
 aws ec2 describe-security-groups --group-ids $ALB_SG \
   --query "SecurityGroups[0].IpPermissions" \
   --output json > /tmp/all_ingress_rules.json
 aws ec2 revoke-security-group-ingress \
   --group-id $ALB_SG \
   --ip-permissions file:///tmp/all_ingress_rules.json 2>/dev/null
-CF_PREFIX_ID=$(aws ec2 describe-managed-prefix-lists \
-  --filters "Name=prefix-list-name,Values=com.amazonaws.global.cloudfront.origin-facing" \
-  --query "PrefixLists[0].PrefixListId" \
+VPCO_SG=$(aws ec2 describe-security-groups \
+  --filters "Name=group-name,Values=CloudFront-VPCOrigins-Service-SG" \
+  --query "SecurityGroups[0].GroupId" \
   --output text)
 aws ec2 authorize-security-group-ingress \
   --group-id $ALB_SG \
-  --ip-permissions "IpProtocol=tcp,FromPort=80,ToPort=80,PrefixListIds=[{PrefixListId=$CF_PREFIX_ID,Description='Allow CloudFront only'}]"
+  --ip-permissions "IpProtocol=-1,UserIdGroupPairs=[{GroupId=$VPCO_SG,Description='Allow CloudFront VPC Origin All Traffic'}]"
+EKS_SG=$(aws eks describe-cluster \
+  --name unicorn-eks-cluster \
+  --query "cluster.resourcesVpcConfig.clusterSecurityGroupId" \
+  --output text)
+aws ec2 authorize-security-group-ingress \
+  --group-id $EKS_SG \
+  --protocol all \
+  --port all \
+  --cidr 0.0.0.0/0
 ```
 
 <br>
