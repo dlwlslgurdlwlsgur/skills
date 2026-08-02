@@ -13,10 +13,10 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3
 <br>
 
 ## ECR
+- 배포파일/app.py
 ```bash
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Scaling/04-ecr.sh
 ```
-- docker build
 
 <br>
 

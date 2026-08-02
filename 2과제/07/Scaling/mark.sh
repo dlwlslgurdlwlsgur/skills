@@ -41,6 +41,7 @@ kubectl get ec2nodeclass skm-app-nodeclass -o name
 # WhenEmptyOrUnderutilized 60s
 # t3.medium,t3.small
 # 1 <- 1 이상이면 정답 인정
+# ec2nodeclass.karpenter.k8s.aws/skm-app-nodeclass
 
 
 for b in $(seq 1 10); do
