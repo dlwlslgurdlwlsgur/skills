@@ -25,7 +25,7 @@ aws dynamodb create-table \
     --stream-specification StreamEnabled=true,StreamViewType=NEW_AND_OLD_IMAGES \
     --billing-mode PAY_PER_REQUEST
 
-sleep 5
+aws dynamodb wait table-exists --table-name bigbae-nosql-reservation-table
 
 aws dynamodb update-continuous-backups \
     --table-name bigbae-nosql-reservation-table \

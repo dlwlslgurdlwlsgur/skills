@@ -64,9 +64,9 @@ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
   --set serviceAccount.create=false \
   --set serviceAccount.name=aws-load-balancer-controller
 kubectl get pods -n kube-system | grep aws-load-balancer-controller
-
-
-
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+helm repo update
 
 
 
@@ -403,12 +403,12 @@ aws ec2 authorize-security-group-ingress --region $REGION --group-id $CLSG --pro
 create_alb () {
   local TG ALB
   TG=$(aws elbv2 create-target-group --region $REGION --name $2 --protocol HTTP --port $3 \
-        --vpc-id $VPC --target-type ip --health-check-path "$4" --matcher HttpCode=200 \
-        --query 'TargetGroups[0].TargetGroupArn' --output text)
+    --vpc-id $VPC --target-type ip --health-check-path "$4" --matcher HttpCode=200 \
+    --query 'TargetGroups[0].TargetGroupArn' --output text)
   ALB=$(aws elbv2 create-load-balancer --region $REGION --name $1 --type application --scheme internet-facing \
-        --subnets $PUB --security-groups $ALBSG --query 'LoadBalancers[0].LoadBalancerArn' --output text)
+    --subnets $PUB --security-groups $ALBSG --query 'LoadBalancers[0].LoadBalancerArn' --output text)
   aws elbv2 create-listener --region $REGION --load-balancer-arn $ALB --protocol HTTP --port 80 \
-        --default-actions Type=forward,TargetGroupArn=$TG >/dev/null
+    --default-actions Type=forward,TargetGroupArn=$TG >/dev/null
   echo "$TG"
 }
 APP_TG=$(create_alb o11y-app-alb o11y-app-tg 8080 /healthz)
@@ -430,5 +430,3 @@ spec:
   targetGroupARN: $GRF_TG
   targetType: ip
 EOF
-
-echo

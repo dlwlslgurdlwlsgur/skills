@@ -13,14 +13,19 @@ aws ecr create-repository \
   --output text 2>/dev/null || echo "ECR repo already exists"
 echo
 
+cat <<EOF >> requirements.txt
+boto3>=1.35.0
+flask>=3.0.0
+EOF
 cat > Dockerfile <<'EOF'
-FROM python:3.12-slim
+FROM python:3.13-slim
 WORKDIR /app
-RUN pip install flask
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py .
 EXPOSE 8080
+ENV PYTHONUNBUFFERED=1
 CMD ["python", "app.py"]
-
 EOF
 export ACCT=$(aws sts get-caller-identity --query Account --output text)
 aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin $ACCT.dkr.ecr.ap-northeast-2.amazonaws.com
