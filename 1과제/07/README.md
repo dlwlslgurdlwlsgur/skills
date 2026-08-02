@@ -1,4 +1,5 @@
 ## IAM User
+- 계정 ID 복사
 - admin으로 user 생성 및 접속
 
 <br>
@@ -80,24 +81,31 @@ terraform apply -auto-approve
 
 <br>
 
+## Cluster 보안그룹
+- anyopen: ipv4
+
+<br>
+
 ## CloudShell
 - name: unicorn-mark
+- unicorn-subnet-priv-a
 - eks 설정
 ```bash
 aws eks update-cluster-config \
   --name unicorn-eks-cluster \
-  --resources-vpc-config endpointPublicAccess=false,endpointPrivateAccess=true
-```
-```bash
+  --access-config authenticationMode=API
 aws eks update-cluster-config \
   --name unicorn-eks-cluster \
-  --access-config authenticationMode=API
+  --resources-vpc-config endpointPublicAccess=false,endpointPrivateAccess=true
 ```
+
+alb 보안그룹에 vpc origin 연결
 
 <br>
 
 - ALB 접근 제한
 ```bash
+export AWS_PAGER=""
 ALB_SG=$(aws elbv2 describe-load-balancers --names unicorn-alb --query "LoadBalancers[0].SecurityGroups[0]" --output text)
 aws ec2 describe-security-groups --group-ids $ALB_SG \
   --query "SecurityGroups[0].IpPermissions" \

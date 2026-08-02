@@ -82,6 +82,7 @@ resource "aws_wafv2_web_acl" "this" {
 
   rule {
     name     = "AWS-AWSManagedRulesCommonRuleSet"
+    priority = 2
     override_action {
       none {}
     }
@@ -102,7 +103,7 @@ resource "aws_wafv2_web_acl" "this" {
 
   rule {
     name     = "AWS-AWSManagedRulesKnownBadInputsRuleSet"
-    priority = 3 # 2 -> 3으로 변경
+    priority = 3
 
     override_action {
       none {}
@@ -124,7 +125,7 @@ resource "aws_wafv2_web_acl" "this" {
 
   rule {
     name     = "unicorn-rate-limit"
-    priority = 4 # 3 -> 4로 변경
+    priority = 4
 
     action {
       block {

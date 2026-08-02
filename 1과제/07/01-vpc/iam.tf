@@ -151,6 +151,10 @@ data "aws_iam_policy_document" "grafana_policy" {
       "cloudwatch:GetMetricStatistics",
       "cloudwatch:ListMetrics",
       "cloudwatch:DescribeAlarmsForMetric",
+      "logs:DescribeLogGroups",
+      "logs:DescribeLogStreams",
+      "logs:GetLogEvents",
+      "logs:FilterLogEvents"
     ]
     resources = ["*"]
   }

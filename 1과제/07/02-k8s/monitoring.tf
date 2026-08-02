@@ -1,3 +1,7 @@
+data "aws_lb" "unicorn_alb" {
+  name = "unicorn-alb"
+}
+
 resource "helm_release" "kube_prometheus_stack" {
   name       = "unicorn-monitoring"
   repository = "https://prometheus-community.github.io/helm-charts"
@@ -5,6 +9,11 @@ resource "helm_release" "kube_prometheus_stack" {
   namespace  = kubernetes_namespace.monitoring.metadata[0].name
   version    = "67.9.0"
   timeout    = 900
+
+  set {
+    name  = "grafana.defaultDashboardsEnabled"
+    value = "false"
+  }
 
   set {
     name  = "kubeControllerManager.enabled"
@@ -137,12 +146,33 @@ resource "kubernetes_config_map" "grafana_dashboard" {
       refresh       = "10s"
       schemaVersion = 39
       panels = [
+        # 1. EKS Node CPU Usage (%)
         {
           id         = 1
           title      = "EKS Node CPU Usage (%)"
           type       = "timeseries"
           gridPos    = { h = 8, w = 12, x = 0, y = 0 }
           datasource = { type = "prometheus", uid = "prometheus" }
+          fieldConfig = {
+            defaults = {
+              unit = "percent"
+              thresholds = {
+                mode = "absolute"
+                steps = [
+                  { color = "green", value = null },
+                  { color = "yellow", value = 60 },
+                  { color = "red", value = 80 }
+                ]
+              }
+            }
+          }
+          options = {
+            legend = {
+              displayMode = "table"
+              placement   = "right"
+              calcs       = ["mean", "max", "lastNotNull"]
+            }
+          }
           targets = [
             {
               refId        = "A"
@@ -151,12 +181,33 @@ resource "kubernetes_config_map" "grafana_dashboard" {
             },
           ]
         },
+        # 2. EKS Node Memory Usage (%)
         {
           id         = 2
           title      = "EKS Node Memory Usage (%)"
           type       = "timeseries"
           gridPos    = { h = 8, w = 12, x = 12, y = 0 }
           datasource = { type = "prometheus", uid = "prometheus" }
+          fieldConfig = {
+            defaults = {
+              unit = "percent"
+              thresholds = {
+                mode = "absolute"
+                steps = [
+                  { color = "green", value = null },
+                  { color = "yellow", value = 70 },
+                  { color = "red", value = 85 }
+                ]
+              }
+            }
+          }
+          options = {
+            legend = {
+              displayMode = "table"
+              placement   = "right"
+              calcs       = ["mean", "max", "lastNotNull"]
+            }
+          }
           targets = [
             {
               refId        = "A"
@@ -165,15 +216,29 @@ resource "kubernetes_config_map" "grafana_dashboard" {
             },
           ]
         },
+        # 3. unicorn Namespace Pod Status
         {
           id         = 3
           title      = "unicorn Namespace Pod Status"
           type       = "stat"
           gridPos    = { h = 8, w = 8, x = 0, y = 8 }
           datasource = { type = "prometheus", uid = "prometheus" }
+          fieldConfig = {
+            defaults = {
+              color = { mode = "thresholds" }
+            }
+            overrides = [
+              { matcher = { id = "byName", options = "Failed" }, properties = [{ id = "color", value = { mode = "fixed", fixedColor = "red" } }] },
+              { matcher = { id = "byName", options = "Pending" }, properties = [{ id = "color", value = { mode = "fixed", fixedColor = "yellow" } }] },
+              { matcher = { id = "byName", options = "Running" }, properties = [{ id = "color", value = { mode = "fixed", fixedColor = "green" } }] },
+              { matcher = { id = "byName", options = "Succeeded" }, properties = [{ id = "color", value = { mode = "fixed", fixedColor = "blue" } }] },
+              { matcher = { id = "byName", options = "Unknown" }, properties = [{ id = "color", value = { mode = "fixed", fixedColor = "purple" } }] }
+            ]
+          }
           options = {
             graphMode     = "area"
             colorMode     = "value"
+            textMode      = "valueAndName"
             reduceOptions = { calcs = ["lastNotNull"] }
           }
           targets = [
@@ -184,6 +249,7 @@ resource "kubernetes_config_map" "grafana_dashboard" {
             { refId = "E", expr = "sum(kube_pod_status_phase{namespace=\"unicorn\",phase=\"Unknown\"})", legendFormat = "Unknown" },
           ]
         },
+        # 4. Book App Ready Pods
         {
           id         = 4
           title      = "Book App Ready Pods"
@@ -191,10 +257,14 @@ resource "kubernetes_config_map" "grafana_dashboard" {
           gridPos    = { h = 8, w = 4, x = 8, y = 8 }
           datasource = { type = "prometheus", uid = "prometheus" }
           fieldConfig = {
-            defaults = { displayName = "ready" }
+            defaults = { 
+              displayName = "ready"
+              color       = { mode = "fixed", fixedColor = "yellow" } 
+            }
           }
           options = {
             graphMode     = "none"
+            colorMode     = "value"
             reduceOptions = { calcs = ["lastNotNull"] }
           }
           targets = [
@@ -204,12 +274,25 @@ resource "kubernetes_config_map" "grafana_dashboard" {
             },
           ]
         },
+        # 5. Book App HTTP Request Duration
         {
           id         = 5
           title      = "Book App HTTP Request Duration"
           type       = "timeseries"
           gridPos    = { h = 8, w = 12, x = 12, y = 8 }
           datasource = { type = "cloudwatch", uid = "cloudwatch" }
+          fieldConfig = {
+            defaults = {
+              unit = "s"
+            }
+          }
+          options = {
+            legend = {
+              displayMode = "table"
+              placement   = "bottom"
+              calcs       = ["mean", "max", "lastNotNull"]
+            }
+          }
           targets = [
             {
               refId      = "p50"
@@ -217,7 +300,11 @@ resource "kubernetes_config_map" "grafana_dashboard" {
               namespace  = "AWS/ApplicationELB"
               metricName = "TargetResponseTime"
               statistic  = "p50"
-              dimensions = { LoadBalancer = data.aws_lb.this.arn_suffix }
+              period     = 60
+              matchExact = false
+              dimensions = {
+                LoadBalancer = data.aws_lb.unicorn_alb.arn_suffix
+              }
             },
             {
               refId      = "p95"
@@ -225,7 +312,11 @@ resource "kubernetes_config_map" "grafana_dashboard" {
               namespace  = "AWS/ApplicationELB"
               metricName = "TargetResponseTime"
               statistic  = "p95"
-              dimensions = { LoadBalancer = data.aws_lb.this.arn_suffix }
+              period     = 60
+              matchExact = false
+              dimensions = {
+                LoadBalancer = data.aws_lb.unicorn_alb.arn_suffix
+              }
             },
             {
               refId      = "p99"
@@ -233,7 +324,11 @@ resource "kubernetes_config_map" "grafana_dashboard" {
               namespace  = "AWS/ApplicationELB"
               metricName = "TargetResponseTime"
               statistic  = "p99"
-              dimensions = { LoadBalancer = data.aws_lb.this.arn_suffix }
+              period     = 60
+              matchExact = false
+              dimensions = {
+                LoadBalancer = data.aws_lb.unicorn_alb.arn_suffix
+              }
             },
           ]
         },
