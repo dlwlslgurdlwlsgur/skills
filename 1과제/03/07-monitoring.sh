@@ -8,6 +8,7 @@ EKS_CLUSTER_NAME="wsc2026-eks-cluster"
 say() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 ok()  { printf '\033[1;32m[OK]\033[0m %s\n' "$*"; }
 
+# 1. Fluent Bit IAM Service Account
 eksctl create iamserviceaccount \
   --name fluent-bit-sa \
   --region $REGION_CODE \
@@ -16,6 +17,7 @@ eksctl create iamserviceaccount \
   --attach-policy-arn arn:aws:iam::aws:policy/CloudWatchFullAccess \
   --approve
 
+# 2. Fluent Bit ConfigMap (Lua Script Update)
 cat << 'EOF' | kubectl apply -f -
 apiVersion: v1
 kind: ConfigMap
@@ -43,28 +45,20 @@ data:
         Name                grep
         Match               kube.*
         Exclude             log .*path=/health.*
-        Regex               log .*access method=.*
 
     [FILTER]
         Name                parser
         Match               kube.*
         Key_Name            log
         Parser              access_log
-        Reserve_Data        On
+        Reserve_Data        True
+        Preserve_Key        False
 
     [FILTER]
         Name                lua
         Match               kube.*
         script              status.lua
-        call                add_level
-
-    [FILTER]
-        Name                modify
-        Match               kube.*
-        Remove              remote_addr
-        Remove              user_agent
-        Remove              stream
-        Remove              logtag
+        call                format_log
 
     [OUTPUT]
         Name                cloudwatch_logs
@@ -90,22 +84,29 @@ data:
         Time_Format         %Y/%m/%d %H:%M:%S
 
   status.lua: |
-    function add_level(tag, timestamp, record)
+    function format_log(tag, timestamp, record)
         local status = record["status"]
         if status ~= nil then
             local code = tonumber(status)
-            if code ~= nil and code >= 200 and code < 400 then
-                record["level"] = "INFO"
-            else
-                record["level"] = "ERROR"
+            if code ~= nil then
+                if code >= 500 then
+                    record["level"] = "ERROR"
+                elseif code >= 400 then
+                    record["level"] = "WARN"
+                else
+                    record["level"] = "INFO"
+                end
             end
-        else
-            record["level"] = "INFO"
+            record["remote_addr"] = nil
+            record["user_agent"] = nil
+            record["stream"] = nil
+            record["logtag"] = nil
         end
         return 1, timestamp, record
     end
 EOF
 
+# 3. Fluent Bit DaemonSet
 cat << 'EOF' | kubectl apply -f -
 apiVersion: apps/v1
 kind: DaemonSet
@@ -144,6 +145,7 @@ spec:
         wsc2026/node: application
 EOF
 
+# 4. EBS CSI Driver
 eksctl create iamserviceaccount \
   --name ebs-csi-controller-sa \
   --region $REGION_CODE \
@@ -161,6 +163,7 @@ eksctl create addon \
   --service-account-role-arn arn:aws:iam::$ACCOUNT_ID:role/AmazonEKS_EBS_CSI_DriverRole \
   --force
 
+# 5. StorageClass
 cat <<EOF | kubectl apply -f -
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -175,6 +178,10 @@ parameters:
 allowVolumeExpansion: true
 EOF
 
+# Prometheus 메트릭 수집을 보장하기 위한 App Deployment 패치
+kubectl patch deployment wsc2026-book-deploy -n wsc2026 -p '{"spec":{"template":{"metadata":{"annotations":{"prometheus.io/scrape":"true","prometheus.io/port":"8080","prometheus.io/path":"/metrics"}}}}}' 2>/dev/null || true
+
+# 6. Prometheus Values (Alert Rules 완벽 매핑)
 cat <<EOF > prometeus-values.yaml
 server:
   retention: "7d"
@@ -202,38 +209,38 @@ serverFiles:
       - name: wsc2026-alerts
         rules:
           - alert: PodHighCPU
-            expr: (sum by (pod, namespace) (rate(container_cpu_usage_seconds_total{container!="", image!=""}[1m])) >= 0) or vector(1)
-            for: 0m
+            expr: sum(rate(container_cpu_usage_seconds_total{container!="", pod=~".*"}[1m])) by (pod) / sum(kube_pod_container_resource_limits{resource="cpu", pod=~".*"}) by (pod) > 0.8
+            for: 3m
             labels:
               severity: warning
 
           - alert: PodHighMemory
-            expr: (sum by (pod, namespace) (container_memory_working_set_bytes{container!="", image!=""}) >= 0) or vector(1)
-            for: 0m
+            expr: sum(container_memory_working_set_bytes{container!="", pod=~".*"}) by (pod) / sum(kube_pod_container_resource_limits{resource="memory", pod=~".*"}) by (pod) > 0.9
+            for: 3m
             labels:
               severity: warning
 
           - alert: PodNotReady
-            expr: kube_pod_status_phase{phase=~"Failed|Unknown|Pending"} > 0 or kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"} > 0 or kube_pod_status_ready{condition="false"} > 0
-            for: 0m
+            expr: kube_pod_status_ready{condition="true"} == 0 or kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"} > 0
+            for: 3m
             labels:
               severity: critical
 
           - alert: HighErrorRate
-            expr: (sum(rate(http_requests_total[1m])) >= 0) or vector(1)
-            for: 0m
+            expr: sum(rate(http_requests_total{status=~"4..|5.."}[1m])) / sum(rate(http_requests_total[1m])) > 0.05
+            for: 1m
             labels:
               severity: critical
 
           - alert: HighLatency
-            expr: (sum(rate(http_request_duration_seconds_sum[1m])) >= 0) or vector(1)
-            for: 0m
+            expr: (sum(rate(http_request_duration_seconds_sum[1m])) / sum(rate(http_request_duration_seconds_count[1m]))) > 3
+            for: 1m
             labels:
               severity: warning
 
           - alert: PodCrashLooping
-            expr: kube_pod_container_status_restarts_total{namespace="wsc2026"} >= 0
-            for: 0m
+            expr: kube_pod_container_status_restarts_total{namespace="wsc2026"} > 3
+            for: 3m
             labels:
               severity: critical
 EOF
@@ -245,7 +252,7 @@ helm upgrade -i prometheus prometheus-community/prometheus \
   -f ./prometeus-values.yaml
 rm -f prometeus-values.yaml
 
-
+# 7. Grafana Values (Dashboard & Datascources)
 cat <<EOF > grafana-values.yaml
 adminUser: admin
 adminPassword: Skills\$#\$@!
@@ -349,7 +356,7 @@ dashboards:
                   }
                 }
               },
-              "targets": [{ "expr": "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) by (instance) / sum(rate(node_cpu_seconds_total[5m])) by (instance) * 100", "legendFormat": "{{instance}}" }]
+              "targets": [{ "expr": "100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "{{instance}}" }]
             },
             {
               "title": "Node Memory (%)",
@@ -371,7 +378,7 @@ dashboards:
                   }
                 }
               },
-              "targets": [{ "expr": "(sum(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) by (instance) / sum(node_memory_MemTotal_bytes) by (instance)) * 100", "legendFormat": "{{instance}}" }]
+              "targets": [{ "expr": "100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))", "legendFormat": "{{instance}}" }]
             },
             {
               "title": "Available Nodes",
@@ -424,9 +431,9 @@ dashboards:
               "gridPos": { "x": 0, "y": 11, "w": 12, "h": 6 },
               "id": 7,
               "fieldConfig": {
-                "defaults": { "min": 0, "max": 1, "unit": "none" }
+                "defaults": { "min": 0, "unit": "none" }
               },
-              "targets": [{ "expr": "topk(5, sum(rate(container_cpu_usage_seconds_total{container!=\"\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}[5m])) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}" }]
+              "targets": [{ "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"wsc2026\", container!=\"\"}[5m])) by (pod)", "legendFormat": "{{pod}}" }]
             },
             {
               "title": "Pod Memory",
@@ -434,9 +441,9 @@ dashboards:
               "gridPos": { "x": 12, "y": 11, "w": 12, "h": 6 },
               "id": 8,
               "fieldConfig": {
-                "defaults": { "min": 0, "max": 134217728, "unit": "bytes" }
+                "defaults": { "min": 0, "unit": "bytes" }
               },
-              "targets": [{ "expr": "topk(5, sum(container_memory_working_set_bytes{container!=\"\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}" }]
+              "targets": [{ "expr": "sum(container_memory_working_set_bytes{namespace=\"wsc2026\", container!=\"\"}) by (pod)", "legendFormat": "{{pod}}" }]
             },
             {
               "title": "Pending Pods",
@@ -453,7 +460,7 @@ dashboards:
                   "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
                 }
               },
-              "targets": [{ "expr": "sum(kube_pod_status_phase{phase=\"Pending\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"})", "legendFormat": "Pending Pods" }]
+              "targets": [{ "expr": "sum(kube_pod_status_phase{namespace=\"wsc2026\", phase=\"Pending\"})", "legendFormat": "Pending Pods" }]
             },
             {
               "title": "Pod Restarts",
@@ -471,7 +478,7 @@ dashboards:
                   "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
                 }
               },
-              "targets": [{ "expr": "topk(5, sum(kube_pod_container_status_restarts_total{pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}" }]
+              "targets": [{ "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"wsc2026\"}) by (pod)", "legendFormat": "{{pod}}" }]
             },
             {
               "type": "row",
@@ -486,9 +493,9 @@ dashboards:
               "gridPos": { "x": 0, "y": 23, "w": 12, "h": 6 },
               "id": 12,
               "fieldConfig": {
-                "defaults": { "min": 0, "max": 1, "unit": "none" }
+                "defaults": { "min": 0, "unit": "none" }
               },
-              "targets": [{ "expr": "topk(5, sum(rate(container_cpu_usage_seconds_total{namespace=\"wsc2026\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}[5m])) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}" }]
+              "targets": [{ "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"wsc2026\", pod=~\"wsc2026-book-deploy.*\", container!=\"\"}[5m])) by (pod)", "legendFormat": "{{pod}}" }]
             },
             {
               "title": "App Pod Memory",
@@ -496,9 +503,9 @@ dashboards:
               "gridPos": { "x": 12, "y": 23, "w": 12, "h": 6 },
               "id": 13,
               "fieldConfig": {
-                "defaults": { "min": 0, "max": 134217728, "unit": "bytes" }
+                "defaults": { "min": 0, "unit": "bytes" }
               },
-              "targets": [{ "expr": "topk(5, sum(container_memory_working_set_bytes{namespace=\"wsc2026\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}" }]
+              "targets": [{ "expr": "sum(container_memory_working_set_bytes{namespace=\"wsc2026\", pod=~\"wsc2026-book-deploy.*\", container!=\"\"}) by (pod)", "legendFormat": "{{pod}}" }]
             },
             {
               "title": "App Running",
@@ -515,7 +522,7 @@ dashboards:
                   "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
                 }
               },
-              "targets": [{ "expr": "sum(kube_pod_status_phase{namespace=\"wsc2026\", phase=\"Running\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"})", "legendFormat": "Running" }]
+              "targets": [{ "expr": "sum(kube_pod_status_phase{namespace=\"wsc2026\", phase=\"Running\", pod=~\"wsc2026-book-deploy.*\"})", "legendFormat": "Running" }]
             },
             {
               "title": "App Restarts",
@@ -533,7 +540,7 @@ dashboards:
                   "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
                 }
               },
-              "targets": [{ "expr": "topk(5, sum(kube_pod_container_status_restarts_total{namespace=\"wsc2026\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}" }]
+              "targets": [{ "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"wsc2026\", pod=~\"wsc2026-book-deploy.*\"}) by (pod)", "legendFormat": "{{pod}}" }]
             },
             {
               "title": "App Pending",
@@ -550,7 +557,7 @@ dashboards:
                   "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
                 }
               },
-              "targets": [{ "expr": "sum(kube_pod_status_phase{namespace=\"wsc2026\", phase=\"Pending\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"})", "legendFormat": "Pending" }]
+              "targets": [{ "expr": "sum(kube_pod_status_phase{namespace=\"wsc2026\", phase=\"Pending\", pod=~\"wsc2026-book-deploy.*\"})", "legendFormat": "Pending" }]
             },
             {
               "type": "row",
@@ -567,7 +574,7 @@ dashboards:
               "fieldConfig": {
                 "defaults": { "min": 0 }
               },
-              "targets": [{ "expr": "sum(rate(http_requests_total[5m])) * 60 or vector(0)", "legendFormat": "Requests/min" }]
+              "targets": [{ "expr": "sum(rate(http_requests_total[1m])) * 60 or vector(0)", "legendFormat": "Requests/min" }]
             },
             {
               "title": "Response Time",
@@ -581,7 +588,7 @@ dashboards:
                   "custom": { "showPoints": "always", "drawStyle": "line" }
                 }
               },
-              "targets": [{ "expr": "(sum(rate(http_request_duration_seconds_sum[5m])) / sum(rate(http_request_duration_seconds_count[5m])) * 1000) or vector(0)", "legendFormat": "Avg Response Time" }]
+              "targets": [{ "expr": "(sum(rate(http_request_duration_seconds_sum[1m])) / sum(rate(http_request_duration_seconds_count[1m]))) * 1000 or vector(0)", "legendFormat": "Avg Response Time" }]
             },
             {
               "title": "Status Codes",
@@ -592,9 +599,9 @@ dashboards:
                 "defaults": { "min": 0, "custom": { "showPoints": "always", "drawStyle": "line" } }
               },
               "targets": [
-                { "expr": "sum(rate(http_requests_total{status=~\"2..\"}[5m])) or vector(0)", "legendFormat": "2XX" },
-                { "expr": "sum(rate(http_requests_total{status=~\"4..\"}[5m])) or vector(0)", "legendFormat": "4XX" },
-                { "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) or vector(0)", "legendFormat": "5XX" },
+                { "expr": "sum(rate(http_requests_total{status=~\"2..\"}[1m])) * 60 or vector(0)", "legendFormat": "2XX" },
+                { "expr": "sum(rate(http_requests_total{status=~\"4..\"}[1m])) * 60 or vector(0)", "legendFormat": "4XX" },
+                { "expr": "sum(rate(http_requests_total{status=~\"5..\"}[1m])) * 60 or vector(0)", "legendFormat": "5XX" },
                 { "expr": "vector(0)", "legendFormat": "ELB 4XX" },
                 { "expr": "vector(0)", "legendFormat": "ELB 5XX" }
               ]
