@@ -175,6 +175,9 @@ parameters:
 allowVolumeExpansion: true
 EOF
 
+kubectl apply -f prometeus-sc.yaml
+rm -f prometeus-sc.yaml
+
 cat <<EOF > prometeus-values.yaml
 server:
   retention: "7d"
@@ -273,12 +276,12 @@ datasources:
     datasources:
       - name: Prometheus
         type: prometheus
-        url: http://prometheus-server.observability.svc.wsc2026.skills.local
+        url: http://prometheus-server.observability.svc.cluster.local
         access: proxy
         isDefault: true
       - name: Alertmanager
         type: alertmanager
-        url: http://prometheus-alertmanager.observability.svc.wsc2026.skills.local
+        url: http://prometheus-alertmanager.observability.svc.cluster.local
         access: proxy
         jsonData:
           implementation: prometheus
@@ -633,11 +636,9 @@ dashboards:
         }
 EOF
 
-# Grafana 헬름 레포지토리 추가 및 업데이트 구문 추가
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 
-# grafana-community/grafana에서 grafana/grafana로 올바르게 수정
 helm upgrade -i grafana grafana/grafana \
   -n observability \
   -f ./grafana-values.yaml
