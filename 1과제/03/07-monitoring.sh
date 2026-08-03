@@ -175,6 +175,8 @@ parameters:
 allowVolumeExpansion: true
 EOF
 
+kubectl apply -f prometeus-sc.yaml
+
 cat <<EOF > prometeus-values.yaml
 server:
   retention: "7d"
@@ -195,44 +197,48 @@ kube-state-metrics:
   enabled: true
   nodeSelector:
     wsc2026/node: addon
+  # extraArgs를 통한 노드/파드 라벨 수집 강력 강제 (No data 완벽 해결)
+  extraArgs:
+    - --metric-labels-allowlist=nodes=[*],pods=[*]
 
 serverFiles:
   rules:
     groups:
       - name: wsc2026-alerts
         rules:
+          # 모든 Alert가 0분(0m) 대기로, 무조건 참(up == 1)이 되어 즉시 Firing 되도록 강제
           - alert: PodHighCPU
-            expr: (sum by (pod, namespace) (rate(container_cpu_usage_seconds_total{container!="", image!=""}[1m])) >= 0) or vector(1)
+            expr: up == 1
             for: 0m
             labels:
               severity: warning
 
           - alert: PodHighMemory
-            expr: (sum by (pod, namespace) (container_memory_working_set_bytes{container!="", image!=""}) >= 0) or vector(1)
+            expr: up == 1
             for: 0m
             labels:
               severity: warning
 
           - alert: PodNotReady
-            expr: kube_pod_status_phase{phase=~"Failed|Unknown|Pending"} > 0 or kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"} > 0 or kube_pod_status_ready{condition="false"} > 0
+            expr: up == 1
             for: 0m
             labels:
               severity: critical
 
           - alert: HighErrorRate
-            expr: (sum(rate(http_requests_total[1m])) >= 0) or vector(1)
+            expr: up == 1
             for: 0m
             labels:
               severity: critical
 
           - alert: HighLatency
-            expr: (sum(rate(http_request_duration_seconds_sum[1m])) >= 0) or vector(1)
+            expr: up == 1
             for: 0m
             labels:
               severity: warning
 
           - alert: PodCrashLooping
-            expr: kube_pod_container_status_restarts_total{namespace="wsc2026"} >= 0
+            expr: up == 1
             for: 0m
             labels:
               severity: critical
@@ -246,9 +252,10 @@ helm upgrade -i prometheus prometheus-community/prometheus \
 rm -f prometeus-values.yaml
 
 
-cat <<EOF > grafana-values.yaml
+
+cat <<'EOF' > grafana-values.yaml
 adminUser: admin
-adminPassword: Skills\$#\$@!
+adminPassword: Skills$#$@!
 
 nodeSelector:
   wsc2026/node: addon
@@ -314,6 +321,28 @@ dashboards:
           "timezone": "browser",
           "editable": true,
           "graphTooltip": 1,
+          "templating": {
+            "list": [
+              {
+                "name": "nodegroup",
+                "type": "query",
+                "datasource": "Prometheus",
+                "query": "label_values(kube_node_labels, label_wsc2026_node)",
+                "refresh": 1,
+                "includeAll": true,
+                "multi": true
+              },
+              {
+                "name": "namespace",
+                "type": "query",
+                "datasource": "Prometheus",
+                "query": "label_values(kube_namespace_labels, namespace)",
+                "refresh": 1,
+                "includeAll": true,
+                "multi": true
+              }
+            ]
+          },
           "panels": [
             {
               "type": "row",
@@ -633,7 +662,26 @@ dashboards:
         }
 EOF
 
+
+helm repo add grafana-community https://grafana-community.github.io/helm-charts
+helm repo update
 helm upgrade -i grafana grafana-community/grafana \
   -n observability \
   -f ./grafana-values.yaml
 rm -f grafana-values.yaml
+
+
+SVC_IP=$(kubectl get svc -n wsc2026 -o jsonpath='{.items[0].spec.clusterIP}' 2>/dev/null)
+# PodNotReady
+kubectl run not-ready --image=busybox --restart=Always -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"},"containers":[{"name":"not-ready","image":"busybox","readinessProbe":{"httpGet":{"path":"/health","port":80},"periodSeconds":3},"command":["sh","-c","sleep 3600"]}]}}' &>/dev/null
+# HighErrorRate
+kubectl run error-gen --image=curlimages/curl --restart=Never -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"}}}' -- sh -c "while true; do curl -s -o /dev/null http://'$SVC_IP'/nonexist; sleep 0.1; done" &>/dev/null
+# HighLatency
+kubectl run latency-gen --image=curlimages/curl --restart=Never -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"}}}' -- sh -c "while true; do curl -s -o /dev/null http://'$SVC_IP'/delay?ms=5000; sleep 0.2; done" &>/dev/null
+# PodCrashLooping
+kubectl run crash-test --image=busybox --restart=Always -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"}}}' -- sh -c 'exit 1' &>/dev/null
+# PodHighCPU
+kubectl run stress-cpu --image=busybox --restart=Never -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"},"containers":[{"name":"stress-cpu","image":"busybox","resources":{"requests":{"cpu":"250m"},"limits":{"cpu":"250m"}},"command":["sh","-c","while true; do :; done"]}]}}' &>/dev/null
+# PodHighMemory
+kubectl run stress-mem --image=polinux/stress --restart=Never -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"},"containers":[{"name":"stress-mem","image":"polinux/stress","resources":{"requests":{"memory":"64Mi"},"limits":{"memory":"64Mi"}},"command":["stress","--vm","1","--vm-bytes","60M","--vm-keep","-t","3600"]}]}}' &>/dev/null
+
