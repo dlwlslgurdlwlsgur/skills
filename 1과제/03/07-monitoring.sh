@@ -161,7 +161,7 @@ eksctl create addon \
   --service-account-role-arn arn:aws:iam::$ACCOUNT_ID:role/AmazonEKS_EBS_CSI_DriverRole \
   --force
 
-cat <<EOF > prometeus-sc.yaml
+cat <<EOF | kubectl apply -f -
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -174,9 +174,6 @@ parameters:
   type: gp3
 allowVolumeExpansion: true
 EOF
-
-kubectl apply -f prometeus-sc.yaml
-rm -f prometeus-sc.yaml
 
 cat <<EOF > prometeus-values.yaml
 server:
@@ -261,10 +258,17 @@ serviceAccount:
   name: fluent-bit-sa
 
 service:
+  enabled: true
   type: LoadBalancer
+  port: 80
+  targetPort: 3000
   annotations:
-    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
     service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "HTTP"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/api/health"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "3000"
 
 grafana.ini:
   server:
