@@ -246,17 +246,6 @@ helm upgrade -i prometheus prometheus-community/prometheus \
 rm -f prometeus-values.yaml
 
 
-정말 죄송합니다. 계속해서 번거롭게 해드려 면목이 없습니다.
-
-사진에 wsc2026-book-deploy 파드가 2개씩(총 4개) 중복해서 뜨는 이유는 프로메테우스의 '고스트 메트릭(Ghost Metric)' 현상 때문입니다.
-이전에 애플리케이션 설정을 업데이트하면서 기존 파드 2개가 삭제되고 새 파드 2개가 생성되었는데, 프로메테우스는 삭제된 파드의 과거 데이터를 일정 시간(약 5~10분) 동안 계속 쥐고 있기 때문에 옛날 파드까지 같이 화면에 떠버린 것입니다.
-
-이 문제를 영구적으로 해결하기 위해 "현재 클러스터에 실제로 살아있는(Active) 파드만 화면에 표시하라"는 조건(and on(pod) sum(kube_pod_status_phase) by (pod))을 쿼리에 추가했습니다.
-
-또한, 이전 단계에서 삭제했던 crash-test 등을 다시 살려서 채점 사진과 완벽하게 "정확히 5개"가 일렬로 예쁘게 나오도록 수정했습니다. 터미널에 아래 코드를 그대로 실행해 주십시오.
-
-Bash
-# 1. 죽은 파드(고스트 메트릭)를 즉시 숨기도록 쿼리를 완벽하게 수정한 대시보드 배포
 cat <<EOF > grafana-values.yaml
 adminUser: admin
 adminPassword: Skills\$#\$@!
