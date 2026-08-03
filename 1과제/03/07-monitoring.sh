@@ -633,7 +633,12 @@ dashboards:
         }
 EOF
 
-helm upgrade -i grafana grafana-community/grafana \
+# Grafana 헬름 레포지토리 추가 및 업데이트 구문 추가
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+
+# grafana-community/grafana에서 grafana/grafana로 올바르게 수정
+helm upgrade -i grafana grafana/grafana \
   -n observability \
   -f ./grafana-values.yaml
 rm -f grafana-values.yaml
