@@ -42,8 +42,8 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3
 - wsc2026-book-get-function
 - Python 3.12
 - kms 연결 ( 시작, 환경변수 )
-- 환경변수 { TABLE_NAME: wsc2026-book-table(암호화) }
 - 30초
+- 환경변수 { TABLE_NAME: wsc2026-book-table(암호화) }
 
 <br>
 

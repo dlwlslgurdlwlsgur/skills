@@ -163,7 +163,7 @@ aws iam create-role \
 
 aws iam attach-role-policy --role-name "$LAMBDA_ROLE_NAME" --policy-arn "$LAMBDA_POLICY_ARN"
 
-sleep 5
+sleep 15
 
 FIXED_POLICY_JSON=$(cat <<EOF
 {
