@@ -6,40 +6,12 @@ APP_NAMESPACE="skills"
 
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
-BUCKET="skills-bucket-${ACCOUNT_ID}"
 
 VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=skills-vpc" --query "Vpcs[0].VpcId" --output text --region ${REGION})
 PUB_SUBNETS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Name,Values=*public*" --query 'Subnets[*].SubnetId' --output text --region ${REGION} | tr '\t' ',')
 DB_HOST=$(aws rds describe-db-proxies --db-proxy-name "skills-rds-proxy" --query "DBProxies[0].Endpoint" --output text --region ${REGION} 2>/dev/null)
 aws eks update-kubeconfig --name ${CLUSTER_NAME} --region ${REGION}
 
-aws s3api create-bucket --bucket "${BUCKET}" \
-    --create-bucket-configuration "LocationConstraint=${REGION}" --region ${REGION} >/dev/null 2>&1 || echo "Bucket ${BUCKET} already exists"
-
-aws s3api put-public-access-block --bucket "${BUCKET}" \
-    --public-access-block-configuration "BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false"
-
-cat <<EOF > s3-policy.json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "PublicReadGetObject",
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::${BUCKET}/*"
-    }
-  ]
-}
-EOF
-aws s3api put-bucket-policy --bucket "${BUCKET}" --policy file://s3-policy.json
-rm -f s3-policy.json
-
-aws s3 website s3://${BUCKET}/ --index-document index.html --error-document error.html
-S3_WEBSITE_ENDPOINT="${BUCKET}.s3-website.${REGION}.amazonaws.com"
-
-# 2. ALB Controller 설치 (S3 CSI 드라이버 설치 제거됨)
 ROLE_NAME="${CLUSTER_NAME}-LBControllerRole"
 POLICY_NAME="${CLUSTER_NAME}-LBControllerPolicy"
 SKILLS_ROLE_NAME="${CLUSTER_NAME}-skills-role"
@@ -89,7 +61,6 @@ metadata:
     eks.amazonaws.com/role-arn: arn:aws:iam::${ACCOUNT_ID}:role/${SKILLS_ROLE_NAME}
 EOF
 
-# 4. 앱 배포 (MOUNT_CONFIG 삭제 및 순수 환경 변수만 유지)
 for APP in product stress user; do
 cat <<EOF >> manifest/deployment.yaml
 apiVersion: apps/v1
@@ -125,10 +96,6 @@ spec:
           value: "skills"
         - name: MYSQL_PASSWORD
           value: "Skills2024**"
-        - name: S3_BUCKET
-          value: "${BUCKET}"
-        - name: AWS_REGION
-          value: "${REGION}"
         resources:
           requests:
             cpu: 100m
@@ -158,7 +125,7 @@ spec:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 50
+        averageUtilization: 70
 ---
 EOF
 

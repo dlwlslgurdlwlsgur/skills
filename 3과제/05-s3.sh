@@ -30,3 +30,5 @@ EOF
 
 aws s3api put-bucket-policy --bucket "${BUCKET}" --policy file://s3-policy.json
 rm -f s3-policy.json
+
+aws s3 website s3://${BUCKET}/ --index-document index.html --error-document error.html

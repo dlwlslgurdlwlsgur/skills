@@ -13,7 +13,8 @@ kubectl create configmap cluster-info \
 kubectl get pods -n amazon-cloudwatch
 
 
-cat <<EOF > cw-dashboard.json
+
+cat << 'EOF' > cw-dashboard.json
 {
   "widgets": [
     {
@@ -33,16 +34,22 @@ cat <<EOF > cw-dashboard.json
       }
     },
     {
-      "type": "log",
+      "type": "metric",
       "x": 12,
       "y": 0,
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | parse @message /\"headers\":(?<HeaderList>\\\\[.*?\\\\])/ | display @timestamp, httpRequest.uri, httpRequest.args, HeaderList | filter action = 'BLOCK' | sort @timestamp desc",
-        "region": "us-east-1",
-        "title": "WAF Blocked",
-        "view": "table"
+        "view": "timeSeries",
+        "stacked": false,
+        "metrics": [
+          [ "ContainerInsights", "node_cpu_utilization", "ClusterName", "skills-cluster", { "label": "Node CPU (%)", "color": "#1f77b4" } ],
+          [ ".", "pod_cpu_utilization", ".", ".", { "label": "Pod CPU (%)", "color": "#ff7f0e" } ],
+          [ "ContainerInsights", "node_memory_utilization", "ClusterName", "skills-cluster", { "label": "Node Memory (%)", "color": "#2ca02c" } ],
+          [ ".", "pod_memory_utilization", ".", ".", { "label": "Pod Memory (%)", "color": "#d62728" } ]
+        ],
+        "region": "ap-northeast-2",
+        "title": "EKS Utilization"
       }
     },
     {
@@ -52,9 +59,9 @@ cat <<EOF > cw-dashboard.json
       "width": 24,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | parse @message /\"headers\":(?<HeaderList>\\\\[.*?\\\\])/ | display @timestamp, httpRequest.uri, httpRequest.args, HeaderList | filter action = 'ALLOW' | sort @timestamp desc",
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'BLOCK' | parse @message /\"name\":\"type\",\"value\":\"(?<type_val>[^\"]+)\"/ | eval CustomType = concat(\"type: \", type_val) | display @timestamp, httpRequest.uri, httpRequest.args, CustomType | sort @timestamp desc",
         "region": "us-east-1",
-        "title": "🔍 All Requests (Query & Headers)",
+        "title": "WAF Blocked Requests",
         "view": "table"
       }
     },
@@ -62,6 +69,19 @@ cat <<EOF > cw-dashboard.json
       "type": "log",
       "x": 0,
       "y": 12,
+      "width": 24,
+      "height": 6,
+      "properties": {
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | parse @message /\"name\":\"type\",\"value\":\"(?<type_val>[^\"]+)\"/ | eval CustomType = concat(\"type: \", type_val) | display @timestamp, httpRequest.uri, httpRequest.args, CustomType | sort @timestamp desc",
+        "region": "us-east-1",
+        "title": "WAF Allowed Requests",
+        "view": "table"
+      }
+    },
+    {
+      "type": "log",
+      "x": 0,
+      "y": 18,
       "width": 12,
       "height": 6,
       "properties": {
@@ -74,7 +94,7 @@ cat <<EOF > cw-dashboard.json
     {
       "type": "log",
       "x": 12,
-      "y": 12,
+      "y": 18,
       "width": 12,
       "height": 6,
       "properties": {
@@ -87,7 +107,7 @@ cat <<EOF > cw-dashboard.json
     {
       "type": "log",
       "x": 0,
-      "y": 18,
+      "y": 24,
       "width": 12,
       "height": 6,
       "properties": {
@@ -100,7 +120,7 @@ cat <<EOF > cw-dashboard.json
     {
       "type": "log",
       "x": 12,
-      "y": 18,
+      "y": 24,
       "width": 12,
       "height": 6,
       "properties": {
@@ -113,7 +133,7 @@ cat <<EOF > cw-dashboard.json
     {
       "type": "log",
       "x": 0,
-      "y": 24,
+      "y": 30,
       "width": 12,
       "height": 6,
       "properties": {
@@ -126,7 +146,7 @@ cat <<EOF > cw-dashboard.json
     {
       "type": "log",
       "x": 12,
-      "y": 24,
+      "y": 30,
       "width": 12,
       "height": 6,
       "properties": {
