@@ -1,10 +1,10 @@
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 aws configure set region ap-northeast-1
 read -p "비번호: " NUM
+
+
 BUCKET_NAME="wsc2026-sensor-alert-bucket-${NUM}"
 CLUSTER_ARN=$(aws kafka list-clusters --cluster-name-filter wsc2026-msk-cluster --query "ClusterInfoList[0].ClusterArn" --output text)
-
-
 aws dynamodb describe-table --table-name wsc2026-sensor-data --query "Table.[TableName,KeySchema[*].AttributeName]" --output text && aws s3api head-bucket --bucket $BUCKET_NAME 2>&1
 # wsc2026-sensor-data
 # sensorId        timestamp

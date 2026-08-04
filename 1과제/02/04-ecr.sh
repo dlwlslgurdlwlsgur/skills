@@ -18,13 +18,11 @@ REPOSITORY_URI="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${ECR_NAME}"
 
 say "ECR 리포지토리 생성 중: $ECR_NAME"
 if aws ecr describe-repositories --repository-names "$ECR_NAME" 2>/dev/null; then
-    ok "ECR 리포지토리가 이미 존재합니다."
 else
     aws ecr create-repository \
         --repository-name "$ECR_NAME" \
         --image-scanning-configuration scanOnPush=true \
         --encryption-configuration encryptionType=KMS,kmsKey="$KMS_ARN" > /dev/null
-    ok "ECR 리포지토리 생성 완료"
 fi
 
 cat <<EOF > Dockerfile

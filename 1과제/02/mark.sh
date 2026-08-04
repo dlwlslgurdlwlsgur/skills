@@ -29,6 +29,8 @@ for subnet in wskorea26-pub-subnet-c wskorea26-pub-subnet-d; do aws ec2 describe
 
 
 echo $BUCKET && aws s3api list-objects-v2 --bucket "$BUCKET" --prefix "web/main/" --query "sort(Contents[].Key)" --output text
+# wskorea26-concert-bucket-103
+# web/main/index.html     web/main/main.jpeg
 
 
 for key in web/main/index.html web/main/main.jpeg; do kms_arn=$(aws s3api head-object --bucket "$BUCKET" --key "$key" --query "SSEKMSKeyId" --output text); key_id=$(echo "$kms_arn" | awk -F'/' '{print $NF}'); aws kms list-aliases --query "Aliases[?TargetKeyId=='$key_id'].AliasName | [0]" --output text; done; aws s3api get-public-access-block --bucket "$BUCKET" --query "PublicAccessBlockConfiguration.[BlockPublicAcls,IgnorePublicAcls,BlockPublicPolicy,RestrictPublicBuckets]" --output text; aws s3api get-bucket-policy-status --bucket "$BUCKET" --query "PolicyStatus.IsPublic" --output text
@@ -128,10 +130,7 @@ curl -s -o /dev/null -w "%{http_code}\n" -X GET -H 'Content-Type: application/js
 # 400
 
 
-# 10 Monitoring Configure (수동 채점 안내 - 기준표 맞춤)
-echo ====================
-echo "  10-1 Monitoring Configure (수동)"
-echo ====================
+# 10 Monitoring Configure (수동)
 GRAFANA_ALB_DNS=$(aws elbv2 describe-load-balancers --names wskorea26-grafana-alb --query "LoadBalancers[0].DNSName" --output text)
 echo "URL: http://$GRAFANA_ALB_DNS/d/wskorea26/wskorea26-monitoring"
 echo "Login: skills-<비번호>-admin / \$korea26!!"

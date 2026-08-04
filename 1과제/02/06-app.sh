@@ -1,6 +1,9 @@
 #!/bin/bash
 set -x
 
+curl --silent --location "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+
 CLUSTER_NAME="wskorea26-cluster"
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 
@@ -104,18 +107,18 @@ cat <<EOF > wsc-sa-policy.json
 }
 EOF
 POLICY_ARN=$(aws iam create-policy \
-    --policy-name wskorea26-book-sa-policy \
-    --policy-document file://wsc-sa-policy.json \
-    --query 'Policy.Arn' --output text)
+  --policy-name wskorea26-book-sa-policy \
+  --policy-document file://wsc-sa-policy.json \
+  --query 'Policy.Arn' --output text)
 kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 eksctl create iamserviceaccount \
-    --cluster=$CLUSTER_NAME \
-    --region=$REGION \
-    --name=$SA_NAME \
-    --namespace=$NAMESPACE \
-    --attach-policy-arn=$POLICY_ARN \
-    --approve \
-    --override-existing-serviceaccounts
+  --cluster=$CLUSTER_NAME \
+  --region=$REGION \
+  --name=$SA_NAME \
+  --namespace=$NAMESPACE \
+  --attach-policy-arn=$POLICY_ARN \
+  --approve \
+  --override-existing-serviceaccounts
 rm wsc-sa-policy.json
 
 

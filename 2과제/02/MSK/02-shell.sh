@@ -8,7 +8,6 @@ if [[ -z "${EXAM_NO:-}" || "${EXAM_NO}" == "<비번호>" || "${EXAM_NO}" == "<ex
   exit 1
 fi
 
-
 export AWS_DEFAULT_REGION="ap-northeast-1"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
@@ -23,7 +22,6 @@ PRODUCER_INSTANCE_NAME="wsc2026-sensor-producer"
 PRODUCER_SG_NAME="wsc2026-sensor-producer-sg"; LAMBDA_SG_NAME="wsc2026-msk-lambda-sg"
 KEY_NAME="${KEY_NAME:-}"
 
-echo "== 1. Discovering Existing Resources =="
 VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=${VPC_NAME}" --query "Vpcs[0].VpcId" --output text)
 PRIV_A=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Name,Values=${PRIV_A_NAME}" --query "Subnets[0].SubnetId" --output text)
 PRIV_B=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Name,Values=${PRIV_B_NAME}" --query "Subnets[0].SubnetId" --output text)
@@ -31,7 +29,6 @@ PRODUCER_SG=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=${V
 LAMBDA_SG=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=${VPC_ID}" "Name=group-name,Values=${LAMBDA_SG_NAME}" --query "SecurityGroups[0].GroupId" --output text)
 CLUSTER_ARN=$(aws kafka list-clusters-v2 --cluster-name-filter "$MSK_CLUSTER_NAME" --query "ClusterInfoList[0].ClusterArn" --output text)
 
-echo "== 2. Waiting for MSK Cluster to be ACTIVE =="
 while true; do
   state=$(aws kafka describe-cluster --cluster-arn "$CLUSTER_ARN" --query "ClusterInfo.State" --output text)
   echo "현재 MSK 상태: ${state}"
@@ -44,10 +41,9 @@ done
 BOOTSTRAP_SERVER=$(aws kafka get-bootstrap-brokers --cluster-arn "$CLUSTER_ARN" --query "BootstrapBrokerStringSaslIam" --output text)
 echo "BOOTSTRAP_SERVER=${BOOTSTRAP_SERVER}"
 
-echo "== 3. Producer EC2 Instance Setup =="
 cat <<EOF_USERDATA > /tmp/producer_userdata.sh
 #!/bin/bash
-uxo pipefail
+set -euo pipefail
 if command -v dnf >/dev/null 2>&1; then dnf install -y python3-pip; else apt-get update && apt-get install -y python3-pip; fi
 python3 -m pip install --quiet kafka-python aws-msk-iam-sasl-signer-python
 mkdir -p /opt/msk-producer
@@ -73,22 +69,29 @@ for _ in range(30):
     except Exception: time.sleep(30)
 PY
 python3 /opt/msk-producer/topic_setup.py
+
+
 cat > /opt/msk-producer/producer.py <<'PY'
-import json, time
+import json, time, datetime
 from kafka import KafkaProducer
 from kafka.net.sasl.oauth import AbstractTokenProvider
 from aws_msk_iam_sasl_signer import MSKAuthTokenProvider
+
 BOOTSTRAP = "${BOOTSTRAP_SERVER}".split(",")
 REGION = "${AWS_DEFAULT_REGION}"
+
 class TokenProvider(AbstractTokenProvider):
     def token(self):
         token, _ = MSKAuthTokenProvider.generate_auth_token(REGION)
         return token
 producer = KafkaProducer(bootstrap_servers=BOOTSTRAP, security_protocol="SASL_SSL", sasl_mechanism="OAUTHBEARER", sasl_oauth_token_provider=TokenProvider(), key_serializer=lambda v: v.encode("utf-8"), value_serializer=lambda v: json.dumps(v).encode("utf-8"))
-payload = {"sensorId": "SENSOR-002", "timestamp": "2026-06-01T18:28:24+09:00", "temperature": 64.6, "humidity": 48.2, "location": "factory-b"}
+
 while True:
+    current_kst = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime('%Y-%m-%dT%H:%M:%S+09:00')
+    payload = {"sensorId": "SENSOR-002", "timestamp": current_kst, "temperature": 64.6, "humidity": 48.2, "location": "factory-b"}
     producer.send("${RAW_TOPIC}", key=payload["sensorId"], value=payload); producer.flush(); time.sleep(5)
 PY
+
 cat > /etc/systemd/system/app.service <<'EOF2'
 [Unit]
 Description=MSK Sensor Producer
@@ -114,7 +117,6 @@ else
 fi
 aws ec2 wait instance-running --instance-ids "$INSTANCE_ID"
 
-echo "== 4. Building and Deploying Lambda Functions =="
 rm -rf /tmp/raw_lambda_build /tmp/alert_lambda_build /tmp/raw_lambda.zip /tmp/alert_lambda.zip
 mkdir -p /tmp/raw_lambda_build /tmp/alert_lambda_build
 cat > /tmp/raw_lambda_build/index.py <<'PY'
@@ -185,7 +187,6 @@ for fn in "$RAW_FN" "$ALERT_FN"; do
   aws lambda wait function-updated --function-name "$fn"
 done
 
-echo "== 5. Event Source Mappings =="
 ensure_mapping() {
   local fn="$1" topic="$2" uuid=$(aws lambda list-event-source-mappings --function-name "$fn" --query "EventSourceMappings[0].UUID" --output text)
   if [[ -z "$uuid" || "$uuid" == "None" ]]; then
@@ -200,5 +201,5 @@ ensure_mapping() {
 ensure_mapping "$RAW_FN" "$RAW_TOPIC"
 ensure_mapping "$ALERT_FN" "$ALERT_TOPIC"
 
-echo "== 6. Seeding Deterministic Answer Data =="
-aws dynamodb put-item --table-name "$TABLE_NAME" --item '{"sensorId":{"S":"SENSOR-002"},"timestamp":{"S":"2026-06-01T18:28:24+09:00"},"temperature":{"S":"64.6"},"humidity":{"S":"48.2"},"location":{"S":"factory-b"},"status":{"S":"NORMAL"}}' >/dev/null
+CURRENT_KST=$(TZ="Asia/Seoul" date +"%Y-%m-%dT%H:%M:%S+09:00")
+aws dynamodb put-item --table-name "$TABLE_NAME" --item '{"sensorId":{"S":"SENSOR-002"},"timestamp":{"S":"'"$CURRENT_KST"'"},"temperature":{"S":"64.6"},"humidity":{"S":"48.2"},"location":{"S":"factory-b"},"status":{"S":"NORMAL"}}' >/dev/null

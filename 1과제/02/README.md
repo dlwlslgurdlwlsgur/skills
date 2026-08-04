@@ -45,8 +45,9 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3
 - wskorea26-concert-cf
 - name: wskorea26-s3-origin ( * )
 - /web/main
+- S3 OAC 원본 엑세스
 - S3 원본 > 사용자 정의 헤더 ( wskorea26-s3-access: true )
-- S3 OAC, KMS
+- S3 KMS 연결
 
 - name: wskorea26-alb-origin ( /book* )
 - ALB 원본 > 사용자 정의 헤더 ( X-Origin-Verify: wskorea26-cf )
