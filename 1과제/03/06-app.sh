@@ -137,10 +137,10 @@ spec:
             - containerPort: 8080
           resources:
             requests:
-              cpu: "256m"
+              cpu: "250m"
               memory: "512Mi"
             limits:
-              cpu: "256m"
+              cpu: "250m"
               memory: "512Mi"
           env:
             - name: AWS_REGION

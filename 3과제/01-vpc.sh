@@ -18,26 +18,25 @@ IGW_ID=$(aws ec2 create-internet-gateway \
 
 aws ec2 attach-internet-gateway --vpc-id ${VPC_ID} --internet-gateway-id ${IGW_ID} --region ${REGION}
 
-PUB_A_ID=$(aws ec2 create-subnet --vpc-id ${VPC_ID} --cidr-block 10.0.0.0/20 --availability-zone ${REGION}a \
+PUB_A_ID=$(aws ec2 create-subnet --vpc-id ${VPC_ID} --cidr-block 10.0.0.0/24 --availability-zone ${REGION}a \
     --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=skills-public-a},{Key=kubernetes.io/role/elb,Value=1},{Key=kubernetes.io/cluster/skills-cluster,Value=shared}]" \
     --query 'Subnet.SubnetId' --output text --region ${REGION})
 aws ec2 modify-subnet-attribute --subnet-id ${PUB_A_ID} --map-public-ip-on-launch --region ${REGION}
 
-PUB_C_ID=$(aws ec2 create-subnet --vpc-id ${VPC_ID} --cidr-block 10.0.1.0/20 --availability-zone ${REGION}c \
+PUB_C_ID=$(aws ec2 create-subnet --vpc-id ${VPC_ID} --cidr-block 10.0.1.0/24 --availability-zone ${REGION}c \
     --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=skills-public-c},{Key=kubernetes.io/role/elb,Value=1},{Key=kubernetes.io/cluster/skills-cluster,Value=shared}]" \
     --query 'Subnet.SubnetId' --output text --region ${REGION})
 aws ec2 modify-subnet-attribute --subnet-id ${PUB_C_ID} --map-public-ip-on-launch --region ${REGION}
 
-# Multi-AZ RDS 배포 시 에러 방지를 위해 3번째 AZ(b) 프라이빗 서브넷 추가 확보
-PRI_A_ID=$(aws ec2 create-subnet --vpc-id ${VPC_ID} --cidr-block 10.0.2.0/20 --availability-zone ${REGION}a \
+PRI_A_ID=$(aws ec2 create-subnet --vpc-id ${VPC_ID} --cidr-block 10.0.2.0/24 --availability-zone ${REGION}a \
     --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=skills-private-a},{Key=kubernetes.io/role/internal-elb,Value=1},{Key=kubernetes.io/cluster/skills-cluster,Value=shared}]" \
     --query 'Subnet.SubnetId' --output text --region ${REGION})
 
-PRI_B_ID=$(aws ec2 create-subnet --vpc-id ${VPC_ID} --cidr-block 10.0.3.0/20 --availability-zone ${REGION}b \
+PRI_B_ID=$(aws ec2 create-subnet --vpc-id ${VPC_ID} --cidr-block 10.0.3.0/24 --availability-zone ${REGION}b \
     --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=skills-private-b},{Key=kubernetes.io/role/internal-elb,Value=1},{Key=kubernetes.io/cluster/skills-cluster,Value=shared}]" \
     --query 'Subnet.SubnetId' --output text --region ${REGION})
 
-PRI_C_ID=$(aws ec2 create-subnet --vpc-id ${VPC_ID} --cidr-block 10.0.4.0/20 --availability-zone ${REGION}c \
+PRI_C_ID=$(aws ec2 create-subnet --vpc-id ${VPC_ID} --cidr-block 10.0.4.0/24 --availability-zone ${REGION}c \
     --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=skills-private-c},{Key=kubernetes.io/role/internal-elb,Value=1},{Key=kubernetes.io/cluster/skills-cluster,Value=shared}]" \
     --query 'Subnet.SubnetId' --output text --region ${REGION})
 
