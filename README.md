@@ -6,7 +6,7 @@
 
 ## 2과제
 - 0201: [Lambda StepFunction, 학생 성적](https://github.com/wngnlwngnl/skills/tree/main/2%EA%B3%BC%EC%A0%9C/02/Workflow)
-<!-- - 0202: [Analytics, Zeppelin](https://github.com/wngnlwngnl/skills/tree/main/2%EA%B3%BC%EC%A0%9C/02/Analytics) -->
+- 0202: [Analytics, Zeppelin](https://github.com/wngnlwngnl/skills/tree/main/2%EA%B3%BC%EC%A0%9C/02/Analytics)
 - 0203: [EvenetBridge, Config ssh 포트 삭제](https://github.com/wngnlwngnl/skills/tree/main/2%EA%B3%BC%EC%A0%9C/02/CloudEvent)
 - 0204: [msk, skills2026](https://github.com/wngnlwngnl/skills/tree/main/2%EA%B3%BC%EC%A0%9C/02/MSK)
 
