@@ -278,18 +278,18 @@ datasources:
   datasources.yaml:
     apiVersion: 1
     datasources:
-      - name: Prometheus
+      - name: prometheus
         type: prometheus
         url: http://prometheus-server.observability.svc.wsc2026.skills.local
         access: proxy
         isDefault: true
-      - name: Alertmanager
+      - name: alertmanager
         type: alertmanager
         url: http://prometheus-alertmanager.observability.svc.wsc2026.skills.local
         access: proxy
         jsonData:
           implementation: prometheus
-      - name: CloudWatch
+      - name: cloudWatch
         type: cloudwatch
         access: proxy
         jsonData:
