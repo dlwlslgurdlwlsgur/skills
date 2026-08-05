@@ -20,15 +20,6 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3
 
 <br>
 
-## EKS
-```bash
-CLUSTER_NAME="skm-eks-cluster"
-eksctl utils write-kubeconfig --name $CLUSTER_NAME --region ap-northeast-2
-eksctl utils associate-iam-oidc-provider --approve --cluster $CLUSTER_NAME --region ap-northeast-2
-```
-
-<br>
-
 ## shell
 ```bash
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Scaling/05-iam.sh

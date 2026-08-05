@@ -19,6 +19,11 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3
 
 <br>
 
+## Cluster 보안그룹
+- anyopen: ipv4
+
+<br>
+
 ## shell
 ```bash
 export BNUM=<비번호>
