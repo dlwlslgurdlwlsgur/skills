@@ -44,7 +44,7 @@ CREATE INDEX idx_user_email_cover ON user (email, username);
 
 ## dump
 ```bash
-mysql -h <DB_HOST> -P 3306 -u admin -pav
+mysql -h <DB_HOST> -P 3306 -u admin -p skills < load_user.dump
 ```
 
 <br>

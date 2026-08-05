@@ -13,7 +13,6 @@ kubectl create configmap cluster-info \
 kubectl get pods -n amazon-cloudwatch
 
 
-
 cat << 'EOF' > cw-dashboard.json
 {
   "widgets": [
@@ -30,7 +29,7 @@ cat << 'EOF' > cw-dashboard.json
         "metrics": [
           [ { "expression": "SEARCH('{AWS/ApplicationELB,LoadBalancer} MetricName=\"TargetResponseTime\" LoadBalancer=~\"app/skills-alb.*\"', 'Average', 60)", "id": "e1", "period": 60 } ]
         ],
-        "title": "ALB Target Response Time"
+        "title": "⏱️ ALB Target Response Time"
       }
     },
     {
@@ -49,7 +48,7 @@ cat << 'EOF' > cw-dashboard.json
           [ ".", "pod_memory_utilization", ".", ".", { "label": "Pod Memory (%)", "color": "#d62728" } ]
         ],
         "region": "ap-northeast-2",
-        "title": "EKS Utilization"
+        "title": "🖥️ EKS Node & Pod Utilization (CPU & Memory)"
       }
     },
     {
@@ -59,9 +58,9 @@ cat << 'EOF' > cw-dashboard.json
       "width": 24,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'BLOCK' | parse @message /\"name\":\"type\",\"value\":\"(?<type_val>[^\"]+)\"/ | eval CustomType = concat(\"type: \", type_val) | display @timestamp, httpRequest.uri, httpRequest.args, CustomType | sort @timestamp desc",
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'BLOCK' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', '') as CustomHeader | display @timestamp, httpRequest.clientIp, httpRequest.uri, httpRequest.args, CustomHeader | sort @timestamp desc",
         "region": "us-east-1",
-        "title": "WAF Blocked Requests",
+        "title": "🛡️ WAF Blocked Requests",
         "view": "table"
       }
     },
@@ -72,9 +71,9 @@ cat << 'EOF' > cw-dashboard.json
       "width": 24,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | parse @message /\"name\":\"type\",\"value\":\"(?<type_val>[^\"]+)\"/ | eval CustomType = concat(\"type: \", type_val) | display @timestamp, httpRequest.uri, httpRequest.args, CustomType | sort @timestamp desc",
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', '') as CustomHeader | display @timestamp, httpRequest.clientIp, httpRequest.uri, httpRequest.args, CustomHeader | sort @timestamp desc",
         "region": "us-east-1",
-        "title": "WAF Allowed Requests",
+        "title": "✅ WAF Allowed Requests",
         "view": "table"
       }
     },
