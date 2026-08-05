@@ -44,7 +44,7 @@ CREATE INDEX idx_user_email_cover ON user (email, username);
 
 ## dump
 ```bash
-mysql -h <DB_HOST> -P 3306 -u admin -p skills < load_user.dump
+mysql -h <DB_HOST> -P 3306 -u admin -pav
 ```
 
 <br>
@@ -52,9 +52,6 @@ mysql -h <DB_HOST> -P 3306 -u admin -p skills < load_user.dump
 ## manifest
 ```bash
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/07-manifest.sh
-```
-```bash
-wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/07-manifest-mount.sh
 ```
 ```bash
 kubectl apply -f manifest/deployment.yaml
