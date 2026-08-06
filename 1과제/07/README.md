@@ -81,11 +81,6 @@ terraform apply -auto-approve
 
 <br>
 
-## Cluster 보안그룹
-- anyopen: ipv4
-
-<br>
-
 ## CloudShell
 - name: unicorn-mark
 - unicorn-subnet-priv-a
@@ -132,6 +127,10 @@ aws ec2 authorize-security-group-ingress \
   --group-id $EKS_SG \
   --protocol tcp \
   --port 443 \
+  --cidr 0.0.0.0/0
+aws ec2 revoke-security-group-ingress \
+  --group-id $EKS_SG \
+  --protocol all \
   --cidr 0.0.0.0/0
 echo
 ```
