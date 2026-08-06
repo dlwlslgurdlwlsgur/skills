@@ -99,7 +99,7 @@ aws eks update-cluster-config \
 
 <br>
 
-- ALB, Cluster 보안그룹
+## ALB, Cluster 보안그룹
 ```bash
 export AWS_PAGER=""
 ALB_SG=$(aws ec2 describe-security-groups \
@@ -137,7 +137,7 @@ echo
 
 <br>
 
-- ALB 트래픽
+## ALB 트래픽
 ```bash
 CF_DOMAIN=$(aws cloudfront list-distributions --query "DistributionList.Items[0].DomainName" --output text)
 for i in {1..50}; do 
