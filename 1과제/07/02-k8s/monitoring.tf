@@ -302,9 +302,10 @@ resource "kubernetes_config_map" "grafana_dashboard" {
               statistic  = "p50"
               period     = 60
               matchExact = false
-              dimensions = {
-                LoadBalancer = data.aws_lb.unicorn_alb.arn_suffix
-              }
+            dimensions = {
+              LoadBalancer = data.aws_lb.unicorn_alb.arn_suffix
+              TargetGroup  = data.aws_lb_target_group.book.arn_suffix
+            }
             },
             {
               refId      = "p95"
@@ -316,6 +317,7 @@ resource "kubernetes_config_map" "grafana_dashboard" {
               matchExact = false
               dimensions = {
                 LoadBalancer = data.aws_lb.unicorn_alb.arn_suffix
+                TargetGroup  = data.aws_lb_target_group.book.arn_suffix
               }
             },
             {
@@ -328,6 +330,7 @@ resource "kubernetes_config_map" "grafana_dashboard" {
               matchExact = false
               dimensions = {
                 LoadBalancer = data.aws_lb.unicorn_alb.arn_suffix
+                TargetGroup  = data.aws_lb_target_group.book.arn_suffix
               }
             },
           ]

@@ -89,11 +89,14 @@ terraform apply -auto-approve
 ## CloudShell
 - name: unicorn-mark
 - unicorn-subnet-priv-a
+- unicorn-cloudshell-sg
 - eks 설정
 ```bash
 aws eks update-cluster-config \
   --name unicorn-eks-cluster \
   --access-config authenticationMode=API
+```
+```bash
 aws eks update-cluster-config \
   --name unicorn-eks-cluster \
   --resources-vpc-config endpointPublicAccess=false,endpointPrivateAccess=true
@@ -127,9 +130,10 @@ EKS_SG=$(aws eks describe-cluster \
   --output text)
 aws ec2 authorize-security-group-ingress \
   --group-id $EKS_SG \
-  --protocol all \
-  --port all \
+  --protocol tcp \
+  --port 443 \
   --cidr 0.0.0.0/0
+echo
 ```
 
 <br>

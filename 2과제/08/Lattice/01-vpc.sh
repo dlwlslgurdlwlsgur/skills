@@ -54,4 +54,3 @@ SERVICE_PRIV_RT_ID=$(aws ec2 create-route-table --region $REGION --vpc-id $SERVI
 aws ec2 create-route --region $REGION --route-table-id $SERVICE_PRIV_RT_ID --destination-cidr-block 0.0.0.0/0 --nat-gateway-id $SERVICE_NAT_ID
 aws ec2 associate-route-table --region $REGION --subnet-id $SERVICE_PRIV_SUB1_ID --route-table-id $SERVICE_PRIV_RT_ID
 aws ec2 associate-route-table --region $REGION --subnet-id $SERVICE_PRIV_SUB2_ID --route-table-id $SERVICE_PRIV_RT_ID
-echo

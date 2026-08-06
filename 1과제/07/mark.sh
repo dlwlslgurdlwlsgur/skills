@@ -1,8 +1,10 @@
-# 1) unicorn-mark CloudShell VPC Environment에 접근합니다. 
-# 2) rm –rf ~/.aws
-# 3) aws configure를 입력하고 default.region을 ap-northeast-2으로 설정합니다.
-# $ export number=<선수등번호>
-# $ source kubectl-connect unicorn-eks-cluster
+# =======================================
+unicorn-mark CloudShell VPC Environment에 접근합니다. 
+rm -rf ~/.aws
+aws configure를 입력하고 default.region을 ap-northeast-2으로 설정합니다.
+export number=<선수등번호>
+source kubectl-connect unicorn-eks-cluster
+# =======================================
 
 
 aws ec2 describe-vpcs --filters Name=tag:Name,Values=unicorn-vpc --query "Vpcs[].CidrBlock" --output json | jq -r ".[]"

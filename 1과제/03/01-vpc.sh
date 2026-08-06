@@ -65,4 +65,3 @@ aws ec2 authorize-security-group-ingress \
   --port -1 \
   --cidr "0.0.0.0/0" \
   --region "ap-northeast-2"
-echo
