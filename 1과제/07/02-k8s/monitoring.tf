@@ -283,7 +283,7 @@ resource "kubernetes_config_map" "grafana_dashboard" {
           datasource = { type = "cloudwatch", uid = "cloudwatch" }
           fieldConfig = {
             defaults = {
-              unit = "s"
+              unit = "s" 
             }
           }
           options = {
@@ -295,49 +295,58 @@ resource "kubernetes_config_map" "grafana_dashboard" {
           }
           targets = [
             {
-              refId      = "p50"
-              region     = var.aws_region
-              namespace  = "AWS/ApplicationELB"
-              metricName = "TargetResponseTime"
-              statistic  = "p50"
-              period     = 60
-              matchExact = false
+              refId            = "p50"
+              region           = var.aws_region
+              namespace        = "AWS/ApplicationELB"
+              metricName       = "TargetResponseTime"
+              statistic        = "p50"
+              period           = "60"
+              matchExact       = true
+              metricQueryType  = 0
+              metricEditorMode = 0
+              label            = "p50"
+              accountId        = "${data.aws_caller_identity.current.account_id}"
               dimensions = {
                 LoadBalancer = data.aws_lb.unicorn_alb.arn_suffix
                 TargetGroup  = data.aws_lb_target_group.book.arn_suffix
               }
-              "accountId": "default"
             },
             {
-              refId      = "p95"
-              region     = var.aws_region
-              namespace  = "AWS/ApplicationELB"
-              metricName = "TargetResponseTime"
-              statistic  = "p95"
-              period     = 60
-              matchExact = false
+              refId            = "p95"
+              region           = var.aws_region
+              namespace        = "AWS/ApplicationELB"
+              metricName       = "TargetResponseTime"
+              statistic        = "p95"
+              period           = "60"
+              matchExact       = true
+              metricQueryType  = 0
+              metricEditorMode = 0
+              label            = "p95"
+              accountId        = "${data.aws_caller_identity.current.account_id}"
               dimensions = {
                 LoadBalancer = data.aws_lb.unicorn_alb.arn_suffix
                 TargetGroup  = data.aws_lb_target_group.book.arn_suffix
               }
-              "accountId": "default"
             },
             {
-              refId      = "p99"
-              region     = var.aws_region
-              namespace  = "AWS/ApplicationELB"
-              metricName = "TargetResponseTime"
-              statistic  = "p99"
-              period     = 60
-              matchExact = false
+              refId            = "p99"
+              region           = var.aws_region
+              namespace        = "AWS/ApplicationELB"
+              metricName       = "TargetResponseTime"
+              statistic        = "p99"
+              period           = "60"
+              matchExact       = true
+              metricQueryType  = 0
+              metricEditorMode = 0
+              label            = "p99"
+              accountId        = "${data.aws_caller_identity.current.account_id}"
               dimensions = {
                 LoadBalancer = data.aws_lb.unicorn_alb.arn_suffix
                 TargetGroup  = data.aws_lb_target_group.book.arn_suffix
               }
-              "accountId": "default"
-            },
+            }
           ]
-        },
+        }
       ]
     })
   }
