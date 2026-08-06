@@ -78,26 +78,23 @@ spec:
       labels:
         skills-nodepool: event-worker
     spec:
+      requirements:
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["on-demand"]
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64"]
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values: ["t3.small", "t3.medium"]
       nodeClassRef:
         group: karpenter.k8s.aws
         kind: EC2NodeClass
         name: skills-sqs-nodeclass
-      requirements:
-        - key: kubernetes.io/arch
-          operator: In
-          values: ["amd64"]
-        - key: kubernetes.io/os
-          operator: In
-          values: ["linux"]
-        - key: karpenter.sh/capacity-type
-          operator: In
-          values: ["on-demand"]
-        - key: node.kubernetes.io/instance-type
-          operator: In
-          values: ["t3.small", "t3.medium"]
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
-    consolidateAfter: 60s
+    consolidateAfter: 30s
 ---
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass

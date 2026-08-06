@@ -1,25 +1,25 @@
-  set -u
-  export AWS_PAGER=""
-  OUT_TXT="asgmt2_module4_check_result.txt"
-  exec > >(tee "$OUT_TXT") 2>&1
-  if ! command -v aws >/dev/null 2>&1; then
-    echo "ERROR: required command not found: aws" >&2
-    exit 2
-  fi
-  if ! command -v kubectl >/dev/null 2>&1; then
-    echo "ERROR: required command not found: kubectl" >&2
-    echo "CloudShell 또는 채점 환경에 kubectl을 준비한 뒤 다시 실행하십시오." >&2
-    exit 2
-  fi
+set -u
+export AWS_PAGER=""
+OUT_TXT="asgmt2_module4_check_result.txt"
+exec > >(tee "$OUT_TXT") 2>&1
+if ! command -v aws >/dev/null 2>&1; then
+  echo "ERROR: required command not found: aws" >&2
+  exit 2
+fi
+if ! command -v kubectl >/dev/null 2>&1; then
+  echo "ERROR: required command not found: kubectl" >&2
+  echo "CloudShell 또는 채점 환경에 kubectl을 준비한 뒤 다시 실행하십시오." >&2
+  exit 2
+fi
 
 
-  aws eks describe-cluster --region us-west-2 --name skills-sqs-cluster --query 'cluster.[name,status]' --output text | awk '{print "Cluster Name: "$1" | Status: "$2}'
-  for FP in skills-sqs-fp-keda skills-sqs-fp-karpenter; do
-    echo -n "fargate_profile=${FP} -> "
-    aws eks describe-fargate-profile --region us-west-2 --cluster-name skills-sqs-cluster --fargate-profile-name "$FP" --query 'fargateProfile.[status,selectors[0].namespace]' --output text | awk '{print "Status: "$1" | Namespace: "$2}'
-  done
-  aws eks update-kubeconfig --region us-west-2 --name skills-sqs-cluster >/dev/null 2>&1
-  kubectl get nodes -l eks.amazonaws.com/compute-type=fargate -o custom-columns='NODE_NAME:.metadata.name,STATUS:.status.conditions[?(@.type=="Ready")].status'
+aws eks describe-cluster --region us-west-2 --name skills-sqs-cluster --query 'cluster.[name,status]' --output text | awk '{print "Cluster Name: "$1" | Status: "$2}'
+for FP in skills-sqs-fp-keda skills-sqs-fp-karpenter; do
+  echo -n "fargate_profile=${FP} -> "
+  aws eks describe-fargate-profile --region us-west-2 --cluster-name skills-sqs-cluster --fargate-profile-name "$FP" --query 'fargateProfile.[status,selectors[0].namespace]' --output text | awk '{print "Status: "$1" | Namespace: "$2}'
+done
+aws eks update-kubeconfig --region us-west-2 --name skills-sqs-cluster >/dev/null 2>&1
+kubectl get nodes -l eks.amazonaws.com/compute-type=fargate -o custom-columns='NODE_NAME:.metadata.name,STATUS:.status.conditions[?(@.type=="Ready")].status'
 # Cluster Name: skills-sqs-cluster | Status: ACTIVE
 # fargate_profile=skills-sqs-fp-keda -> Status: ACTIVE | Namespace: keda
 # fargate_profile=skills-sqs-fp-karpenter -> Status: ACTIVE | Namespace: karpenter

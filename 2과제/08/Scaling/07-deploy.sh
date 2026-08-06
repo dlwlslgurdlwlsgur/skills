@@ -34,11 +34,30 @@ spec:
         - name: AWS_REGION
           value: "us-west-2"
         - name: PROCESSING_SECONDS
-          value: "5"
+          value: "30"
       nodeSelector:
         karpenter.sh/nodepool: skills-sqs-nodepool
         skills-nodepool: event-worker
 EOF
+
+REGION="us-west-2"
+CLUSTER_NAME="skills-sqs-cluster"
+
+# 1. 서브넷 및 클러스터 보안 그룹 ID 조회
+VPC_ID=$(aws ec2 describe-vpcs --region $REGION \
+  --filters "Name=tag:Name,Values=*skills-sqs-vpc*" \
+  --query "Vpcs[0].VpcId" --output text)
+
+PRIV_A=$(aws ec2 describe-subnets --region $REGION \
+  --filters "Name=vpc-id,Values=$VPC_ID" "Name=availability-zone,Values=${REGION}a" "Name=tag:Name,Values=*priv*,*Priv*,*Private*,*private*" \
+  --query "Subnets[0].SubnetId" --output text)
+
+PRIV_B=$(aws ec2 describe-subnets --region $REGION \
+  --filters "Name=vpc-id,Values=$VPC_ID" "Name=availability-zone,Values=${REGION}b" "Name=tag:Name,Values=*priv*,*Priv*,*Private*,*private*" \
+  --query "Subnets[0].SubnetId" --output text)
+
+CLUSTER_SG=$(aws eks describe-cluster --name $CLUSTER_NAME --region $REGION \
+  --query "cluster.resourcesVpcConfig.clusterSecurityGroupId" --output text)
 
 cat <<EOF > karpenter-config.yaml
 apiVersion: karpenter.k8s.aws/v1
@@ -51,11 +70,10 @@ spec:
     - alias: al2023@latest
   role: KarpenterNodeRole-skills-sqs-cluster
   subnetSelectorTerms:
-    - tags:
-        karpenter.sh/discovery: skills-sqs-cluster
+    - id: "${PRIV_A}"
+    - id: "${PRIV_B}"
   securityGroupSelectorTerms:
-    - tags:
-        kubernetes.io/cluster/skills-sqs-cluster: owned
+    - id: "${CLUSTER_SG}"
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool
@@ -74,9 +92,9 @@ spec:
         - key: kubernetes.io/arch
           operator: In
           values: ["amd64"]
-        - key: karpenter.k8s.aws/instance-family
+        - key: node.kubernetes.io/instance-type
           operator: In
-          values: ["t3"]
+          values: ["t3.small", "t3.medium"]
       nodeClassRef:
         group: karpenter.k8s.aws
         kind: EC2NodeClass
