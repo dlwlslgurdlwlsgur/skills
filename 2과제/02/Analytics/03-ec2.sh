@@ -202,6 +202,8 @@ INSTANCE_ID=$(aws ec2 run-instances \
     --output text \
     --region ${REGION})
 
+aws ec2 wait instance-running --instance-ids ${INSTANCE_ID} --region ${REGION}
+
 aws elbv2 register-targets \
     --target-group-arn ${TG_ARN} \
     --targets Id=${INSTANCE_ID} \
