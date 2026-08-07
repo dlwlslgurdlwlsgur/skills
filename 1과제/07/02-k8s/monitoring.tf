@@ -157,7 +157,7 @@ resource "kubernetes_config_map" "grafana_dashboard" {
             defaults = {
               unit = "percent",
               custom = {
-                fillOpacity = 20
+                fillOpacity = 10
                 lineWidth   = 2
               }
               thresholds = {
@@ -196,7 +196,7 @@ resource "kubernetes_config_map" "grafana_dashboard" {
             defaults = {
               unit = "percent",
               custom = {
-                fillOpacity = 20
+                fillOpacity = 10
                 lineWidth   = 2
               }
               thresholds = {
@@ -293,7 +293,7 @@ resource "kubernetes_config_map" "grafana_dashboard" {
             defaults = {
               unit = "s",
               custom = {
-                fillOpacity = 20
+                fillOpacity = 10
                 lineWidth   = 2
               }
             }

@@ -7,7 +7,6 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3
 <br>
 
 ## shell
-- ec2 접속
 ```bash
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/03-cluster.sh
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/04-rds.sh
