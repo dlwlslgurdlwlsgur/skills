@@ -9,9 +9,12 @@
 aws configure
 ```
 ```bash
-winget install Kubernetes.kubectl
-winget install Helm.Helm
-winget install HashiCorp.Terraform
+msiexec.exe /i https://awscli.amazonaws.com/AWSCLIV2.msi
+aws --version
+```
+```bash
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+choco install kubernetes-cli kubernetes-helm terraform -y
 ```
 
 <br>
@@ -50,6 +53,8 @@ EOF
 docker build -t unicorn-concert-app:v1.0.0 .
 docker tag unicorn-concert-app:v1.0.0 "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/unicorn-concert-app:v1.0.0"
 docker push "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/unicorn-concert-app:v1.0.0"
+docker tag unicorn-concert-app:v1.0.0 "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/unicorn-concert-app:latest"
+docker push "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/unicorn-concert-app:latest"
 docker pull grafana/grafana:11.4.0
 docker tag grafana/grafana:11.4.0 "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/grafana:11.4.0"
 docker push "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/grafana:11.4.0"
@@ -140,7 +145,7 @@ echo
 ## ALB 트래픽
 ```bash
 CF_DOMAIN=$(aws cloudfront list-distributions --query "DistributionList.Items[0].DomainName" --output text)
-for i in {1..50}; do 
+for i in {1..15}; do 
   curl -s -o /dev/null -w "%{http_code}\n" -X POST "https://$CF_DOMAIN/v1/book" \
     -H 'Content-Type: application/json' \
     -d '{"client_id":"NORMAL_USER"}'

@@ -5,7 +5,7 @@ variable "aws_region" {
 }
 
 variable "contestant_number" {
-  description = "test3"
+  description = "비번호"
   type        = string
   default     = "999"
 }

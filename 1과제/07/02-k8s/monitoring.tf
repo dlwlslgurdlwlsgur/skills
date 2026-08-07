@@ -155,7 +155,11 @@ resource "kubernetes_config_map" "grafana_dashboard" {
           datasource = { type = "prometheus", uid = "prometheus" }
           fieldConfig = {
             defaults = {
-              unit = "percent"
+              unit = "percent",
+              custom = {
+                fillOpacity = 20
+                lineWidth   = 2
+              }
               thresholds = {
                 mode = "absolute"
                 steps = [
@@ -190,7 +194,11 @@ resource "kubernetes_config_map" "grafana_dashboard" {
           datasource = { type = "prometheus", uid = "prometheus" }
           fieldConfig = {
             defaults = {
-              unit = "percent"
+              unit = "percent",
+              custom = {
+                fillOpacity = 20
+                lineWidth   = 2
+              }
               thresholds = {
                 mode = "absolute"
                 steps = [
@@ -283,7 +291,11 @@ resource "kubernetes_config_map" "grafana_dashboard" {
           datasource = { type = "cloudwatch", uid = "cloudwatch" }
           fieldConfig = {
             defaults = {
-              unit = "s" 
+              unit = "s",
+              custom = {
+                fillOpacity = 20
+                lineWidth   = 2
+              }
             }
           }
           options = {
