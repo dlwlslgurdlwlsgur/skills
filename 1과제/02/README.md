@@ -63,3 +63,19 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3
 - name: wskorea26-alb-origin ( /book* )
 - ALB 원본 > 사용자 정의 헤더 ( X-Origin-Verify: wskorea26-cf )
 - ALB 동작 > 쿼리 문자열 모두
+```bash
+{
+    "Sid": "Decrypy Role",
+    "Effect": "Allow",
+    "Principal": {
+        "Service": "cloudfront.amazonaws.com"
+    },
+    "Action": "kms:*",
+    "Resource": "*",
+    "Condition": {
+        "StringEquals": {
+            "aws:SourceArn": "<CLOUDFRONT_ARN>"
+        }
+    }
+}
+```
