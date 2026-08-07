@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-"""Deploy and verify assignment 2-1 (Workflow) in ap-southeast-1."""
-
 import io
 import json
 import os
@@ -44,7 +42,6 @@ def ensure_lambda(client, name, role_arn, code, environment):
         client.get_waiter("function_updated").wait(FunctionName=name)
         return response["Configuration"]["FunctionArn"]
     except client.exceptions.ResourceNotFoundException:
-        # IAM 역할 전파 대기를 위한 재시도 로직 추가
         for attempt in range(10):
             try:
                 return client.create_function(
@@ -57,7 +54,7 @@ def ensure_lambda(client, name, role_arn, code, environment):
                 error_code = exc.response.get("Error", {}).get("Code", "")
                 error_msg = str(exc)
                 if error_code == "InvalidParameterValueException" and "cannot be assumed by Lambda" in error_msg and attempt < 9:
-                    time.sleep(3)  # 역할 전파 대기 후 재시도
+                    time.sleep(3)
                     continue
                 raise
 
@@ -115,7 +112,6 @@ def ensure_bucket(s3, bucket):
         if exc.response["Error"]["Code"] not in ("404", "NoSuchBucket"):
             raise
         
-        # OperationAborted 에러 발생 시 재시도하는 로직 추가
         for attempt in range(5):
             try:
                 s3.create_bucket(
@@ -126,7 +122,7 @@ def ensure_bucket(s3, bucket):
             except ClientError as create_exc:
                 error_code = create_exc.response.get("Error", {}).get("Code", "")
                 if error_code == "OperationAborted" and attempt < 4:
-                    time.sleep(3)  # 3초 대기 후 재시도
+                    time.sleep(3)
                     continue
                 raise
 
@@ -143,7 +139,6 @@ def ensure_bucket(s3, bucket):
         Bucket=bucket,
         Tagging={"TagSet": [{"Key": "Name", "Value": bucket}]},
     )
-    # Keep the bucket quiet while deployment tests and final cleanup run.
     s3.put_bucket_notification_configuration(
         Bucket=bucket, NotificationConfiguration={}
     )
@@ -445,7 +440,7 @@ def main():
                 "Sid": "InvokeProcessor",
                 "Effect": "Allow",
                 "Action": "lambda:InvokeFunction",
-                "Resource": processor_arn,  # 여기서 processor_arn을 참조합니다.
+                "Resource": processor_arn,
             },
         ],
     }
@@ -481,10 +476,8 @@ def main():
         {"STATE_MACHINE_ARN": state_machine_arn},
     )
     allow_s3_invoke(lambda_client, trigger_arn, bucket, account_id)
-    # S3 validates the Lambda resource policy when notifications are saved.
     time.sleep(10)
 
-    # End-to-end verification while notifications are disabled.
     clear_bucket(s3, bucket)
     clear_table(table)
     test_body = (ROOT / "test.csv").read_bytes()
@@ -510,8 +503,6 @@ def main():
             f"Unexpected test result: DynamoDB={item_count}, errors={error_count}"
         )
 
-    # Preserve verified output for the marking script. The zero-byte input/
-    # marker makes all three required prefixes visible at the bucket root.
     s3.put_object(Bucket=bucket, Key="input/", Body=b"")
     s3.put_bucket_notification_configuration(
         Bucket=bucket,

@@ -105,5 +105,3 @@ aws cloudfront create-function --name skillsphone-cdn-ab-res-fn --function-confi
 RES_ETAG=$(aws cloudfront describe-function --name skillsphone-cdn-ab-res-fn --query 'ETag' --output text)
 aws cloudfront publish-function --name skillsphone-cdn-ab-res-fn --if-match $RES_ETAG >/dev/null
 RES_FN_ARN=$(aws cloudfront describe-function --name skillsphone-cdn-ab-res-fn --query 'FunctionSummary.FunctionMetadata.FunctionARN' --output text)
-
-echo
