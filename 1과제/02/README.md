@@ -41,6 +41,16 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3
 
 <br>
 
+## monitoring
+```bash
+export BNUM=<비번호>
+```
+```bash
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/07-monitoring.sh
+```
+
+<br>
+
 ## CF
 - wskorea26-concert-cf
 - name: wskorea26-s3-origin ( * )
@@ -53,13 +63,3 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3
 - name: wskorea26-alb-origin ( /book* )
 - ALB 원본 > 사용자 정의 헤더 ( X-Origin-Verify: wskorea26-cf )
 - ALB 동작 > 쿼리 문자열 모두
-
-<br>
-
-## monitoring
-```bash
-export BNUM=<비번호>
-```
-```bash
-wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/07-monitoring.sh
-```
