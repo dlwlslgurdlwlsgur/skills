@@ -88,7 +88,7 @@ metadata:
   name: skm-app-nodeclass
 spec:
   amiSelectorTerms:
-    - name: "amazon-eks-node-1.35.5-*"
+    - alias: al2023@latest
   role: KarpenterNodeRole-skm-eks-cluster
   subnetSelectorTerms:
     - tags:
