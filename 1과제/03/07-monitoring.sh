@@ -333,7 +333,7 @@ dashboards:
               {
                 "name": "namespace",
                 "type": "query",
-                "datasource": "Prometheus",
+                "datasource": "prometheus",
                 "query": "label_values(kube_namespace_labels, namespace)",
                 "refresh": 1,
                 "includeAll": true,
