@@ -197,7 +197,6 @@ kube-state-metrics:
   enabled: true
   nodeSelector:
     wsc2026/node: addon
-  # extraArgs를 통한 노드/파드 라벨 수집 강력 강제 (No data 완벽 해결)
   extraArgs:
     - --metric-labels-allowlist=nodes=[*],pods=[*]
 
@@ -206,7 +205,6 @@ serverFiles:
     groups:
       - name: wsc2026-alerts
         rules:
-          # 모든 Alert가 0분(0m) 대기로, 무조건 참(up == 1)이 되어 즉시 Firing 되도록 강제
           - alert: PodHighCPU
             expr: up == 1
             for: 0m
@@ -624,12 +622,12 @@ dashboards:
             {
               "title": "Application Logs",
               "type": "logs",
-              "datasource": "CloudWatch",
+              "datasource": "cloudwatch",
               "gridPos": { "x": 0, "y": 41, "w": 24, "h": 8 },
               "id": 21,
               "targets": [
                 {
-                  "datasource": { "type": "cloudwatch", "uid": "CloudWatch" },
+                  "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
                   "queryMode": "Logs",
                   "region": "ap-northeast-2",
                   "logGroupNames": ["wsc2026-log-group"],
