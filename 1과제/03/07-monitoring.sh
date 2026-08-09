@@ -8,6 +8,8 @@ EKS_CLUSTER_NAME="wsc2026-eks-cluster"
 say() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 ok()  { printf '\033[1;32m[OK]\033[0m %s\n' "$*"; }
 
+aws logs create-log-group --log-group-name wsc2026-log-group --region ap-northeast-2 2>/dev/null || true
+
 eksctl create iamserviceaccount \
   --name fluent-bit-sa \
   --region $REGION_CODE \
@@ -250,7 +252,6 @@ helm upgrade -i prometheus prometheus-community/prometheus \
 rm -f prometeus-values.yaml
 
 
-
 cat <<'EOF' > grafana-values.yaml
 adminUser: admin
 adminPassword: Skills$#$@!
@@ -278,17 +279,20 @@ datasources:
     datasources:
       - name: prometheus
         type: prometheus
+        uid: prom
         url: http://prometheus-server.observability.svc.wsc2026.skills.local
         access: proxy
         isDefault: true
       - name: alertmanager
         type: alertmanager
+        uid: am
         url: http://prometheus-alertmanager.observability.svc.wsc2026.skills.local
         access: proxy
         jsonData:
           implementation: prometheus
-      - name: cloudWatch
+      - name: cloudwatch
         type: cloudwatch
+        uid: cw
         access: proxy
         jsonData:
           authType: default
@@ -324,7 +328,7 @@ dashboards:
               {
                 "name": "nodegroup",
                 "type": "query",
-                "datasource": "Prometheus",
+                "datasource": { "type": "prometheus", "uid": "prom" },
                 "query": "label_values(kube_node_labels, label_wsc2026_node)",
                 "refresh": 1,
                 "includeAll": true,
@@ -333,7 +337,7 @@ dashboards:
               {
                 "name": "namespace",
                 "type": "query",
-                "datasource": "prometheus",
+                "datasource": { "type": "prometheus", "uid": "prom" },
                 "query": "label_values(kube_namespace_labels, namespace)",
                 "refresh": 1,
                 "includeAll": true,
@@ -354,82 +358,34 @@ dashboards:
               "type": "timeseries",
               "gridPos": { "x": 0, "y": 1, "w": 12, "h": 6 },
               "id": 2,
-              "fieldConfig": {
-                "defaults": {
-                  "min": 0,
-                  "max": 100,
-                  "unit": "percent",
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      { "color": "green", "value": null },
-                      { "color": "yellow", "value": 60 },
-                      { "color": "red", "value": 80 }
-                    ]
-                  }
-                }
-              },
-              "targets": [{ "expr": "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) by (instance) / sum(rate(node_cpu_seconds_total[5m])) by (instance) * 100", "legendFormat": "{{instance}}" }]
+              "fieldConfig": { "defaults": { "min": 0, "max": 100, "unit": "percent", "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 60 }, { "color": "red", "value": 80 } ] } } },
+              "targets": [{ "expr": "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) by (instance) / sum(rate(node_cpu_seconds_total[5m])) by (instance) * 100", "legendFormat": "{{instance}}", "datasource": { "type": "prometheus", "uid": "prom" } }]
             },
             {
               "title": "Node Memory (%)",
               "type": "timeseries",
               "gridPos": { "x": 12, "y": 1, "w": 12, "h": 6 },
               "id": 3,
-              "fieldConfig": {
-                "defaults": {
-                  "min": 0,
-                  "max": 100,
-                  "unit": "percent",
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      { "color": "green", "value": null },
-                      { "color": "yellow", "value": 60 },
-                      { "color": "red", "value": 80 }
-                    ]
-                  }
-                }
-              },
-              "targets": [{ "expr": "(sum(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) by (instance) / sum(node_memory_MemTotal_bytes) by (instance)) * 100", "legendFormat": "{{instance}}" }]
+              "fieldConfig": { "defaults": { "min": 0, "max": 100, "unit": "percent", "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 60 }, { "color": "red", "value": 80 } ] } } },
+              "targets": [{ "expr": "(sum(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) by (instance) / sum(node_memory_MemTotal_bytes) by (instance)) * 100", "legendFormat": "{{instance}}", "datasource": { "type": "prometheus", "uid": "prom" } }]
             },
             {
               "title": "Available Nodes",
               "type": "stat",
               "gridPos": { "x": 0, "y": 7, "w": 12, "h": 3 },
               "id": 4,
-              "options": {
-                "reduceOptions": { "calcs": ["lastNotNull"] },
-                "orientation": "horizontal",
-                "textMode": "value_and_name",
-                "colorMode": "value",
-                "graphMode": "none"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
-                }
-              },
-              "targets": [{ "expr": "sum(kube_node_labels{label_wsc2026_node=\"addon\"})", "legendFormat": "wsc2026-addon-nodegroup" }]
+              "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "horizontal", "textMode": "value_and_name", "colorMode": "value", "graphMode": "none" },
+              "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } } },
+              "targets": [{ "expr": "sum(kube_node_labels{label_wsc2026_node=\"addon\"})", "legendFormat": "wsc2026-addon-nodegroup", "datasource": { "type": "prometheus", "uid": "prom" } }]
             },
             {
               "title": "",
               "type": "stat",
               "gridPos": { "x": 12, "y": 7, "w": 12, "h": 3 },
               "id": 5,
-              "options": {
-                "reduceOptions": { "calcs": ["lastNotNull"] },
-                "orientation": "horizontal",
-                "textMode": "value_and_name",
-                "colorMode": "value",
-                "graphMode": "none"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
-                }
-              },
-              "targets": [{ "expr": "sum(kube_node_labels{label_wsc2026_node=\"application\"})", "legendFormat": "wsc2026-workload-ng" }]
+              "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "horizontal", "textMode": "value_and_name", "colorMode": "value", "graphMode": "none" },
+              "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } } },
+              "targets": [{ "expr": "sum(kube_node_labels{label_wsc2026_node=\"application\"})", "legendFormat": "wsc2026-workload-ng", "datasource": { "type": "prometheus", "uid": "prom" } }]
             },
             {
               "type": "row",
@@ -443,55 +399,34 @@ dashboards:
               "type": "timeseries",
               "gridPos": { "x": 0, "y": 11, "w": 12, "h": 6 },
               "id": 7,
-              "fieldConfig": {
-                "defaults": { "min": 0, "max": 1, "unit": "none" }
-              },
-              "targets": [{ "expr": "topk(5, sum(rate(container_cpu_usage_seconds_total{container!=\"\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}[5m])) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}" }]
+              "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "none" } },
+              "targets": [{ "expr": "topk(5, sum(rate(container_cpu_usage_seconds_total{container!=\"\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}[5m])) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}", "datasource": { "type": "prometheus", "uid": "prom" } }]
             },
             {
               "title": "Pod Memory",
               "type": "timeseries",
               "gridPos": { "x": 12, "y": 11, "w": 12, "h": 6 },
               "id": 8,
-              "fieldConfig": {
-                "defaults": { "min": 0, "max": 134217728, "unit": "bytes" }
-              },
-              "targets": [{ "expr": "topk(5, sum(container_memory_working_set_bytes{container!=\"\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}" }]
+              "fieldConfig": { "defaults": { "min": 0, "max": 134217728, "unit": "bytes" } },
+              "targets": [{ "expr": "topk(5, sum(container_memory_working_set_bytes{container!=\"\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}", "datasource": { "type": "prometheus", "uid": "prom" } }]
             },
             {
               "title": "Pending Pods",
               "type": "stat",
               "gridPos": { "x": 0, "y": 17, "w": 12, "h": 5 },
               "id": 9,
-              "options": {
-                "textMode": "value",
-                "graphMode": "none",
-                "colorMode": "value"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
-                }
-              },
-              "targets": [{ "expr": "sum(kube_pod_status_phase{phase=\"Pending\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"})", "legendFormat": "Pending Pods" }]
+              "options": { "textMode": "value", "graphMode": "none", "colorMode": "value" },
+              "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } } },
+              "targets": [{ "expr": "sum(kube_pod_status_phase{phase=\"Pending\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"})", "legendFormat": "Pending Pods", "datasource": { "type": "prometheus", "uid": "prom" } }]
             },
             {
               "title": "Pod Restarts",
               "type": "stat",
               "gridPos": { "x": 12, "y": 17, "w": 12, "h": 5 },
               "id": 10,
-              "options": {
-                "reduceOptions": { "calcs": ["lastNotNull"] },
-                "textMode": "value_and_name",
-                "graphMode": "area",
-                "colorMode": "value"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
-                }
-              },
-              "targets": [{ "expr": "topk(5, sum(kube_pod_container_status_restarts_total{pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}" }]
+              "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "value_and_name", "graphMode": "area", "colorMode": "value" },
+              "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } } },
+              "targets": [{ "expr": "topk(5, sum(kube_pod_container_status_restarts_total{pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}", "datasource": { "type": "prometheus", "uid": "prom" } }]
             },
             {
               "type": "row",
@@ -505,72 +440,43 @@ dashboards:
               "type": "timeseries",
               "gridPos": { "x": 0, "y": 23, "w": 12, "h": 6 },
               "id": 12,
-              "fieldConfig": {
-                "defaults": { "min": 0, "max": 1, "unit": "none" }
-              },
-              "targets": [{ "expr": "topk(5, sum(rate(container_cpu_usage_seconds_total{namespace=\"wsc2026\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}[5m])) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}" }]
+              "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "none" } },
+              "targets": [{ "expr": "topk(5, sum(rate(container_cpu_usage_seconds_total{namespace=\"wsc2026\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}[5m])) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}", "datasource": { "type": "prometheus", "uid": "prom" } }]
             },
             {
               "title": "App Pod Memory",
               "type": "timeseries",
               "gridPos": { "x": 12, "y": 23, "w": 12, "h": 6 },
               "id": 13,
-              "fieldConfig": {
-                "defaults": { "min": 0, "max": 134217728, "unit": "bytes" }
-              },
-              "targets": [{ "expr": "topk(5, sum(container_memory_working_set_bytes{namespace=\"wsc2026\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}" }]
+              "fieldConfig": { "defaults": { "min": 0, "max": 134217728, "unit": "bytes" } },
+              "targets": [{ "expr": "topk(5, sum(container_memory_working_set_bytes{namespace=\"wsc2026\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}", "datasource": { "type": "prometheus", "uid": "prom" } }]
             },
             {
               "title": "App Running",
               "type": "stat",
               "gridPos": { "x": 0, "y": 29, "w": 8, "h": 5 },
               "id": 14,
-              "options": {
-                "textMode": "value",
-                "graphMode": "area",
-                "colorMode": "value"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
-                }
-              },
-              "targets": [{ "expr": "sum(kube_pod_status_phase{namespace=\"wsc2026\", phase=\"Running\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"})", "legendFormat": "Running" }]
+              "options": { "textMode": "value", "graphMode": "area", "colorMode": "value" },
+              "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } } },
+              "targets": [{ "expr": "sum(kube_pod_status_phase{namespace=\"wsc2026\", phase=\"Running\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"})", "legendFormat": "Running", "datasource": { "type": "prometheus", "uid": "prom" } }]
             },
             {
               "title": "App Restarts",
               "type": "stat",
               "gridPos": { "x": 8, "y": 29, "w": 8, "h": 5 },
               "id": 15,
-              "options": {
-                "reduceOptions": { "calcs": ["lastNotNull"] },
-                "textMode": "value_and_name",
-                "graphMode": "area",
-                "colorMode": "value"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
-                }
-              },
-              "targets": [{ "expr": "topk(5, sum(kube_pod_container_status_restarts_total{namespace=\"wsc2026\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}" }]
+              "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "value_and_name", "graphMode": "area", "colorMode": "value" },
+              "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } } },
+              "targets": [{ "expr": "topk(5, sum(kube_pod_container_status_restarts_total{namespace=\"wsc2026\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"}) by (pod) and on(pod) sum(kube_pod_status_phase) by (pod))", "legendFormat": "{{pod}}", "datasource": { "type": "prometheus", "uid": "prom" } }]
             },
             {
               "title": "App Pending",
               "type": "stat",
               "gridPos": { "x": 16, "y": 29, "w": 8, "h": 5 },
               "id": 16,
-              "options": {
-                "textMode": "value",
-                "graphMode": "none",
-                "colorMode": "value"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
-                }
-              },
-              "targets": [{ "expr": "sum(kube_pod_status_phase{namespace=\"wsc2026\", phase=\"Pending\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"})", "legendFormat": "Pending" }]
+              "options": { "textMode": "value", "graphMode": "none", "colorMode": "value" },
+              "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } } },
+              "targets": [{ "expr": "sum(kube_pod_status_phase{namespace=\"wsc2026\", phase=\"Pending\", pod=~\"crash-test.*|error-gen.*|latency-gen.*|wsc2026-book-deploy.*\"})", "legendFormat": "Pending", "datasource": { "type": "prometheus", "uid": "prom" } }]
             },
             {
               "type": "row",
@@ -584,50 +490,40 @@ dashboards:
               "type": "timeseries",
               "gridPos": { "x": 0, "y": 35, "w": 8, "h": 6 },
               "id": 18,
-              "fieldConfig": {
-                "defaults": { "min": 0 }
-              },
-              "targets": [{ "expr": "sum(rate(http_requests_total[5m])) * 60 or vector(0)", "legendFormat": "Requests/min" }]
+              "fieldConfig": { "defaults": { "min": 0 } },
+              "targets": [{ "expr": "sum(rate(http_requests_total[5m])) * 60 or vector(0)", "legendFormat": "Requests/min", "datasource": { "type": "prometheus", "uid": "prom" } }]
             },
             {
               "title": "Response Time",
               "type": "timeseries",
               "gridPos": { "x": 8, "y": 35, "w": 8, "h": 6 },
               "id": 19,
-              "fieldConfig": {
-                "defaults": {
-                  "unit": "ms",
-                  "min": 0,
-                  "custom": { "showPoints": "always", "drawStyle": "line" }
-                }
-              },
-              "targets": [{ "expr": "(sum(rate(http_request_duration_seconds_sum[5m])) / sum(rate(http_request_duration_seconds_count[5m])) * 1000) or vector(0)", "legendFormat": "Avg Response Time" }]
+              "fieldConfig": { "defaults": { "unit": "ms", "min": 0, "custom": { "showPoints": "always", "drawStyle": "line" } } },
+              "targets": [{ "expr": "(sum(rate(http_request_duration_seconds_sum[5m])) / sum(rate(http_request_duration_seconds_count[5m])) * 1000) or vector(0)", "legendFormat": "Avg Response Time", "datasource": { "type": "prometheus", "uid": "prom" } }]
             },
             {
               "title": "Status Codes",
               "type": "timeseries",
               "gridPos": { "x": 16, "y": 35, "w": 8, "h": 6 },
               "id": 20,
-              "fieldConfig": {
-                "defaults": { "min": 0, "custom": { "showPoints": "always", "drawStyle": "line" } }
-              },
+              "fieldConfig": { "defaults": { "min": 0, "custom": { "showPoints": "always", "drawStyle": "line" } } },
               "targets": [
-                { "expr": "sum(rate(http_requests_total{status=~\"2..\"}[5m])) or vector(0)", "legendFormat": "2XX" },
-                { "expr": "sum(rate(http_requests_total{status=~\"4..\"}[5m])) or vector(0)", "legendFormat": "4XX" },
-                { "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) or vector(0)", "legendFormat": "5XX" },
-                { "expr": "vector(0)", "legendFormat": "ELB 4XX" },
-                { "expr": "vector(0)", "legendFormat": "ELB 5XX" }
+                { "expr": "sum(rate(http_requests_total{status=~\"2..\"}[5m])) or vector(0)", "legendFormat": "2XX", "datasource": { "type": "prometheus", "uid": "prom" } },
+                { "expr": "sum(rate(http_requests_total{status=~\"4..\"}[5m])) or vector(0)", "legendFormat": "4XX", "datasource": { "type": "prometheus", "uid": "prom" } },
+                { "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) or vector(0)", "legendFormat": "5XX", "datasource": { "type": "prometheus", "uid": "prom" } },
+                { "expr": "vector(0)", "legendFormat": "ELB 4XX", "datasource": { "type": "prometheus", "uid": "prom" } },
+                { "expr": "vector(0)", "legendFormat": "ELB 5XX", "datasource": { "type": "prometheus", "uid": "prom" } }
               ]
             },
             {
               "title": "Application Logs",
               "type": "logs",
-              "datasource": "cloudwatch",
               "gridPos": { "x": 0, "y": 41, "w": 24, "h": 8 },
               "id": 21,
+              "datasource": { "type": "cloudwatch", "uid": "cw" },
               "targets": [
                 {
-                  "datasource": { "type": "cloudwatch", "uid": "cloudwatch" },
+                  "datasource": { "type": "cloudwatch", "uid": "cw" },
                   "queryMode": "Logs",
                   "region": "ap-northeast-2",
                   "logGroupNames": ["wsc2026-log-group"],
@@ -648,11 +544,7 @@ dashboards:
               "type": "alertlist",
               "gridPos": { "x": 0, "y": 50, "w": 24, "h": 6 },
               "id": 23,
-              "options": {
-                "showOptions": false,
-                "viewMode": "list",
-                "stateFilter": { "firing": true, "pending": false, "normal": false }
-              }
+              "options": { "showOptions": false, "viewMode": "list", "stateFilter": { "firing": true, "pending": false, "normal": false } }
             }
           ],
           "schemaVersion": 38,
@@ -660,14 +552,12 @@ dashboards:
         }
 EOF
 
-
 helm repo add grafana-community https://grafana-community.github.io/helm-charts
 helm repo update
 helm upgrade -i grafana grafana-community/grafana \
   -n observability \
   -f ./grafana-values.yaml
 rm -f grafana-values.yaml
-
 
 SVC_IP=$(kubectl get svc -n wsc2026 -o jsonpath='{.items[0].spec.clusterIP}' 2>/dev/null)
 # PodNotReady
@@ -682,4 +572,3 @@ kubectl run crash-test --image=busybox --restart=Always -n wsc2026 --overrides='
 kubectl run stress-cpu --image=busybox --restart=Never -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"},"containers":[{"name":"stress-cpu","image":"busybox","resources":{"requests":{"cpu":"250m"},"limits":{"cpu":"250m"}},"command":["sh","-c","while true; do :; done"]}]}}' &>/dev/null
 # PodHighMemory
 kubectl run stress-mem --image=polinux/stress --restart=Never -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"},"containers":[{"name":"stress-mem","image":"polinux/stress","resources":{"requests":{"memory":"64Mi"},"limits":{"memory":"64Mi"}},"command":["stress","--vm","1","--vm-bytes","60M","--vm-keep","-t","3600"]}]}}' &>/dev/null
-
