@@ -86,6 +86,7 @@ curl --silent --location "https://github.com/eksctl-io/eksctl/releases/latest/do
 sudo mv /tmp/eksctl /usr/local/bin
 eksctl utils write-kubeconfig --name $CLUSTER_NAME
 eksctl utils associate-iam-oidc-provider --approve --cluster $CLUSTER_NAME
+kubectl get hpa -A
 ```
 
 <br>
