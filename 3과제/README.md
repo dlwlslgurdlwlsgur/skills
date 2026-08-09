@@ -2,7 +2,35 @@
 ```bash
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/01-vpc.sh
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/02-ec2.sh
+```
+
+<br>
+
+## Cluster
+```bash
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/03-cluster.sh
+```
+```bash
+CLUSTER_NAME="skills-cluster"
+ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+aws eks create-access-entry \
+  --cluster-name "$CLUSTER_NAME" \
+  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:role/apdev-bastion-role"
+aws eks associate-access-policy \
+  --cluster-name "$CLUSTER_NAME" \
+  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:role/apdev-bastion-role" \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+  --access-scope type=cluster
+```
+```bash
+curl --silent --location "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+```
+```bash
+CLUSTER_NAME="skills-cluster"
+eksctl utils write-kubeconfig --name $CLUSTER_NAME --region ap-northeast-2
+aws eks update-kubeconfig --region ap-northeast-2 --name skills-cluster
+kubectl get hpa -A
 ```
 
 <br>
@@ -76,20 +104,6 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3
 - ALB: http
 - ALB: Caching Disabled, AllViewer
 - S3: /images/*
-
-<br>
-
-## cluster
-```bash
-curl --silent --location "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
-sudo mv /tmp/eksctl /usr/local/bin
-```
-```bash
-CLUSTER_NAME="skills-cluster"
-eksctl utils write-kubeconfig --name $CLUSTER_NAME --region ap-northeast-2
-eksctl utils associate-iam-oidc-provider --approve --cluster $CLUSTER_NAME --region ap-northeast-2
-kubectl get hpa -A
-```
 
 <br>
 
