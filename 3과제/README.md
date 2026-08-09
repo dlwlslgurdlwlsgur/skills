@@ -84,6 +84,8 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3
 CLUSTER_NAME="skills-cluster"
 curl --silent --location "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
 sudo mv /tmp/eksctl /usr/local/bin
+```
+```bash
 eksctl utils write-kubeconfig --name $CLUSTER_NAME
 eksctl utils associate-iam-oidc-provider --approve --cluster $CLUSTER_NAME
 kubectl get hpa -A
