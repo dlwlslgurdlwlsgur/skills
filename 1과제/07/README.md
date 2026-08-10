@@ -6,15 +6,15 @@
 
 ## module 설치
 ```bash
-aws configure
-```
-```bash
 msiexec.exe /i https://awscli.amazonaws.com/AWSCLIV2.msi
 aws --version
 ```
 ```bash
 Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
 choco install kubernetes-cli kubernetes-helm terraform -y
+```
+```bash
+aws configure
 ```
 
 <br>
