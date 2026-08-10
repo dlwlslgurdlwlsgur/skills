@@ -13,100 +13,93 @@ if ! command -v kubectl >/dev/null 2>&1; then
 fi
 
 
-aws eks describe-cluster --region us-west-2 --name skills-sqs-cluster --query 'cluster.[name,status]' --output text | awk '{print "Cluster Name: "$1" | Status: "$2}'
-for FP in skills-sqs-fp-keda skills-sqs-fp-karpenter; do
-  echo -n "fargate_profile=${FP} -> "
-  aws eks describe-fargate-profile --region us-west-2 --cluster-name skills-sqs-cluster --fargate-profile-name "$FP" --query 'fargateProfile.[status,selectors[0].namespace]' --output text | awk '{print "Status: "$1" | Namespace: "$2}'
-done
-aws eks update-kubeconfig --region us-west-2 --name skills-sqs-cluster >/dev/null 2>&1
-kubectl get nodes -l eks.amazonaws.com/compute-type=fargate -o custom-columns='NODE_NAME:.metadata.name,STATUS:.status.conditions[?(@.type=="Ready")].status'
-# Cluster Name: skills-sqs-cluster | Status: ACTIVE
-# fargate_profile=skills-sqs-fp-keda -> Status: ACTIVE | Namespace: keda
-# fargate_profile=skills-sqs-fp-karpenter -> Status: ACTIVE | Namespace: karpenter
-# NODE_NAME                                        STATUS
-# fargate-ip-10-0-x-x.us-west-2.compute.internal   True
-# fargate-ip-10-0-y-y.us-west-2.compute.internal   True
+aws eks describe-cluster --region us-west-2 --name skills-sqs-cluster --query 'cluster.{Name:name,Status:status,Endpoint:endpoint,Version:version,Role:roleArn,Vpc:resourcesVpcConfig.vpcId,Subnets:resourcesVpcConfig.subnetIds}' --output table
+aws eks describe-fargate-profile --region us-west-2 --cluster-name skills-sqs-cluster --fargate-profile-name skills-sqs-fp-keda --query 'fargateProfile.{Name:fargateProfileName,Status:status,Selectors:selectors,Subnets:subnets}' --output table
+aws eks describe-fargate-profile --region us-west-2 --cluster-name skills-sqs-cluster --fargate-profile-name skills-sqs-fp-karpenter --query 'fargateProfile.{Name:fargateProfileName,Status:status,Selectors:selectors,Subnets:subnets}' --output table
+aws eks update-kubeconfig --region us-west-2 --name skills-sqs-cluster
+kubectl get nodes -l eks.amazonaws.com/compute-type=fargate -o wide
+# Cluster Name=skills-sqs-cluster, Status=ACTIVE, Endpoint 출력, Vpc 및 Subnets 출력이 있어야 합니다.
+# Fargate Profile skills-sqs-fp-keda와 skills-sqs-fp-karpenter가 Status=ACTIVE이어야 합니다.
+# skills-sqs-fp-keda Selector namespace는 keda, skills-sqs-fp-karpenter Selector namespace는 karpenter이어야 합니다.
+# CloudShell에서 kubectl 접근이 가능하고 Fargate Node가 출력되어야 합니다.
 
 
 QUEUE_URL=$(aws sqs get-queue-url --region us-west-2 --queue-name skills-sqs-queue --query QueueUrl --output text 2>/dev/null || true)
 echo "QUEUE_URL=${QUEUE_URL}"
 if [ -n "$QUEUE_URL" ] && [ "$QUEUE_URL" != "None" ]; then
-  aws sqs get-queue-attributes --region us-west-2 --queue-url "$QUEUE_URL" --attribute-names VisibilityTimeout --query 'Attributes.VisibilityTimeout' --output text | awk '{print "VisibilityTimeout: "$1}'
+  aws sqs get-queue-attributes --region us-west-2 --queue-url "$QUEUE_URL" --attribute-names QueueArn VisibilityTimeout --output table
 else
   echo "skills-sqs-queue Queue URL 식별 실패"
 fi
-for X in "keda keda-operator" "karpenter karpenter" "skills-sqs sqs-worker-sa"; do
-  set -- $X
-  echo -n "$1/$2 role="
-  kubectl get serviceaccount "$2" -n "$1" -o jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}'
-  echo
-done
-# QUEUE_URL=https://sqs.us-west-2.amazonaws.com/123456789012/skills-sqs-queue
-# VisibilityTimeout: 30
-# keda/keda-operator role=arn:aws:iam::123456789012:role/...
-# karpenter/karpenter role=arn:aws:iam::123456789012:role/...
-# skills-sqs/sqs-worker-sa role=arn:aws:iam::123456789012:role/...
+kubectl get serviceaccount keda-operator -n keda -o jsonpath='keda/keda-operator role={.metadata.annotations.eks\.amazonaws\.com/role-arn}{"\n"}'
+kubectl get serviceaccount karpenter -n karpenter -o jsonpath='karpenter/karpenter role={.metadata.annotations.eks\.amazonaws\.com/role-arn}{"\n"}'
+kubectl get serviceaccount sqs-worker-sa -n skills-sqs -o jsonpath='skills-sqs/sqs-worker-sa role={.metadata.annotations.eks\.amazonaws\.com/role-arn}{"\n"}'
+# Queue URL이 출력되어야 합니다.
+# QueueArn이 출력되고 VisibilityTimeout>=30이어야 합니다.
+# keda/keda-operator, karpenter/karpenter, skills-sqs/sqs-worker-sa의 role-arn annotation이 비어 있지 않아야 합니다.
 
 
-kubectl get pod -n keda -o custom-columns='POD_NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName'
-kubectl get pod -n karpenter -o custom-columns='POD_NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName'
-# POD_NAME                              STATUS    NODE
-# keda-operator-xxxxxxxxxx-xxxxx        Running   fargate-ip-10-0-x-x.us-west-2.compute.internal
-# POD_NAME                              STATUS    NODE
-# karpenter-xxxxxxxxxx-xxxxx            Running   fargate-ip-10-0-y-y.us-west-2.compute.internal
+kubectl get deployment keda-operator -n keda -o json | jq '{name:.metadata.name, availableReplicas:(.status.availableReplicas // 0), readyReplicas:(.status.readyReplicas // 0)}'
+kubectl get pods -n keda -o json | jq '[.items[] | select(.metadata.name | test("^keda-operator-")) | {name:.metadata.name, phase:.status.phase, node:.spec.nodeName}]'
+kubectl get deployment karpenter -n karpenter -o json | jq '{name:.metadata.name, availableReplicas:(.status.availableReplicas // 0), readyReplicas:(.status.readyReplicas // 0)}'
+kubectl get pods -n karpenter -o json | jq '[.items[] | select(.metadata.name | test("^karpenter-")) | {name:.metadata.name, phase:.status.phase, node:.spec.nodeName}]'
+# keda-operator Deployment의 availableReplicas가 1 이상이어야 합니다.
+# karpenter Deployment의 availableReplicas가 1 이상이어야 합니다.
+# 각 Deployment Pod의 phase는 Running이어야 합니다.
+# 해당 Pod들은 Fargate Node에서 실행되어야 합니다.
 
 
-kubectl get deployment sqs-worker -n skills-sqs -o jsonpath='SA={.spec.template.spec.serviceAccountName}{"\n"}NodeSelector={.spec.template.spec.nodeSelector}{"\n"}Env={.spec.template.spec.containers[0].env[*].name}{"\n"}'
-kubectl get scaledobject sqs-worker-scaledobject -n skills-sqs -o jsonpath='MinMax={.spec.minReplicaCount}/{.spec.maxReplicaCount} | Trigger={.spec.triggers[0].type} | Q_Length={.spec.triggers[0].metadata.queueLength}{"\n"}'
-kubectl get triggerauthentication sqs-worker-trigger-auth -n skills-sqs -o jsonpath='Provider={.spec.podIdentity.provider}{"\n"}'
-# SA=sqs-worker-sa
-# NodeSelector={"karpenter.sh/nodepool":"skills-sqs-nodepool","skills-nodepool":"event-worker"}
-# Env=SQS_QUEUE_URL AWS_REGION PROCESSING_SECONDS
-# MinMax=0/6 | Trigger=aws-sqs-queue | Q_Length=2
-# Provider=aws-eks
+kubectl get deployment sqs-worker -n skills-sqs -o jsonpath='name={.metadata.name}{"\n"}serviceAccountName={.spec.template.spec.serviceAccountName}{"\n"}selector={.spec.selector.matchLabels}{"\n"}podLabels={.spec.template.metadata.labels}{"\n"}nodeSelector={.spec.template.spec.nodeSelector}{"\n"}env={.spec.template.spec.containers[0].env}{"\n"}image={.spec.template.spec.containers[0].image}{"\n"}'
+kubectl get scaledobject sqs-worker-scaledobject -n skills-sqs -o json | jq '{name:.metadata.name, namespace:.metadata.namespace, scaleTargetRef:.spec.scaleTargetRef, minReplicaCount:.spec.minReplicaCount, maxReplicaCount:.spec.maxReplicaCount, pollingInterval:.spec.pollingInterval, cooldownPeriod:.spec.cooldownPeriod, triggers:.spec.triggers}'
+kubectl get triggerauthentication sqs-worker-trigger-auth -n skills-sqs -o json | jq '{name:.metadata.name, namespace:.metadata.namespace, podIdentity:.spec.podIdentity}'
+# Deployment name=sqs-worker, serviceAccountName=sqs-worker-sa이어야 합니다.
+# selector/podLabels에 app=sqs-worker가 포함되어야 합니다.
+# nodeSelector에 karpenter.sh/nodepool=skills-sqs-nodepool, skills-nodepool=event-worker가 포함되어야 합니다.
+# env에 SQS_QUEUE_URL, AWS_REGION, PROCESSING_SECONDS가 있어야 합니다.
+# ScaledObject name=sqs-worker-scaledobject, scaleTargetRef.name=sqs-worker, minReplicaCount=0, maxReplicaCount=6, pollingInterval<=15, cooldownPeriod<=30이어야 합니다.
+# Trigger type은 aws-sqs-queue이고 queueLength=2이어야 합니다.
+# TriggerAuthentication name=sqs-worker-trigger-auth, namespace=skills-sqs가 출력되어야 합니다.
+# podIdentity.provider=aws-eks이어야 합니다.
 
 
-kubectl get nodepool skills-sqs-nodepool -o jsonpath='NodeClassRef={.spec.template.spec.nodeClassRef.name} | Label={.spec.template.metadata.labels.skills-nodepool} | Consolidation={.spec.disruption.consolidationPolicy}{"\n"}'
-kubectl get nodes -l karpenter.sh/nodepool=skills-sqs-nodepool,skills-nodepool=event-worker -o custom-columns='NODE_NAME:.metadata.name,STATUS:.status.conditions[?(@.type=="Ready")].status'
-kubectl get pods -n skills-sqs -l app=sqs-worker -o custom-columns='POD_NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName'
-# NodeClassRef=skills-sqs-nodeclass | Label=event-worker | Consolidation=WhenEmptyOrUnderutilized
-# No resources found
-# No resources found in skills-sqs namespace.
+kubectl get nodepool skills-sqs-nodepool -o json | jq '{name:.metadata.name, labels:.spec.template.metadata.labels, nodeClassRef:.spec.template.spec.nodeClassRef, requirements:.spec.template.spec.requirements, consolidationPolicy:.spec.disruption.consolidationPolicy}'
+kubectl get ec2nodeclass skills-sqs-nodeclass -o json | jq '{name:.metadata.name, role:.spec.role, instanceProfile:.spec.instanceProfile, subnetSelectorTerms:.spec.subnetSelectorTerms, securityGroupSelectorTerms:.spec.securityGroupSelectorTerms, amiFamily:.spec.amiFamily}'
+kubectl get nodes -l karpenter.sh/nodepool=skills-sqs-nodepool,skills-nodepool=event-worker -o json | jq '[.items[] | {name:.metadata.name, nodepool:.metadata.labels["karpenter.sh/nodepool"], skillsNodepool:.metadata.labels["skills-nodepool"], instanceType:.metadata.labels["node.kubernetes.io/instance-type"], ready:([.status.conditions[] | select(.type=="Ready")][0].status)}]'
+kubectl get pods -n skills-sqs -l app=sqs-worker -o json | jq '[.items[] | {name:.metadata.name, phase:.status.phase, node:.spec.nodeName}]'
+# NodePool name=skills-sqs-nodepool이어야 합니다.
+# NodePool labels에 skills-nodepool=event-worker가 있어야 합니다.
+# NodePool nodeClassRef.name=skills-sqs-nodeclass이어야 합니다.
+# NodePool consolidationPolicy가 비어 있지 않아야 합니다.
+# EC2NodeClass name=skills-sqs-nodeclass이어야 하며 role 또는 instanceProfile이 출력되어야 합니다.
+# Worker EC2 Node는 nodepool=skills-sqs-nodepool, skillsNodepool=event-worker, ready=True가 출력되어야 합니다.
+# Worker Pod는 phase와 node가 출력되어야 하며, min 0 특성상 채점 시점에 Pod가 없을 경우 4-6 Scale Out 결과를 포함해 판정할 수 있습니다.
 
 
 if [ -z "$QUEUE_URL" ] || [ "$QUEUE_URL" = "None" ]; then
   echo "skills-sqs-queue Queue URL 식별 실패"
 else
   SENT=0
-  RUN_ID="skills-scale-out-$(date +%s)"
   for I in $(seq 1 12); do
-    aws sqs send-message --region us-west-2 --queue-url "$QUEUE_URL" --message-body "${RUN_ID}-${I}" >/dev/null 2>&1 && SENT=$((SENT + 1))
+    aws sqs send-message --region us-west-2 --queue-url "$QUEUE_URL" --message-body "judge-$I" >/dev/null 2>&1 && SENT=$((SENT + 1))
   done
   echo "sent=${SENT}"
   for T in 60 120 180; do
     sleep 60
     echo "after_${T}s"
-    aws sqs get-queue-attributes --region us-west-2 --queue-url "$QUEUE_URL" --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible --query 'Attributes.[ApproximateNumberOfMessages,ApproximateNumberOfMessagesNotVisible]' --output text | awk '{print "Queue_Messages: "$1" | In_Flight(NotVisible): "$2}'
-    kubectl get deployment sqs-worker -n skills-sqs -o custom-columns='DEPLOYMENT:.metadata.name,READY_REPLICAS:.status.readyReplicas'
-    kubectl get pods -n skills-sqs -l app=sqs-worker -o custom-columns='POD_NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName'
-    kubectl get nodes -l karpenter.sh/nodepool=skills-sqs-nodepool,skills-nodepool=event-worker -o custom-columns='EC2_NODE:.metadata.name,STATUS:.status.conditions[?(@.type=="Ready")].status'
+    aws sqs get-queue-attributes --region us-west-2 --queue-url "$QUEUE_URL" --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible ApproximateNumberOfMessagesDelayed --output table
+    kubectl get deployment sqs-worker -n skills-sqs
+    kubectl get pods -n skills-sqs -l app=sqs-worker -o wide
+    kubectl get nodes -l karpenter.sh/nodepool=skills-sqs-nodepool,skills-nodepool=event-worker -o wide
+    kubectl get nodeclaims -l karpenter.sh/nodepool=skills-sqs-nodepool
   done
 fi
-# sent=12
-# after_60s (또는 after_120s 진행 시점에)
-# Queue_Messages: 8 | In_Flight(NotVisible): 4 (처리되면서 숫자 변동)
-# DEPLOYMENT   READY_REPLICAS
-# sqs-worker   6
-# POD_NAME                     STATUS    NODE
-# sqs-worker-xxxxxxxxx-xxxxx   Running   ip-10-0-z-z.us-west-2.compute.internal
-# sqs-worker-xxxxxxxxx-xxxxx   Running   ip-10-0-z-z.us-west-2.compute.internal
-# ... (최대 6개)
-# EC2_NODE                             STATUS
-# ip-10-0-z-z.us-west-2.compute...     True
-#
-# after_180s (최종)
-# Queue_Messages: 0 | In_Flight(NotVisible): 0
-
+# SQS 메시지 발행 수가 12개이어야 합니다.
+# 마지막 메시지 발행 완료 후 180초 이내 sqs-worker Pod가 증가해야 합니다.
+# 180초 이내 Karpenter EC2 Worker Node가 1개 이상 Ready 상태로 확인되어야 합니다.
+# SQS ApproximateNumberOfMessages가 감소해야 합니다.
+# ApproximateNumberOfMessagesNotVisible은 Worker가 처리 중인 메시지이므로, 대기 메시지가 감소하고 Pod가 처리 중이면 실패로 보지 않습니다.
+# Scale In 완료 시간은 채점하지 않습니다.
+# 본 항목은 SQS 메시지를 생성하므로 4모듈의 마지막 채점 항목으로 수행합니다.
 
 
 
@@ -135,7 +128,7 @@ fi
 # done
 # aws eks update-kubeconfig --region us-west-2 --name skills-sqs-cluster
 # kubectl get nodes -l eks.amazonaws.com/compute-type=fargate -o wide
-# # EKS Cluster와 Fargate Profile 2개가 ACTIVE이며 CloudShell에서 kubectl 접근 가능한지 확인합니다.
+# EKS Cluster와 Fargate Profile 2개가 ACTIVE이며 CloudShell에서 kubectl 접근 가능한지 확인합니다.
 
 
 # QUEUE_URL=$(aws sqs get-queue-url --region us-west-2 --queue-name skills-sqs-queue --query QueueUrl --output text 2>/dev/null || true)
@@ -166,11 +159,17 @@ fi
 # # Worker Deployment, 환경변수, Node Selector, ScaledObject, TriggerAuthentication 구성이 요구사항과 일치하는지 확인합니다.
 
 
-# kubectl get nodepool skills-sqs-nodepool -o yaml
-# kubectl get ec2nodeclass skills-sqs-nodeclass -o yaml
-# kubectl get nodes -l karpenter.sh/nodepool=skills-sqs-nodepool,skills-nodepool=event-worker -o wide
-# kubectl get pods -n skills-sqs -l app=sqs-worker -o wide
-# # NodePool, EC2NodeClass, Worker EC2 Node, Worker Pod 배치가 요구사항과 일치하는지 확인합니다.
+# kubectl get nodepool skills-sqs-nodepool -o json | jq '{name:.metadata.name, labels:.spec.template.metadata.labels, nodeClassRef:.spec.template.spec.nodeClassRef, requirements:.spec.template.spec.requirements, consolidationPolicy:.spec.disruption.consolidationPolicy}'
+# kubectl get ec2nodeclass skills-sqs-nodeclass -o json | jq '{name:.metadata.name, role:.spec.role, instanceProfile:.spec.instanceProfile, subnetSelectorTerms:.spec.subnetSelectorTerms, securityGroupSelectorTerms:.spec.securityGroupSelectorTerms, amiFamily:.spec.amiFamily}'
+# kubectl get nodes -l karpenter.sh/nodepool=skills-sqs-nodepool,skills-nodepool=event-worker -o json | jq '[.items[] | {name:.metadata.name, nodepool:.metadata.labels["karpenter.sh/nodepool"], skillsNodepool:.metadata.labels["skills-nodepool"], instanceType:.metadata.labels["node.kubernetes.io/instance-type"], ready:([.status.conditions[] | select(.type=="Ready")][0].status)}]'
+# kubectl get pods -n skills-sqs -l app=sqs-worker -o json | jq '[.items[] | {name:.metadata.name, phase:.status.phase, node:.spec.nodeName}]'
+# # NodePool name=skills-sqs-nodepool이어야 합니다.
+# # NodePool labels에 skills-nodepool=event-worker가 있어야 합니다.
+# # NodePool nodeClassRef.name=skills-sqs-nodeclass이어야 합니다.
+# # NodePool consolidationPolicy가 비어 있지 않아야 합니다.
+# # EC2NodeClass name=skills-sqs-nodeclass이어야 하며 role 또는 instanceProfile이 출력되어야 합니다.
+# # Worker EC2 Node는 nodepool=skills-sqs-nodepool, skillsNodepool=event-worker, ready=True가 출력되어야 합니다.
+# # Worker Pod는 phase와 node가 출력되어야 하며, min 0 특성상 채점 시점에 Pod가 없을 경우 4-6 Scale Out 결과를 포함해 판정할 수 있습니다.
 
 
 # if [ -z "$QUEUE_URL" ] || [ "$QUEUE_URL" = "None" ]; then
