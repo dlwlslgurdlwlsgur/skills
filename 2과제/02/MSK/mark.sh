@@ -41,5 +41,5 @@ aws dynamodb scan --table-name wsc2026-sensor-data --max-items 1 --query "Items[
 aws dynamodb scan --table-name wsc2026-sensor-data --max-items 3 --query "Items[*].{sensorId:sensorId.S,timestamp:timestamp.S}" --output table
 # {
 #     "sensorId": "SENSOR-002",
-#     "timestamp": "2026-06-01T18:28:24+09:00" (YYYY-MM-DDTHH:mm:ss±HH:mm)
+#     "timestamp": "2026-06-01T18:28:24+09:00" (timestamp 값이 ISO 8601 KST 형식으로 출력된 경우 정답으로 인정합니다.)
 # }

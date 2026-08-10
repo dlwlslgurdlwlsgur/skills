@@ -18,7 +18,7 @@ LAMBDA_ARN=$(aws lambda get-function-configuration --region ap-southeast-1 --fun
 
 aws ec2 describe-vpcs --region ap-southeast-1 --filters Name=tag:Name,Values=skills-ceh-vpc --query 'Vpcs[].{Name:Tags[?Key==`Name`].Value|[0],VpcId:VpcId,Cidr:CidrBlock}' --output table
 aws ec2 describe-instances --region ap-southeast-1 --filters Name=tag:Name,Values=skills-ceh-ec2 Name=instance-state-name,Values=running --query 'Reservations[].Instances[].{Name:Tags[?Key==`Name`].Value|[0],Id:InstanceId,Type:InstanceType,State:State.Name,SecurityGroups:SecurityGroups[].GroupId}' --output table
-aws ec2 describe-security-groups --region ap-southeast-1 --filters Name=tag:Name,Values=skills-ceh-protected-sg --query 'SecurityGroups[].{Name:Tags[?Key==`Name`].Value|[0],GroupId:GroupId,GroupName:GroupName,VpcId:VpcId}' --output table# VPC_ID=vpc-0123456789abcdef0
+aws ec2 describe-security-groups --region ap-southeast-1 --filters Name=tag:Name,Values=skills-ceh-protected-sg --query 'SecurityGroups[].{Name:Tags[?Key==`Name`].Value|[0],GroupId:GroupId,GroupName:GroupName,VpcId:VpcId}' --output table
 # VPC Name=skills-ceh-vpc, Cidr=10.73.0.0/16이어야 합니다.
 # EC2 Name=skills-ceh-ec2, State=running이어야 합니다.
 # Security Group Name=skills-ceh-protected-sg가 존재하고 EC2에 연결되어 있어야 합니다.
@@ -29,7 +29,7 @@ aws ec2 describe-security-groups --region ap-southeast-1 --filters Name=tag:Name
 
 
 aws sns list-topics --region ap-southeast-1 --query 'Topics[?contains(TopicArn, `:skills-ceh-alert-topic`)].TopicArn' --output table
-aws lambda get-function-configuration --region ap-southeast-1 --function-name skills-ceh-remediate-fn --query '{FunctionName:FunctionName,State:State,LastUpdateStatus:LastUpdateStatus,Runtime:Runtime,Handler:Handler,Timeout:Timeout,Role:Role,Environment:Environment.Variables}' --output table# TOPIC_ARN=arn:aws:sns:ap-southeast-1:123456789012:skills-ceh-alert-topic
+aws lambda get-function-configuration --region ap-southeast-1 --function-name skills-ceh-remediate-fn --query '{FunctionName:FunctionName,State:State,LastUpdateStatus:LastUpdateStatus,Runtime:Runtime,Handler:Handler,Timeout:Timeout,Role:Role,Environment:Environment.Variables}' --output table
 # SNS Topic ARN에 skills-ceh-alert-topic이 포함되어야 합니다.
 # Lambda FunctionName=skills-ceh-remediate-fn, State=Active, Runtime=python3.12, Handler=remediate_security_group.lambda_handler, Timeout>=30이어야 합니다.
 # Environment에는 PROTECTED_SECURITY_GROUP_ID와 SNS_TOPIC_ARN이 존재해야 합니다.
@@ -38,7 +38,7 @@ aws lambda get-function-configuration --region ap-southeast-1 --function-name sk
 aws cloudtrail get-trail-status --region ap-southeast-1 --name skills-ceh-cloudtrail --query '{IsLogging:IsLogging,LatestDeliveryTime:LatestDeliveryTime,LatestDeliveryError:LatestDeliveryError}' --output table
 aws events describe-rule --region ap-southeast-1 --name skills-ceh-sg-change-rule --event-bus-name default --query '{Name:Name,State:State,EventPattern:EventPattern}' --output json
 aws events list-targets-by-rule --region ap-southeast-1 --rule skills-ceh-sg-change-rule --event-bus-name default --query 'Targets[].{Id:Id,Arn:Arn}' --output table
-aws lambda get-policy --region ap-southeast-1 --function-name skills-ceh-remediate-fn --query 'Policy' --output text# -------------------------------------------------------------------------
+aws lambda get-policy --region ap-southeast-1 --function-name skills-ceh-remediate-fn --query 'Policy' --output text
 # CloudTrail IsLogging=True이어야 합니다.
 # EventBridge Rule Name=skills-ceh-sg-change-rule, State=ENABLED이어야 합니다.
 # EventPattern에 AuthorizeSecurityGroupIngress와 EC2 API Call via CloudTrail 조건이 포함되어야 합니다.

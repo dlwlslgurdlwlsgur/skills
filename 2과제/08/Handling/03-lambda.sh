@@ -254,7 +254,7 @@ echo "Lambda 함수 ARN: $LAMBDA_ARN"
 cat << EOF > /tmp/eb-pattern.json
 {
   "source": ["aws.ec2"],
-  "detail-type": ["AWS API Call via CloudTrail"],
+  "detail-type": ["EC2 API Call via CloudTrail"],
   "detail": {
     "eventSource": ["ec2.amazonaws.com"],
     "eventName": ["AuthorizeSecurityGroupIngress"]
@@ -271,7 +271,6 @@ RULE_ARN=$(aws events put-rule --region $REGION \
 rm -f /tmp/eb-pattern.json
 echo "EventBridge Rule ARN: $RULE_ARN"
 
-# EventBridge가 Lambda를 호출할 수 있도록 리소스 기반 권한 부여
 aws lambda add-permission --region $REGION \
     --function-name "skills-ceh-remediate-fn" \
     --statement-id "AllowEventBridgeInvoke-$TIMESTAMP" \
@@ -279,7 +278,6 @@ aws lambda add-permission --region $REGION \
     --principal "events.amazonaws.com" \
     --source-arn "$RULE_ARN" > /dev/null
 
-# Lambda를 EventBridge Rule의 타겟으로 등록
 aws events put-targets --region $REGION \
     --rule "skills-ceh-sg-change-rule" \
     --targets "Id"="1","Arn"="$LAMBDA_ARN" > /dev/null
