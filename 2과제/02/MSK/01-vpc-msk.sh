@@ -1,5 +1,6 @@
 #!/bin/bash
 set -x
+exit
 
 rm -rf ~/.aws
 if [[ -z "${EXAM_NO:-}" || "${EXAM_NO}" == "<비번호>" || "${EXAM_NO}" == "<exam-number>" ]]; then
