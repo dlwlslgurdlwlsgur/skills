@@ -1,16 +1,17 @@
 #!/bin/bash
 set -x
 
-KVS_ARN=$(aws cloudfront create-key-value-store --name skillsphone-cdn-ab-config --query 'KeyValueStore.ARN' --output text)
-while true; do
-    KVS_STATUS=$(aws cloudfront describe-key-value-store --name skillsphone-cdn-ab-config --query 'KeyValueStore.Status' --output text)
-    if [ "$KVS_STATUS" == "READY" ]; then
-        echo "KeyValueStore 준비 완료!"
-        break
-    fi
-    echo "현재 상태: $KVS_STATUS ... 3초 대기 중"
-    sleep 3
-done
+KVS_ARN=$(aws cloudfront create-key-value-store \
+    --name skillsphone-cdn-ab-config \
+    --comment "KVS for AB testing" \
+    --query 'KeyValueStore.ARN' \
+    --output text 2>/dev/null || \
+    aws cloudfront describe-key-value-store \
+    --name skillsphone-cdn-ab-config \
+    --query 'KeyValueStore.ARN' \
+    --output text)
+
+sleep 3
 
 KVS_ETAG=$(aws cloudfront-keyvaluestore describe-key-value-store --kvs-arn $KVS_ARN --query 'ETag' --output text)
 KVS_ETAG=$(aws cloudfront-keyvaluestore put-key \
