@@ -58,7 +58,7 @@ cat << 'EOF' > cw-dashboard.json
       "width": 24,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'BLOCK' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', '') as CustomHeader | display @timestamp, httpRequest.uri, httpRequest.args, CustomHeader | sort @timestamp desc",
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'BLOCK' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', ''), 'Content-Type: multipart/form-data;', '' ) as CustomHeader | display @timestamp, httpRequest.uri, httpRequest.args, CustomHeader | sort @timestamp desc",
         "region": "us-east-1",
         "title": "WAF Blocked",
         "view": "table"
@@ -71,7 +71,7 @@ cat << 'EOF' > cw-dashboard.json
       "width": 24,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', '') as CustomHeader | display @timestamp, httpRequest.uri, httpRequest.args, CustomHeader | sort @timestamp desc",
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', ''), 'Content-Type: multipart/form-data;', '' ) as CustomHeader | display @timestamp, httpRequest.uri, httpRequest.args, CustomHeader | sort @timestamp desc",
         "region": "us-east-1",
         "title": "WAF Allowed",
         "view": "table"
@@ -84,6 +84,32 @@ cat << 'EOF' > cw-dashboard.json
       "width": 12,
       "height": 6,
       "properties": {
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | filter ispresent(httpRequest.args) and httpRequest.args != '' | display @timestamp, httpRequest.uri, httpRequest.args | sort @timestamp desc",
+        "region": "us-east-1",
+        "title": "WAF Allowed (Query)",
+        "view": "table"
+      }
+    },
+    {
+      "type": "log",
+      "x": 12,
+      "y": 18,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', ''), 'Content-Type: multipart/form-data;', '' ) as CustomHeader | filter CustomHeader != '' | display @timestamp, httpRequest.uri, CustomHeader | sort @timestamp desc",
+        "region": "us-east-1",
+        "title": "WAF Allowed (Header)",
+        "view": "table"
+      }
+    },
+    {
+      "type": "log",
+      "x": 0,
+      "y": 24,
+      "width": 12,
+      "height": 6,
+      "properties": {
         "query": "SOURCE \"/aws/containerinsights/skills-cluster/application\" | fields @timestamp, log | filter kubernetes.container_name = 'user' and stream = 'stdout' | filter log not like /amazon.opentelemetry/ | sort @timestamp desc",
         "region": "ap-northeast-2",
         "title": "USER OUT",
@@ -93,7 +119,7 @@ cat << 'EOF' > cw-dashboard.json
     {
       "type": "log",
       "x": 12,
-      "y": 18,
+      "y": 24,
       "width": 12,
       "height": 6,
       "properties": {
@@ -106,7 +132,7 @@ cat << 'EOF' > cw-dashboard.json
     {
       "type": "log",
       "x": 0,
-      "y": 24,
+      "y": 30,
       "width": 12,
       "height": 6,
       "properties": {
@@ -119,7 +145,7 @@ cat << 'EOF' > cw-dashboard.json
     {
       "type": "log",
       "x": 12,
-      "y": 24,
+      "y": 30,
       "width": 12,
       "height": 6,
       "properties": {
@@ -132,7 +158,7 @@ cat << 'EOF' > cw-dashboard.json
     {
       "type": "log",
       "x": 0,
-      "y": 30,
+      "y": 36,
       "width": 12,
       "height": 6,
       "properties": {
@@ -145,7 +171,7 @@ cat << 'EOF' > cw-dashboard.json
     {
       "type": "log",
       "x": 12,
-      "y": 30,
+      "y": 36,
       "width": 12,
       "height": 6,
       "properties": {
