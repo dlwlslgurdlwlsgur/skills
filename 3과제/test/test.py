@@ -6,14 +6,36 @@ import random
 import uuid
 import boto3
 import urllib.parse
+from datetime import datetime
 
 target_url = input("전체 URL을 입력하세요: ").strip()
 aws_region = "ap-northeast-2"
 
 if not target_url.startswith("http"):
-    print("0점")
+    print("❌ 오류: 프로토콜을 포함해 주세요!")
     sys.exit(1)
 
+# --- 방어 실패 로그 파일 초기화 ---
+with open("./failed_header_attacks.txt", "w", encoding="utf-8") as f:
+    f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Header 방어 실패(403 이외 응답) 로그 시작\n")
+    f.write("="*60 + "\n")
+
+with open("./failed_query_attacks.txt", "w", encoding="utf-8") as f:
+    f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Query 방어 실패(403 이외 응답) 로그 시작\n")
+    f.write("="*60 + "\n")
+
+# 파일 쓰기용 Lock (스레드 충돌 방지)
+log_lock = threading.Lock()
+
+def log_failure(filename, attack_type, payload, status_code, url):
+    """방어에 실패한 공격을 지정된 파일에 기록합니다."""
+    time_str = datetime.now().strftime("%H:%M:%S")
+    log_msg = f"[{time_str}] Type: {attack_type:<12} | Status: {status_code} | Payload: {payload:<20} | URL: {url}\n"
+    with log_lock:
+        with open(filename, "a", encoding="utf-8") as f:
+            f.write(log_msg)
+
+# AWS EC2 인스턴스 비용 모니터링 초기화
 ec2_client = boto3.client('ec2', region_name=aws_region)
 
 instance_history = []
@@ -176,32 +198,46 @@ def attack_worker():
         try:
             if attack_type == "header":
                 headers = {"Type": rand_word}
-                res = requests.get(f"{target_url}/v1/product?id=normal", headers=headers, timeout=3)
+                url = f"{target_url}/v1/product?id=normal"
+                res = requests.get(url, headers=headers, timeout=3)
                 with lock:
                     stats["def_header_tot"] += 1
-                    if res.status_code == 403: stats["def_header_pass"] += 1
+                    if res.status_code == 403: 
+                        stats["def_header_pass"] += 1
+                    else:
+                        log_failure("./failed_header_attacks.txt", "HEADER", rand_word, res.status_code, url)
             
             elif attack_type == "query":
-                res = requests.get(f"{target_url}/v1/product?id={encoded_word}", timeout=3)
+                url = f"{target_url}/v1/product?id={encoded_word}"
+                res = requests.get(url, timeout=3)
                 with lock:
                     stats["def_query_tot"] += 1
-                    if res.status_code == 403: stats["def_query_pass"] += 1
+                    if res.status_code == 403: 
+                        stats["def_query_pass"] += 1
+                    else:
+                        log_failure("./failed_query_attacks.txt", "QUERY", rand_word, res.status_code, url)
             
             elif attack_type == "combo":
                 word2 = random.choice(current_words)
                 headers = {"Type": rand_word}
-                res = requests.post(f"{target_url}/v1/product?id={urllib.parse.quote(word2)}", headers=headers, timeout=3)
+                url = f"{target_url}/v1/product?id={urllib.parse.quote(word2)}"
+                res = requests.post(url, headers=headers, timeout=3)
                 with lock:
                     stats["def_header_tot"] += 1
                     stats["def_query_tot"] += 1
                     if res.status_code == 403: 
                         stats["def_header_pass"] += 1
                         stats["def_query_pass"] += 1
+                    else:
+                        # 콤보는 헤더와 쿼리 모두 방어 실패한 것으로 간주하여 각각 기록
+                        log_failure("./failed_header_attacks.txt", "COMBO-HEADER", rand_word, res.status_code, url)
+                        log_failure("./failed_query_attacks.txt", "COMBO-QUERY", word2, res.status_code, url)
             
             elif attack_type == "path":
                 bad_path = random.choice(current_paths)
                 bad_method = random.choice(["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-                res = requests.request(bad_method, f"{target_url}{bad_path}", timeout=3)
+                url = f"{target_url}{bad_path}"
+                res = requests.request(bad_method, url, timeout=3)
                 with lock:
                     stats["def_path_tot"] += 1
                     if res.status_code not in [200, 201]: stats["def_path_pass"] += 1
@@ -280,5 +316,5 @@ print(f" • Query 방어  : {fmt(stats['def_query_pass'], stats['def_query_tot'
 print(f" • Path 방어   : {fmt(stats['def_path_pass'], stats['def_path_tot'])}")
 
 print("\n[4] 비용 최적화 (1분 간격 주기적 수집 기반 인스턴스 현황)")
-print(f" 평균 가동 인스턴스 수: {avg_instances:.2f} 대**")
+print(f" • 평균 가동 인스턴스 수: {avg_instances:.2f} 대**")
 print("==================================================================")
