@@ -5,7 +5,6 @@ import threading
 import random
 import uuid
 
-
 target_url = input("전체 URL을 입력하세요: ").strip()
 
 if not target_url.startswith("http"):
@@ -28,7 +27,7 @@ stats = {
     "def_path_pass": 0, "def_path_tot": 0
 }
 
-# 1. 방대한 악성 키워드 풀 (총 60개)
+# 방대한 악성 키워드 풀 (총 60개)
 ALL_BAD_WORDS = [
     "hacker", "bad", "unknown", "admin_bypass", "drop_table", "script_alert", "etc_passwd",
     "union_select", "sleep_10", "cmd_exec", "eval_base64", "java_lang", "jndi_ldap", "struts_pwn",
@@ -41,7 +40,7 @@ ALL_BAD_WORDS = [
     "format_string", "buffer_overflow", "heap_spray", "jwt_none", "cors_wildcard"
 ]
 
-# 2. 방대한 악성 경로 풀 (총 60개)
+# 방대한 악성 경로 풀 (총 60개)
 ALL_BAD_PATHS = [
     "/v1/user/../../../etc/passwd", "/images/../config", "/v1/admin/bypass", "/v1/product/%00",
     "/.git/config", "/.env", "/wp-admin", "/wp-login.php", "/phpinfo.php", "/server-status",
@@ -57,7 +56,6 @@ ALL_BAD_PATHS = [
     "/.htaccess", "/.htpasswd", "/crossdomain.xml", "/clientaccesspolicy.xml", "/api/users/find?name[$ne]=admin"
 ]
 
-# 한 사이클(30분=10개 페이즈)에 사용할 60개를 무작위 셔플
 RUN_BAD_WORDS = random.sample(ALL_BAD_WORDS, 60)
 RUN_BAD_PATHS = random.sample(ALL_BAD_PATHS, 60)
 
@@ -72,7 +70,8 @@ def user_worker():
     while time.time() < END_TIME:
         req_id = "999999999999"
         u_id = str(uuid.uuid4())
-        email = "dbdump500001@example.org"
+        target_num = random.randint(1, 30000)
+        email = f"dbdump{target_num:05d}@example.org"
         try:
             url = f"{target_url}/v1/user?email={email}&requestid={req_id}&uuid={u_id}"
             res = requests.get(url, timeout=3)
@@ -81,12 +80,13 @@ def user_worker():
                 if res.status_code == 200: stats["user_pass"] += 1
         except:
             with lock: stats["user_tot"] += 1
-        time.sleep(random.uniform(0.05, 0.2))
+        time.sleep(random.uniform(0.5, 1.2))
 
 def product_worker():
     while time.time() < END_TIME:
         try:
-            data = {"requestid": "999999999999", "uuid": str(uuid.uuid4()), "id": "dbdump500001"}
+            target_num = random.randint(1, 30000)
+            data = {"requestid": "999999999999", "uuid": str(uuid.uuid4()), "id": f"dbdump{target_num:05d}"}
             color_name, img_bytes = random.choice(list(COLORED_IMAGES.items()))
             files = {'image': (f'product_{color_name}.png', img_bytes, 'image/png')}
             res = requests.put(f"{target_url}/v1/product", data=data, files=files, timeout=3)
@@ -95,7 +95,7 @@ def product_worker():
                 if res.status_code == 200: stats["product_pass"] += 1
         except:
             with lock: stats["product_tot"] += 1
-        time.sleep(random.uniform(0.05, 0.2))
+        time.sleep(random.uniform(0.5, 1.2))
 
 def stress_worker():
     while time.time() < END_TIME:
@@ -107,7 +107,7 @@ def stress_worker():
                 if res.status_code == 201: stats["stress_pass"] += 1
         except:
             with lock: stats["stress_tot"] += 1
-        time.sleep(random.uniform(0.05, 0.2))
+        time.sleep(random.uniform(0.5, 1.2))
 
 def image_download_worker():
     while time.time() < END_TIME:
@@ -119,22 +119,19 @@ def image_download_worker():
                 if res.status_code == 200: stats["image_pass"] += 1
         except:
             with lock: stats["image_tot"] += 1
-        time.sleep(random.uniform(0.05, 0.2))
+        time.sleep(random.uniform(0.5, 1.2))
 
 def attack_worker():
     while time.time() < END_TIME:
-        time.sleep(random.uniform(0.1, 2.5)) # 공격 딜레이도 변칙적으로
+        time.sleep(random.uniform(0.8, 2.0))
         
         elapsed = time.time() - START_TIME
-        # 3분(180초) 단위로 Phase 변경 (0 ~ 9)
         phase = min(int(elapsed // 180), 9)
         
-        # 이번 Phase에 할당된 6개의 공격 벡터 슬라이싱
         start_idx = phase * 6
         current_words = RUN_BAD_WORDS[start_idx : start_idx+6]
         current_paths = RUN_BAD_PATHS[start_idx : start_idx+6]
         
-        # 복합 공격 추가 (header, query, path, combo)
         attack_type = random.choice(["header", "query", "path", "combo"])
         rand_word = random.choice(current_words)
         
@@ -153,7 +150,6 @@ def attack_worker():
                     if res.status_code == 403: stats["def_query_pass"] += 1
             
             elif attack_type == "combo":
-                # 헤더와 쿼리 둘 다 악성 데이터 전송
                 word2 = random.choice(current_words)
                 headers = {"type": rand_word}
                 res = requests.post(f"{target_url}/v1/product?id={word2}", headers=headers, timeout=3)
@@ -166,7 +162,6 @@ def attack_worker():
 
             elif attack_type == "path":
                 bad_path = random.choice(current_paths)
-                # GET뿐만 아니라 POST, PUT, DELETE, OPTIONS 등 변칙적인 메서드 시도
                 bad_method = random.choice(["GET", "POST", "PUT", "DELETE", "OPTIONS"])
                 res = requests.request(bad_method, f"{target_url}{bad_path}", timeout=3)
                 with lock:
@@ -186,7 +181,7 @@ threads = []
 workers = [user_worker, product_worker, stress_worker, image_download_worker, attack_worker]
 
 for worker_func in workers:
-    thread_count = 3 if worker_func == attack_worker else 8
+    thread_count = 2
     for _ in range(thread_count):
         t = threading.Thread(target=worker_func)
         t.daemon = True
@@ -206,6 +201,7 @@ try:
         with lock:
             if phase != current_phase:
                 start_idx = phase * 6
+                current_phase = phase
 
             print(f"⏱️ [진행: {elapsed//60:02d}분 {elapsed%60:02d}초 | 남은시간: {remains//60:02d}분 {remains%60:02d}초]")
             print(f"   ▶ 가동률 - User: {fmt(stats['user_pass'], stats['user_tot'])} | Product: {fmt(stats['product_pass'], stats['product_tot'])} | Stress: {fmt(stats['stress_pass'], stats['stress_tot'])} | 이미지DL: {fmt(stats['image_pass'], stats['image_tot'])}")
@@ -215,7 +211,7 @@ except KeyboardInterrupt:
     print("\n채점이 중단되었습니다.")
 
 print("\n===================================================")
-print("평가 종료! 세부 지표별 최종 결과를 집계합니다.")
+print("🏁 평가 종료! 세부 지표별 최종 결과를 집계합니다.")
 print("===================================================")
 
 print("가동률 상세 현황 (통과/요청 수)")
