@@ -28,3 +28,9 @@
 
 ## 3과제
 - 0003: [3과제](https://github.com/wngnlwngnl/skills/tree/main/3%EA%B3%BC%EC%A0%9C/)
+
+<br><br>
+
+```bash
+sed -i 's/\r$//' 01-ec2.sh
+```
