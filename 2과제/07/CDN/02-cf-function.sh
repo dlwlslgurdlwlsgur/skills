@@ -11,7 +11,17 @@ KVS_ARN=$(aws cloudfront create-key-value-store \
     --query 'KeyValueStore.ARN' \
     --output text)
 
-sleep 3
+while true; do
+  KVS_STATUS=$(aws cloudfront-keyvaluestore describe-key-value-store \
+    --kvs-arn "$KVS_ARN" \
+    --query 'Status' \
+    --output text)
+
+  [ "$KVS_STATUS" = "READY" ] && break
+
+  echo "Waiting for KVS... status=$KVS_STATUS"
+  sleep 2
+done
 
 KVS_ETAG=$(aws cloudfront-keyvaluestore describe-key-value-store --kvs-arn $KVS_ARN --query 'ETag' --output text)
 KVS_ETAG=$(aws cloudfront-keyvaluestore put-key \
