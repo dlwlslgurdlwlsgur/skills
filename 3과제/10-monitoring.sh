@@ -3,7 +3,7 @@ set -x
 ClusterName="skills-cluster"
 REGION="ap-northeast-2"
 
-kubectl create namespace amazon-cloudwatch
+kubectl create namespace amazon-cloudwatch 2>/dev/null || true
 
 kubectl create configmap cluster-info \
   --from-literal=cluster.name=${ClusterName} \
@@ -58,7 +58,7 @@ cat << 'EOF' > cw-dashboard.json
       "width": 24,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'BLOCK' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', '') as CustomHeader | display @timestamp, httpRequest.clientIp, httpRequest.uri, httpRequest.args, CustomHeader | sort @timestamp desc",
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'BLOCK' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', '') as CustomHeader | display @timestamp, httpRequest.uri, httpRequest.args, CustomHeader | sort @timestamp desc",
         "region": "us-east-1",
         "title": "WAF Blocked",
         "view": "table"
@@ -71,7 +71,7 @@ cat << 'EOF' > cw-dashboard.json
       "width": 24,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', '') as CustomHeader | display @timestamp, httpRequest.clientIp, httpRequest.uri, httpRequest.args, CustomHeader | sort @timestamp desc",
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', '') as CustomHeader | display @timestamp, httpRequest.uri, httpRequest.args, CustomHeader | sort @timestamp desc",
         "region": "us-east-1",
         "title": "WAF Allowed",
         "view": "table"
