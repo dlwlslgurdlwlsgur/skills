@@ -12,10 +12,10 @@ KVS_ARN=$(aws cloudfront create-key-value-store \
     --output text)
 
 while true; do
-  KVS_STATUS=$(aws cloudfront-keyvaluestore describe-key-value-store \
-    --kvs-arn "$KVS_ARN" \
-    --query 'Status' \
-    --output text)
+  KVS_STATUS=$(aws cloudfront describe-key-value-store \
+    --name skillsphone-cdn-ab-config \
+    --query 'KeyValueStore.Status' \
+    --output text 2>/dev/null)
 
   [ "$KVS_STATUS" = "READY" ] && break
 
@@ -24,6 +24,7 @@ while true; do
 done
 
 KVS_ETAG=$(aws cloudfront-keyvaluestore describe-key-value-store --kvs-arn $KVS_ARN --query 'ETag' --output text)
+
 KVS_ETAG=$(aws cloudfront-keyvaluestore put-key \
     --kvs-arn $KVS_ARN \
     --if-match $KVS_ETAG \
@@ -46,6 +47,7 @@ aws cloudfront-keyvaluestore put-key \
     --key "version_b" \
     --value "/version-b/index.html" >/dev/null
 
+# 4. Request Function 생성 및 게시
 cat << 'EOF' > req_fn.js
 import cf from 'cloudfront';
 
@@ -99,6 +101,7 @@ REQ_ETAG=$(aws cloudfront describe-function --name skillsphone-cdn-ab-req-fn --q
 aws cloudfront publish-function --name skillsphone-cdn-ab-req-fn --if-match $REQ_ETAG >/dev/null
 REQ_FN_ARN=$(aws cloudfront describe-function --name skillsphone-cdn-ab-req-fn --query 'FunctionSummary.FunctionMetadata.FunctionARN' --output text)
 
+# 5. Response Function 생성 및 게시
 cat << 'EOF' > res_fn.js
 function handler(event) {
     const request = event.request;
