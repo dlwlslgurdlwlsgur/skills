@@ -9,7 +9,7 @@ sed -i "s/PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_
 echo "ec2-user:1234" | chpasswd
 systemctl restart sshd
 sudo yum install python3-pip -y
-pip3 install requests
+pip3 install requests boto3
 EOF
 
 SUBNET_ID=$(aws ec2 describe-subnets \
