@@ -8,6 +8,7 @@ import boto3
 import urllib.parse
 from datetime import datetime
 
+
 target_url = input("전체 URL을 입력하세요: ").strip()
 aws_region = "ap-northeast-2"
 
@@ -24,7 +25,6 @@ with open("./failed_query_attacks.txt", "w", encoding="utf-8") as f:
     f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Query 방어 실패(403 이외 응답) 로그 시작\n")
     f.write("="*60 + "\n")
 
-# 파일 쓰기용 Lock (스레드 충돌 방지)
 log_lock = threading.Lock()
 
 def log_failure(filename, attack_type, payload, status_code, url):
@@ -60,7 +60,8 @@ def instance_monitor_worker():
                 break
             time.sleep(1)
 
-DURATION = 1800
+# [수정] 테스트 시간을 10분(600초)으로 단축
+DURATION = 600
 START_TIME = time.time()
 END_TIME = START_TIME + DURATION
 
@@ -103,8 +104,12 @@ ALL_BAD_PATHS = [
     "/.htaccess", "/.htpasswd", "/crossdomain.xml", "/clientaccesspolicy.xml", "/api/users/find?name[$ne]=admin"
 ]
 
-RUN_BAD_WORDS = random.sample(ALL_BAD_WORDS, 60)
-RUN_BAD_PATHS = random.sample(ALL_BAD_PATHS, 60)
+# [수정] 한 사이클(10분)에 사용할 10개만 무작위 추출
+RUN_BAD_WORDS = random.sample(ALL_BAD_WORDS, 10)
+RUN_BAD_PATHS = random.sample(ALL_BAD_PATHS, 10)
+
+print(f"\n⚠️ 시스템 경고: 이번 평가에 10종의 랜덤 공격 벡터가 로드되었습니다.")
+print("⏳ 1분마다 악성 페이로드가 1개씩 추가로 활성화되어 점진적으로 부하를 가중시킵니다.\n")
 
 base_png = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cce\xf8\xff\x00\x00\x04\xfe\x01\xff\x1c\x83\x82\x06\x00\x00\x00\x00IEND\xaeB`\x82'
 COLORED_IMAGES = {f"color_{i}": base_png for i in range(1, 51)}
@@ -184,11 +189,12 @@ def attack_worker():
     while time.time() < END_TIME:
         time.sleep(random.uniform(1.5, 2.0))
         elapsed = time.time() - START_TIME
-        phase = min(int(elapsed // 180), 9)
         
-        start_idx = phase * 6
-        current_words = RUN_BAD_WORDS[start_idx : start_idx+6]
-        current_paths = RUN_BAD_PATHS[start_idx : start_idx+6]
+        # [수정] 1분(60초)마다 활성화되는 공격 벡터의 수가 1씩 누적 증가 (최대 10개)
+        active_count = min(int(elapsed // 60) + 1, 10)
+        
+        current_words = RUN_BAD_WORDS[:active_count]
+        current_paths = RUN_BAD_PATHS[:active_count]
         
         attack_type = random.choice(["header", "query", "path", "combo"])
         rand_word = random.choice(current_words)
@@ -229,7 +235,6 @@ def attack_worker():
                         stats["def_header_pass"] += 1
                         stats["def_query_pass"] += 1
                     else:
-                        # 콤보는 헤더와 쿼리 모두 방어 실패한 것으로 간주하여 각각 기록
                         log_failure("./failed_header_attacks.txt", "COMBO-HEADER", rand_word, res.status_code, url)
                         log_failure("./failed_query_attacks.txt", "COMBO-QUERY", word2, res.status_code, url)
             
@@ -271,17 +276,20 @@ for _ in range(5):
     threads.append(t)
 
 try:
-    current_phase = -1
+    current_minute = -1
     while time.time() < END_TIME:
         time.sleep(10)
         now = time.time()
         elapsed = int(now - START_TIME)
         remains = int(END_TIME - now)
-        phase = min(elapsed // 180, 9)
+        minute = elapsed // 60
         
         with lock:
-            if phase != current_phase:
-                current_phase = phase
+            if minute != current_minute and minute < 10:
+                active_count = minute + 1
+                print(f"\n🚨 [진행 {minute}분 경과] 악성 페이로드 누적 활성화! (현재 {active_count}개)")
+                print(f"   - 활성화된 키워드 목록: {RUN_BAD_WORDS[:active_count]}")
+                current_minute = minute
 
             print(f"⏱️ [진행: {elapsed//60:02d}분 {elapsed%60:02d}초 | 남은시간: {remains//60:02d}분 {remains%60:02d}초]")
             print(f"   ▶ 가용률 - User: {fmt(stats['user_pass'], stats['user_tot'])} | Product: {fmt(stats['product_pass'], stats['product_tot'])} | Stress: {fmt(stats['stress_pass'], stats['stress_tot'])}")
@@ -298,8 +306,7 @@ with history_lock:
     avg_instances = sum(instance_history) / len(instance_history) if instance_history else 0.0
 
 print("\n==================================================================")
-
-print("\n[1] 고가용성 및 안정성 (API별 로드 처리 성공률)")
+print("[1] 고가용성 및 안정성 (API별 로드 처리 성공률)")
 print(f" • User API    : {fmt(stats['user_pass'], stats['user_tot'])}")
 print(f" • Product API : {fmt(stats['product_pass'], stats['product_tot'])}")
 print(f" • Stress API  : {fmt(stats['stress_pass'], stats['stress_tot'])}")
@@ -314,6 +321,7 @@ print("\n[3] 보안성 (WAF 방어율)")
 print(f" • Header 방어 : {fmt(stats['def_header_pass'], stats['def_header_tot'])}")
 print(f" • Query 방어  : {fmt(stats['def_query_pass'], stats['def_query_tot'])}")
 print(f" • Path 방어   : {fmt(stats['def_path_pass'], stats['def_path_tot'])}")
+print(" 💡 방어 실패 상세 로그는 ./failed_header_attacks.txt 및 ./failed_query_attacks.txt 파일을 확인하세요.")
 
 print("\n[4] 비용 최적화 (1분 간격 주기적 수집 기반 인스턴스 현황)")
 print(f" • 평균 가동 인스턴스 수: {avg_instances:.2f} 대**")
