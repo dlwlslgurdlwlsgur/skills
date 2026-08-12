@@ -30,7 +30,6 @@ cat << EOF > header-policy.json
 }
 EOF
 HEADER_POLICY_ID=$(aws cloudfront create-response-headers-policy --response-headers-policy-config file://header-policy.json --query 'ResponseHeadersPolicy.Id' --output text 2>/dev/null || aws cloudfront list-response-headers-policies --query "ResponseHeadersPolicyList.Items[?ResponseHeadersPolicy.ResponseHeadersPolicyConfig.Name=='skillsphone-cdn-ab-header-policy'].ResponseHeadersPolicy.Id | [0]" --output text)
-echo ">> 확보된 헤더 정책 ID: $HEADER_POLICY_ID"
 
 if [ -z "$HEADER_POLICY_ID" ] || [ "$HEADER_POLICY_ID" == "None" ]; then
     echo "헤더 정책을 찾거나 생성할 수 없습니다."
