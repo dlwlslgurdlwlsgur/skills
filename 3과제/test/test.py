@@ -5,6 +5,7 @@ import threading
 import random
 import uuid
 import boto3
+import urllib.parse
 
 target_url = input("전체 URL을 입력하세요: ").strip()
 aws_region = "ap-northeast-2"
@@ -17,21 +18,20 @@ ec2_client = boto3.client('ec2', region_name=aws_region)
 
 instance_history = []
 history_lock = threading.Lock()
+iam_error_msg = ""
 
 def instance_monitor_worker():
+    global iam_error_msg
     while time.time() < END_TIME:
         try:
             response = ec2_client.describe_instances(
                 Filters=[{'Name': 'instance-state-name', 'Values': ['running']}]
             )
-            count = 0
-            for reservation in response['Reservations']:
-                count += len(reservation['Instances'])
-            
+            count = sum(len(res['Instances']) for res in response['Reservations'])
             with history_lock:
                 instance_history.append(count)
         except Exception as e:
-            pass
+            iam_error_msg = str(e)
         
         for _ in range(60):
             if time.time() >= END_TIME:
@@ -102,16 +102,14 @@ def user_worker():
             start_t = time.time()
             res = requests.get(url, timeout=3)
             duration = time.time() - start_t
-            
             with lock:
                 stats["user_tot"] += 1
                 if res.status_code == 200: 
                     stats["user_pass"] += 1
-                    if duration <= 0.2:
-                        stats["user_fast"] += 1
+                    if duration <= 0.2: stats["user_fast"] += 1
         except:
             with lock: stats["user_tot"] += 1
-        time.sleep(random.uniform(0.5, 1.2))
+        time.sleep(random.uniform(1.5, 2.0)) 
 
 def product_worker():
     while time.time() < END_TIME:
@@ -120,20 +118,17 @@ def product_worker():
             data = {"requestid": "999999999999", "uuid": str(uuid.uuid4()), "id": f"dbdump{target_num:05d}"}
             color_name, img_bytes = random.choice(list(COLORED_IMAGES.items()))
             files = {'image': (f'product_{color_name}.png', img_bytes, 'image/png')}
-            
             start_t = time.time()
             res = requests.put(f"{target_url}/v1/product", data=data, files=files, timeout=3)
             duration = time.time() - start_t
-            
             with lock:
                 stats["product_tot"] += 1
                 if res.status_code == 200: 
                     stats["product_pass"] += 1
-                    if duration <= 0.2:
-                        stats["product_fast"] += 1
+                    if duration <= 0.2: stats["product_fast"] += 1
         except:
             with lock: stats["product_tot"] += 1
-        time.sleep(random.uniform(0.5, 1.2))
+        time.sleep(random.uniform(1.5, 2.0))
 
 def stress_worker():
     while time.time() < END_TIME:
@@ -142,16 +137,14 @@ def stress_worker():
             start_t = time.time()
             res = requests.post(f"{target_url}/v1/stress", json=payload, timeout=3)
             duration = time.time() - start_t
-            
             with lock:
                 stats["stress_tot"] += 1
                 if res.status_code == 201: 
                     stats["stress_pass"] += 1
-                    if duration <= 1.0:
-                        stats["stress_fast"] += 1
+                    if duration <= 1.0: stats["stress_fast"] += 1
         except:
             with lock: stats["stress_tot"] += 1
-        time.sleep(random.uniform(0.5, 1.2))
+        time.sleep(random.uniform(1.5, 2.0))
 
 def image_download_worker():
     while time.time() < END_TIME:
@@ -163,11 +156,11 @@ def image_download_worker():
                 if res.status_code == 200: stats["image_pass"] += 1
         except:
             with lock: stats["image_tot"] += 1
-        time.sleep(random.uniform(0.5, 1.2))
+        time.sleep(random.uniform(1.5, 2.0))
 
 def attack_worker():
     while time.time() < END_TIME:
-        time.sleep(random.uniform(0.8, 2.0))
+        time.sleep(random.uniform(1.5, 2.0))
         elapsed = time.time() - START_TIME
         phase = min(int(elapsed // 180), 9)
         
@@ -178,28 +171,33 @@ def attack_worker():
         attack_type = random.choice(["header", "query", "path", "combo"])
         rand_word = random.choice(current_words)
         
+        encoded_word = urllib.parse.quote(rand_word)
+        
         try:
             if attack_type == "header":
-                headers = {"type": rand_word}
+                headers = {"Type": rand_word}
                 res = requests.get(f"{target_url}/v1/product?id=normal", headers=headers, timeout=3)
                 with lock:
                     stats["def_header_tot"] += 1
                     if res.status_code == 403: stats["def_header_pass"] += 1
+            
             elif attack_type == "query":
-                res = requests.get(f"{target_url}/v1/product?id={rand_word}", timeout=3)
+                res = requests.get(f"{target_url}/v1/product?id={encoded_word}", timeout=3)
                 with lock:
                     stats["def_query_tot"] += 1
                     if res.status_code == 403: stats["def_query_pass"] += 1
+            
             elif attack_type == "combo":
                 word2 = random.choice(current_words)
-                headers = {"type": rand_word}
-                res = requests.post(f"{target_url}/v1/product?id={word2}", headers=headers, timeout=3)
+                headers = {"Type": rand_word}
+                res = requests.post(f"{target_url}/v1/product?id={urllib.parse.quote(word2)}", headers=headers, timeout=3)
                 with lock:
                     stats["def_header_tot"] += 1
                     stats["def_query_tot"] += 1
                     if res.status_code == 403: 
                         stats["def_header_pass"] += 1
                         stats["def_query_pass"] += 1
+            
             elif attack_type == "path":
                 bad_path = random.choice(current_paths)
                 bad_method = random.choice(["GET", "POST", "PUT", "DELETE", "OPTIONS"])
@@ -217,19 +215,24 @@ def attack_worker():
                 elif attack_type == "path": stats["def_path_tot"] += 1
 
 threads = []
-workers = [user_worker, product_worker, stress_worker, image_download_worker, attack_worker]
+workers = [user_worker, product_worker, stress_worker, image_download_worker]
 
 monitor_t = threading.Thread(target=instance_monitor_worker)
 monitor_t.daemon = True
 monitor_t.start()
 
 for worker_func in workers:
-    thread_count = 2
-    for _ in range(thread_count):
+    for _ in range(7):
         t = threading.Thread(target=worker_func)
         t.daemon = True
         t.start()
         threads.append(t)
+
+for _ in range(5):
+    t = threading.Thread(target=attack_worker)
+    t.daemon = True
+    t.start()
+    threads.append(t)
 
 try:
     current_phase = -1
@@ -242,35 +245,40 @@ try:
         
         with lock:
             if phase != current_phase:
-                start_idx = phase * 6
                 current_phase = phase
 
             print(f"⏱️ [진행: {elapsed//60:02d}분 {elapsed%60:02d}초 | 남은시간: {remains//60:02d}분 {remains%60:02d}초]")
             print(f"   ▶ 가용률 - User: {fmt(stats['user_pass'], stats['user_tot'])} | Product: {fmt(stats['product_pass'], stats['product_tot'])} | Stress: {fmt(stats['stress_pass'], stats['stress_tot'])}")
             print(f"   ▶ 속도준수 - User(≤0.2s): {fmt(stats['user_fast'], stats['user_tot'])} | Prod(≤0.2s): {fmt(stats['product_fast'], stats['product_tot'])} | Stress(≤1.0s): {fmt(stats['stress_fast'], stats['stress_tot'])}")
+            
+            if iam_error_msg:
+                print(f"   ⚠️ [EC2 비용 0대 경고] IAM 권한 오류 발생: {iam_error_msg[:60]}...")
+                iam_error_msg = ""
             print("-" * 50)
 except KeyboardInterrupt:
     print("\n채점이 중단되었습니다.")
 
-# 1분마다 수집한 인스턴스 개수의 평균 계산
 with history_lock:
     avg_instances = sum(instance_history) / len(instance_history) if instance_history else 0.0
-    total_samples = len(instance_history)
 
-print("==================================================================")
+print("\n==================================================================")
+
 print("\n[1] 고가용성 및 안정성 (API별 로드 처리 성공률)")
 print(f" • User API    : {fmt(stats['user_pass'], stats['user_tot'])}")
 print(f" • Product API : {fmt(stats['product_pass'], stats['product_tot'])}")
 print(f" • Stress API  : {fmt(stats['stress_pass'], stats['stress_tot'])}")
 print(f" • Image Down  : {fmt(stats['image_pass'], stats['image_tot'])}")
+
 print("\n[2] 성능 효율성 (응답 시간 목표 달성률)")
 print(f" • User API    (≤ 0.2초 만족) : {fmt(stats['user_fast'], stats['user_tot'])}")
 print(f" • Product API (≤ 0.2초 만족) : {fmt(stats['product_fast'], stats['product_tot'])}")
 print(f" • Stress API  (≤ 1.0초 만족) : {fmt(stats['stress_fast'], stats['stress_tot'])}")
+
 print("\n[3] 보안성 (WAF 방어율)")
 print(f" • Header 방어 : {fmt(stats['def_header_pass'], stats['def_header_tot'])}")
 print(f" • Query 방어  : {fmt(stats['def_query_pass'], stats['def_query_tot'])}")
 print(f" • Path 방어   : {fmt(stats['def_path_pass'], stats['def_path_tot'])}")
+
 print("\n[4] 비용 최적화 (1분 간격 주기적 수집 기반 인스턴스 현황)")
-print(f" • 가동 인스턴스 수: {avg_instances:.2f} 대**")
+print(f" 평균 가동 인스턴스 수: {avg_instances:.2f} 대**")
 print("==================================================================")

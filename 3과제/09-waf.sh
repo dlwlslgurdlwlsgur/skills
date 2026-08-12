@@ -36,6 +36,72 @@ cat <<EOF > waf-rules.json
         "Statement": { "ManagedRuleGroupStatement": { "VendorName": "AWS", "Name": "AWSManagedRulesLinuxRuleSet" } },
         "OverrideAction": { "None": {} },
         "VisibilityConfig": { "SampledRequestsEnabled": true, "CloudWatchMetricsEnabled": true, "MetricName": "LinuxRuleMetric" }
+    },
+    {
+        "Name": "header",
+        "Priority": 4,
+        "Statement": {
+            "RegexMatchStatement": {
+                "RegexString": "hacker|bad",
+                "FieldToMatch": {
+                    "SingleHeader": {
+                        "Name": "type"
+                    }
+                },
+                "TextTransformations": [
+                    {
+                        "Priority": 0,
+                        "Type": "NONE"
+                    }
+                ]
+            }
+        },
+        "VisibilityConfig": {
+            "SampledRequestsEnabled": true,
+            "CloudWatchMetricsEnabled": true,
+            "MetricName": "header"
+        },
+        "Action": {
+            "Block": {
+                "CustomResponse": {
+                    "ResponseCode": 403
+                }
+            }
+        }
+    },
+    {
+        "Name": "query",
+        "Priority": 5,
+        "Statement": {
+            "RegexMatchStatement": {
+                "RegexString": "hacker|bad",
+                "FieldToMatch": {
+                    "QueryString": {}
+                },
+                "TextTransformations": [
+                    {
+                        "Priority": 0,
+                        "Type": "LOWERCASE"
+                    },
+                    {
+                        "Priority": 1,
+                        "Type": "URL_DECODE"
+                    }
+                ]
+            }
+        },
+        "VisibilityConfig": {
+            "SampledRequestsEnabled": true,
+            "CloudWatchMetricsEnabled": true,
+            "MetricName": "query"
+        },
+        "Action": {
+            "Block": {
+                "CustomResponse": {
+                    "ResponseCode": 403
+                }
+            }
+        }
     }
 ]
 EOF

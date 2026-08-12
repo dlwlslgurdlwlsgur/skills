@@ -24,11 +24,16 @@ SG_ID=$(aws ec2 describe-security-groups \
   --output text \
   --region ${REGION})
 
+
+
+INSTANCE_NAME="apdev-bastion"
+PROFILE_NAME="${INSTANCE_NAME}-profile"
 aws ec2 run-instances \
   --image-id resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64 \
   --instance-type c5.large \
   --subnet-id "$SUBNET_ID" \
   --security-group-ids "$SG_ID" \
+  --iam-instance-profile Name=${PROFILE_NAME} \
   --user-data file://bastion-userdata.sh \
   --associate-public-ip-address \
   --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=test-bastion}]' \
