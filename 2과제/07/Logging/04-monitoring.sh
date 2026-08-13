@@ -427,3 +427,5 @@ spec:
   targetGroupARN: $GRF_TG
   targetType: ip
 EOF
+
+helm upgrade --install o11y-loki grafana/loki -n monitoring -f ./loki-values.yaml --wait --timeout 10m
