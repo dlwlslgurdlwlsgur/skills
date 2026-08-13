@@ -8,12 +8,11 @@ import boto3
 import urllib.parse
 from datetime import datetime
 
-
 target_url = input("전체 URL을 입력하세요: ").strip()
 aws_region = "ap-northeast-2"
 
 if not target_url.startswith("http"):
-    print("❌ 오류: 프로토콜을 포함해 주세요!")
+    print("오류: 프로토콜을 포함해 주세요!")
     sys.exit(1)
 
 # --- 방어 실패 로그 파일 초기화 ---
@@ -28,9 +27,8 @@ with open("./failed_query_attacks.txt", "w", encoding="utf-8") as f:
 log_lock = threading.Lock()
 
 def log_failure(filename, attack_type, payload, status_code, url):
-    """방어에 실패한 공격을 지정된 파일에 기록합니다."""
     time_str = datetime.now().strftime("%H:%M:%S")
-    log_msg = f"[{time_str}] Type: {attack_type:<12} | Status: {status_code} | Payload: {payload:<20} | URL: {url}\n"
+    log_msg = f"[{time_str}] Type: {attack_type:<18} | Status: {status_code} | Payload: {payload:<20} | URL: {url}\n"
     with log_lock:
         with open(filename, "a", encoding="utf-8") as f:
             f.write(log_msg)
@@ -60,7 +58,7 @@ def instance_monitor_worker():
                 break
             time.sleep(1)
 
-# [수정] 테스트 시간을 10분(600초)으로 단축
+# 테스트 시간을 10분(600초)으로 단축
 DURATION = 600
 START_TIME = time.time()
 END_TIME = START_TIME + DURATION
@@ -76,6 +74,11 @@ stats = {
     "def_query_pass": 0, "def_query_tot": 0,
     "def_path_pass": 0, "def_path_tot": 0
 }
+
+ATTACK_HEADERS = [
+    "User-Agent", "X-Forwarded-For", "Cookie", "Referer", 
+    "X-Custom-Auth", "Authorization", "Accept", "X-Api-Key", "Type"
+]
 
 ALL_BAD_WORDS = [
     "hacker", "bad", "unknown", "admin_bypass", "drop_table", "script_alert", "etc_passwd",
@@ -104,12 +107,8 @@ ALL_BAD_PATHS = [
     "/.htaccess", "/.htpasswd", "/crossdomain.xml", "/clientaccesspolicy.xml", "/api/users/find?name[$ne]=admin"
 ]
 
-# [수정] 한 사이클(10분)에 사용할 10개만 무작위 추출
 RUN_BAD_WORDS = random.sample(ALL_BAD_WORDS, 10)
 RUN_BAD_PATHS = random.sample(ALL_BAD_PATHS, 10)
-
-print(f"\n⚠️ 시스템 경고: 이번 평가에 10종의 랜덤 공격 벡터가 로드되었습니다.")
-print("⏳ 1분마다 악성 페이로드가 1개씩 추가로 활성화되어 점진적으로 부하를 가중시킵니다.\n")
 
 base_png = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cce\xf8\xff\x00\x00\x04\xfe\x01\xff\x1c\x83\x82\x06\x00\x00\x00\x00IEND\xaeB`\x82'
 COLORED_IMAGES = {f"color_{i}": base_png for i in range(1, 51)}
@@ -190,7 +189,6 @@ def attack_worker():
         time.sleep(random.uniform(1.5, 2.0))
         elapsed = time.time() - START_TIME
         
-        # [수정] 1분(60초)마다 활성화되는 공격 벡터의 수가 1씩 누적 증가 (최대 10개)
         active_count = min(int(elapsed // 60) + 1, 10)
         
         current_words = RUN_BAD_WORDS[:active_count]
@@ -199,11 +197,12 @@ def attack_worker():
         attack_type = random.choice(["header", "query", "path", "combo"])
         rand_word = random.choice(current_words)
         
+        rand_header = random.choice(ATTACK_HEADERS)
         encoded_word = urllib.parse.quote(rand_word)
         
         try:
             if attack_type == "header":
-                headers = {"Type": rand_word}
+                headers = {rand_header: rand_word}
                 url = f"{target_url}/v1/product?id=normal"
                 res = requests.get(url, headers=headers, timeout=3)
                 with lock:
@@ -211,7 +210,7 @@ def attack_worker():
                     if res.status_code == 403: 
                         stats["def_header_pass"] += 1
                     else:
-                        log_failure("./failed_header_attacks.txt", "HEADER", rand_word, res.status_code, url)
+                        log_failure("./failed_header_attacks.txt", f"HDR({rand_header})", rand_word, res.status_code, url)
             
             elif attack_type == "query":
                 url = f"{target_url}/v1/product?id={encoded_word}"
@@ -225,7 +224,7 @@ def attack_worker():
             
             elif attack_type == "combo":
                 word2 = random.choice(current_words)
-                headers = {"Type": rand_word}
+                headers = {rand_header: rand_word}
                 url = f"{target_url}/v1/product?id={urllib.parse.quote(word2)}"
                 res = requests.post(url, headers=headers, timeout=3)
                 with lock:
@@ -235,8 +234,8 @@ def attack_worker():
                         stats["def_header_pass"] += 1
                         stats["def_query_pass"] += 1
                     else:
-                        log_failure("./failed_header_attacks.txt", "COMBO-HEADER", rand_word, res.status_code, url)
-                        log_failure("./failed_query_attacks.txt", "COMBO-QUERY", word2, res.status_code, url)
+                        log_failure("./failed_header_attacks.txt", f"C-HDR({rand_header})", rand_word, res.status_code, url)
+                        log_failure("./failed_query_attacks.txt", "C-QUERY", word2, res.status_code, url)
             
             elif attack_type == "path":
                 bad_path = random.choice(current_paths)
@@ -287,8 +286,6 @@ try:
         with lock:
             if minute != current_minute and minute < 10:
                 active_count = minute + 1
-                print(f"\n🚨 [진행 {minute}분 경과] 악성 페이로드 누적 활성화! (현재 {active_count}개)")
-                print(f"   - 활성화된 키워드 목록: {RUN_BAD_WORDS[:active_count]}")
                 current_minute = minute
 
             print(f"⏱️ [진행: {elapsed//60:02d}분 {elapsed%60:02d}초 | 남은시간: {remains//60:02d}분 {remains%60:02d}초]")
@@ -296,7 +293,6 @@ try:
             print(f"   ▶ 속도준수 - User(≤0.2s): {fmt(stats['user_fast'], stats['user_tot'])} | Prod(≤0.2s): {fmt(stats['product_fast'], stats['product_tot'])} | Stress(≤1.0s): {fmt(stats['stress_fast'], stats['stress_tot'])}")
             
             if iam_error_msg:
-                print(f"   ⚠️ [EC2 비용 0대 경고] IAM 권한 오류 발생: {iam_error_msg[:60]}...")
                 iam_error_msg = ""
             print("-" * 50)
 except KeyboardInterrupt:
@@ -321,7 +317,6 @@ print("\n[3] 보안성 (WAF 방어율)")
 print(f" • Header 방어 : {fmt(stats['def_header_pass'], stats['def_header_tot'])}")
 print(f" • Query 방어  : {fmt(stats['def_query_pass'], stats['def_query_tot'])}")
 print(f" • Path 방어   : {fmt(stats['def_path_pass'], stats['def_path_tot'])}")
-print(" 💡 방어 실패 상세 로그는 ./failed_header_attacks.txt 및 ./failed_query_attacks.txt 파일을 확인하세요.")
 
 print("\n[4] 비용 최적화 (1분 간격 주기적 수집 기반 인스턴스 현황)")
 print(f" • 평균 가동 인스턴스 수: {avg_instances:.2f} 대**")
