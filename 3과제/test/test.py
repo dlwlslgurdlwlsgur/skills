@@ -12,10 +12,9 @@ target_url = input("전체 URL을 입력하세요: ").strip()
 aws_region = "ap-northeast-2"
 
 if not target_url.startswith("http"):
-    print("오류: 프로토콜을 포함해 주세요!")
+    print("❌ 오류: 프로토콜을 포함해 주세요!")
     sys.exit(1)
 
-# --- 방어 실패 로그 파일 초기화 ---
 with open("./failed_header_attacks.txt", "w", encoding="utf-8") as f:
     f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Header 방어 실패(403 이외 응답) 로그 시작\n")
     f.write("="*60 + "\n")
@@ -33,7 +32,6 @@ def log_failure(filename, attack_type, payload, status_code, url):
         with open(filename, "a", encoding="utf-8") as f:
             f.write(log_msg)
 
-# AWS EC2 인스턴스 비용 모니터링 초기화
 ec2_client = boto3.client('ec2', region_name=aws_region)
 
 instance_history = []
@@ -45,7 +43,10 @@ def instance_monitor_worker():
     while time.time() < END_TIME:
         try:
             response = ec2_client.describe_instances(
-                Filters=[{'Name': 'instance-state-name', 'Values': ['running']}]
+                Filters=[
+                    {'Name': 'instance-state-name', 'Values': ['running']},
+                    {'Name': 'instance-type', 'Values': ['t3.medium']}
+                ]
             )
             count = sum(len(res['Instances']) for res in response['Reservations'])
             with history_lock:
@@ -58,8 +59,7 @@ def instance_monitor_worker():
                 break
             time.sleep(1)
 
-# 테스트 시간을 10분(600초)으로 단축
-DURATION = 600
+DURATION = 1200
 START_TIME = time.time()
 END_TIME = START_TIME + DURATION
 
@@ -200,10 +200,13 @@ def attack_worker():
         rand_header = random.choice(ATTACK_HEADERS)
         encoded_word = urllib.parse.quote(rand_word)
         
+        req_id = str(random.randint(100000000000, 999999999999))
+        u_id = str(uuid.uuid4())
+        
         try:
             if attack_type == "header":
                 headers = {rand_header: rand_word}
-                url = f"{target_url}/v1/product?id=normal"
+                url = f"{target_url}/v1/product?id=normal&requestid={req_id}&uuid={u_id}"
                 res = requests.get(url, headers=headers, timeout=3)
                 with lock:
                     stats["def_header_tot"] += 1
@@ -213,7 +216,7 @@ def attack_worker():
                         log_failure("./failed_header_attacks.txt", f"HDR({rand_header})", rand_word, res.status_code, url)
             
             elif attack_type == "query":
-                url = f"{target_url}/v1/product?id={encoded_word}"
+                url = f"{target_url}/v1/product?id={encoded_word}&requestid={req_id}&uuid={u_id}"
                 res = requests.get(url, timeout=3)
                 with lock:
                     stats["def_query_tot"] += 1
@@ -225,7 +228,7 @@ def attack_worker():
             elif attack_type == "combo":
                 word2 = random.choice(current_words)
                 headers = {rand_header: rand_word}
-                url = f"{target_url}/v1/product?id={urllib.parse.quote(word2)}"
+                url = f"{target_url}/v1/product?id={urllib.parse.quote(word2)}&requestid={req_id}&uuid={u_id}"
                 res = requests.post(url, headers=headers, timeout=3)
                 with lock:
                     stats["def_header_tot"] += 1
@@ -284,8 +287,8 @@ try:
         minute = elapsed // 60
         
         with lock:
-            if minute != current_minute and minute < 10:
-                active_count = minute + 1
+            if minute != current_minute and minute < 20:
+                active_count = min(minute + 1, 10)
                 current_minute = minute
 
             print(f"⏱️ [진행: {elapsed//60:02d}분 {elapsed%60:02d}초 | 남은시간: {remains//60:02d}분 {remains%60:02d}초]")

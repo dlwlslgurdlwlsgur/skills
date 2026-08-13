@@ -62,6 +62,7 @@ sleep 30;A
 P cancel
 curl -s http://$I:8080/my-bookings/$U|jq "[.[]|select(.train_id==\"$T\" and .seat_id==\"$S\")]|length"
 sleep 30;A
+echo
 # 1
 # ["reserved", true]
 # 1

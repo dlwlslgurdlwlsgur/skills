@@ -58,7 +58,7 @@ cat << 'EOF' > cw-dashboard.json
       "width": 24,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'BLOCK' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', ''), 'Content-Type: multipart/form-data;', '' ) as CustomHeader | display @timestamp, httpRequest.uri, httpRequest.args, CustomHeader | sort @timestamp desc",
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'BLOCK' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', ''), 'Content-Type: multipart/form-data;', '' ) as CustomHeader | fields replace(replace(httpRequest.args, /&?requestid=[^&]*|&?uuid=[^&]*/, ''), /^&/, '') as CleanArgs | display @timestamp, httpRequest.uri, CleanArgs, CustomHeader | sort @timestamp desc",
         "region": "us-east-1",
         "title": "WAF Blocked",
         "view": "table"
@@ -71,9 +71,9 @@ cat << 'EOF' > cw-dashboard.json
       "width": 24,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', ''), 'Content-Type: multipart/form-data;', '' ) as CustomHeader | display @timestamp, httpRequest.uri, httpRequest.args, CustomHeader | sort @timestamp desc",
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', ''), 'Content-Type: multipart/form-data;', '' ) as CustomHeader | fields replace(replace(httpRequest.args, /&?requestid=[^&]*|&?uuid=[^&]*/, ''), /^&/, '') as CleanArgs | display @timestamp, httpRequest.uri, CleanArgs, CustomHeader | sort @timestamp desc",
         "region": "us-east-1",
-        "title": "WAF Allowed",
+        "title": "WAF Allowed (All)",
         "view": "table"
       }
     },
@@ -84,9 +84,9 @@ cat << 'EOF' > cw-dashboard.json
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | filter ispresent(httpRequest.args) and httpRequest.args != '' | display @timestamp, httpRequest.uri, httpRequest.args | sort @timestamp desc",
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | filter ispresent(httpRequest.args) and httpRequest.args != '' | fields replace(replace(httpRequest.args, /&?requestid=[^&]*|&?uuid=[^&]*/, ''), /^&/, '') as CleanArgs | filter CleanArgs != '' | display @timestamp, httpRequest.uri, CleanArgs | sort @timestamp desc",
         "region": "us-east-1",
-        "title": "WAF Allowed (Query)",
+        "title": "WAF Allowed (Query Focus)",
         "view": "table"
       }
     },
@@ -97,9 +97,9 @@ cat << 'EOF' > cw-dashboard.json
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | parse @message /\"headers\":\\[.*\\{\"name\":\"(?<HKey>[^\"]+)\",\"value\":\"(?<HVal>[^\"]+)\"\\}\\]/ | fields concat(HKey, \": \", HVal) as RawHeader | fields replace(replace(replace(RawHeader, 'Connection: keep-alive', ''), 'Content-Type: application/json', ''), 'Content-Type: multipart/form-data;', '' ) as CustomHeader | filter CustomHeader != '' | display @timestamp, httpRequest.uri, CustomHeader | sort @timestamp desc",
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | parse @message /\"headers\":(?<RawHeader>\\[.*?\\])/ | fields replace(replace(replace(RawHeader, /\\{\"name\":\"Connection\",\"value\":\"keep-alive\"\\},?/, ''), /\\{\"name\":\"Content-Type\",\"value\":\"application\\/json\"\\},?/, ''), /\\{\"name\":\"Content-Type\",\"value\":\"multipart\\/form-data[^\"]*\"\\},?/, '') as CustomHeader | filter CustomHeader != '[]' and CustomHeader != '' | display @timestamp, httpRequest.uri, CustomHeader | sort @timestamp desc",
         "region": "us-east-1",
-        "title": "WAF Allowed (Header)",
+        "title": "WAF Allowed (Header Focus)",
         "view": "table"
       }
     },

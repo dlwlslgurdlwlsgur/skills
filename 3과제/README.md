@@ -32,6 +32,11 @@ eksctl utils write-kubeconfig --name $CLUSTER_NAME --region ap-northeast-2
 aws eks update-kubeconfig --region ap-northeast-2 --name skills-cluster
 kubectl get hpa -A
 ```
+```bash
+APP="product"
+MAX_REPLICAS=15
+kubectl patch hpa ${APP}-hpa -n skills --type='json' -p="[{\"op\": \"replace\", \"path\": \"/spec/maxReplicas\", \"value\": ${MAX_REPLICAS}}]"
+```
 
 <br>
 
@@ -158,11 +163,5 @@ curl -X PUT "$URL/v1/product" \
 
 ## stress
 ```bash
-curl -X POST "$URL/v1/stress" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "requestid": "999999999999",
-    "uuid": "7c5a3c6a-758f-4bc5-9bdf-3e573a0ad729",
-    "length": 256
-  }'
+curl -X POST "$URL/v1/stress" -H "Content-Type: application/json" -d '{"requestid": "999999999999", "uuid": "7c5a3c6a-758f-4bc5-9bdf-3e573a0ad729", "length": 256}'
 ```
