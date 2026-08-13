@@ -42,7 +42,6 @@ curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scr
 helm repo add eks https://aws.github.io/eks-charts && helm repo update
 helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=$CLUSTER_NAME --set serviceAccount.create=false --set serviceAccount.name=aws-load-balancer-controller
 
-# K8s 리소스 배포 준비 (PV/PVC 생성 파일 제거됨)
 kubectl create namespace ${APP_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
 mkdir -p manifest && rm -f manifest/*.yaml
 

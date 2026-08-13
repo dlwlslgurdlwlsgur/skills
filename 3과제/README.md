@@ -80,6 +80,9 @@ mysql -h <DB_HOST> -P 3306 -u admin -p skills < load_user.dump
 ```bash
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3%BC%EC%A0%9C/07-manifest.sh
 ```
+
+deployment 적절하게 개수 변경
+
 ```bash
 kubectl apply -f manifest/deployment.yaml
 kubectl apply -f manifest/service.yaml
