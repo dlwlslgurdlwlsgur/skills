@@ -57,7 +57,7 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3
 - name: wskorea26-s3-origin ( * )
 - S3 OAC 원본 엑세스
 - S3 원본 > 사용자 정의 헤더 ( wskorea26-s3-access: true )
-- default root: /index.html
+- default root: index.html
 ```bash
 {
     "Sid": "Decrypy Role",
