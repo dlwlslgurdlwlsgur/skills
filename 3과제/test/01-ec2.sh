@@ -1,3 +1,4 @@
+
 #!/bin/bash
 set -x
 REGION="ap-northeast-2"
@@ -23,8 +24,6 @@ SG_ID=$(aws ec2 describe-security-groups \
   --query "SecurityGroups[0].GroupId" \
   --output text \
   --region ${REGION})
-
-
 
 INSTANCE_NAME="apdev-bastion"
 PROFILE_NAME="${INSTANCE_NAME}-profile"
