@@ -156,16 +156,22 @@ resource "kubernetes_config_map" "grafana_dashboard" {
           fieldConfig = {
             defaults = {
               unit = "percent",
+              min  = 0
+              max  = 100
               custom = {
-                fillOpacity = 10
+                fillOpacity = 0
                 lineWidth   = 2
+                thresholdsStyle = {
+                  mode = "dashed"
+                }
               }
               thresholds = {
                 mode = "absolute"
                 steps = [
-                  { color = "green", value = null },
-                  { color = "yellow", value = 60 },
-                  { color = "red", value = 80 }
+                  { color = "transparent", value = null },
+                  { color = "green", value = 60 },
+                  { color = "yellow", value = 75 },
+                  { color = "red", value = 90 }
                 ]
               }
             }
@@ -195,16 +201,22 @@ resource "kubernetes_config_map" "grafana_dashboard" {
           fieldConfig = {
             defaults = {
               unit = "percent",
+              min  = 0
+              max  = 100
               custom = {
-                fillOpacity = 10
+                fillOpacity = 0
                 lineWidth   = 2
+                thresholdsStyle = {
+                  mode = "dashed"
+                }
               }
               thresholds = {
                 mode = "absolute"
                 steps = [
-                  { color = "green", value = null },
-                  { color = "yellow", value = 70 },
-                  { color = "red", value = 85 }
+                  { color = "transparent", value = null },
+                  { color = "green", value = 60 },
+                  { color = "yellow", value = 75 },
+                  { color = "red", value = 90 }
                 ]
               }
             }
@@ -293,7 +305,7 @@ resource "kubernetes_config_map" "grafana_dashboard" {
             defaults = {
               unit = "s",
               custom = {
-                fillOpacity = 10
+                fillOpacity = 2
                 lineWidth   = 2
               }
             }
