@@ -15,10 +15,10 @@ CLUSTER_NAME="skills-cluster"
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 aws eks create-access-entry \
   --cluster-name "$CLUSTER_NAME" \
-  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:role/apdev-bastion-role"
+  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:root"
 aws eks associate-access-policy \
   --cluster-name "$CLUSTER_NAME" \
-  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:role/apdev-bastion-role" \
+  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:root" \
   --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
   --access-scope type=cluster
 ```
