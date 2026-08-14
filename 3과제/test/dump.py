@@ -33,7 +33,6 @@ try:
             print(f"⏳ {i + batch_size}/{total_records} 건 생성 완료...")
 
     print(f"✅ 성공적으로 {filename} 파일이 생성되었습니다! (크기: 약 {total_records // 1000}MB 내외)")
-    print(f"💡 이 파일을 DB에 밀어넣은 후 test.py를 실행하세요.")
 
 except Exception as e:
     print(f"❌ 파일 생성 중 오류가 발생했습니다: {e}")

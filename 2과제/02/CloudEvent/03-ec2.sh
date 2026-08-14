@@ -28,15 +28,24 @@ SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=event-pub-a
 SG_ID=$(aws ec2 describe-security-groups --filters "Name=group-name,Values=wsc2026-event-sg" --region $REGION --query 'SecurityGroups[0].GroupId' --output text)
 AMI_ID=$(aws ssm get-parameter --name /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64 --region $REGION --query 'Parameter.Value' --output text)
 
-aws ec2 run-instances \
+INSTANCE_ID=$(aws ec2 run-instances \
   --image-id $AMI_ID \
   --instance-type t3.micro \
   --subnet-id $SUBNET_ID \
   --security-group-ids $SG_ID \
   --iam-instance-profile Name=wsc2026-event-ec2-profile \
   --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=wsc2026-event-ec2}]" \
-  --region $REGION
+  --region $REGION \
+  --query 'Instances[0].InstanceId' \
+  --output text)
 
 rm -f ec2-trust.json
 
+aws ec2 wait instance-running --instance-ids $INSTANCE_ID --region $REGION
+
+aws ec2 modify-instance-attribute \
+  --instance-id $INSTANCE_ID \
+  --disable-api-stop \
+  --region $REGION
+  
 echo
