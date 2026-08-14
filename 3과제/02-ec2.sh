@@ -72,7 +72,7 @@ AMI_ID=$(aws ssm get-parameters --names /aws/service/ami-amazon-linux-latest/al2
 
 aws ec2 run-instances \
   --image-id ${AMI_ID} \
-  --instance-type t3.small \
+  --instance-type t3.medium \
   --subnet-id ${SUBNET_ID} \
   --security-group-ids ${SG_ID} \
   --iam-instance-profile Name=${PROFILE_NAME} \
