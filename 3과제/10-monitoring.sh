@@ -58,7 +58,7 @@ cat << 'EOF' > cw-dashboard.json
       "width": 24,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'BLOCK' | parse @message /\"name\":\"(?<HKey>[Tt]ype|[Uu]ser-[Aa]gent|[Xx]-[Ff]orwarded-[Ff]or|[Cc]ookie|[Rr]eferer|[Xx]-[Cc]ustom-[Aa]uth|[Aa]uthorization|[Aa]ccept|[Xx]-[Aa]pi-[Kk]ey)\",\"value\":\"(?<HVal>[^\"]+)\"/ | filter HVal != '*/*' | fields concat(HKey, \": \", HVal) as AttackHeader | parse httpRequest.args /^(?<CleanArgs>[^&]+)/ | display @timestamp, httpRequest.uri, CleanArgs, AttackHeader | sort @timestamp desc",
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'BLOCK' | parse @message /\"name\":\"(?<HKey>[Tt]ype|[Uu]ser-[Aa]gent|[Xx]-[Ff]orwarded-[Ff]or|[Cc]ookie|[Rr]eferer|[Xx]-[Cc]ustom-[Aa]uth|[Aa]uthorization|[Aa]ccept|[Xx]-[Aa]pi-[Kk]ey)\",\"value\":\"(?<HVal>[^\"]+)\"/ | filter HVal != '*/*' | fields concat(HKey, \": \", HVal) as AttackHeader | parse httpRequest.args /^(?<AttackQuery>[^&]+)/ | display @timestamp, httpRequest.uri, AttackQuery, AttackHeader | sort @timestamp desc",
         "region": "us-east-1",
         "title": "WAF Blocked",
         "view": "table"
@@ -71,7 +71,7 @@ cat << 'EOF' > cw-dashboard.json
       "width": 24,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | parse @message /\"name\":\"(?<HKey>[Tt]ype|[Uu]ser-[Aa]gent|[Xx]-[Ff]orwarded-[Ff]or|[Cc]ookie|[Rr]eferer|[Xx]-[Cc]ustom-[Aa]uth|[Aa]uthorization|[Aa]ccept|[Xx]-[Aa]pi-[Kk]ey)\",\"value\":\"(?<HVal>[^\"]+)\"/ | filter HVal != '*/*' | fields concat(HKey, \": \", HVal) as AttackHeader | parse httpRequest.args /^(?<CleanArgs>[^&]+)/ | display @timestamp, httpRequest.uri, CleanArgs, AttackHeader | sort @timestamp desc",
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | parse @message /\"name\":\"(?<HKey>[Tt]ype|[Uu]ser-[Aa]gent|[Xx]-[Ff]orwarded-[Ff]or|[Cc]ookie|[Rr]eferer|[Xx]-[Cc]ustom-[Aa]uth|[Aa]uthorization|[Aa]ccept|[Xx]-[Aa]pi-[Kk]ey)\",\"value\":\"(?<HVal>[^\"]+)\"/ | filter HVal != '*/*' | fields concat(HKey, \": \", HVal) as AttackHeader | parse httpRequest.args /^(?<AttackQuery>[^&]+)/ | display @timestamp, httpRequest.uri, AttackQuery, AttackHeader | sort @timestamp desc",
         "region": "us-east-1",
         "title": "WAF Allowed (All)",
         "view": "table"
@@ -84,7 +84,7 @@ cat << 'EOF' > cw-dashboard.json
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | filter ispresent(httpRequest.args) and httpRequest.args != '' | parse httpRequest.args /^(?<CleanArgs>[^&]+)/ | filter CleanArgs != '' | display @timestamp, httpRequest.uri, CleanArgs | sort @timestamp desc",
+        "query": "SOURCE \"aws-waf-logs-skills\" | filter action = 'ALLOW' | filter ispresent(httpRequest.args) and httpRequest.args != '' | parse httpRequest.args /^(?<AttackQuery>[^&]+)/ | filter AttackQuery != '' | display @timestamp, httpRequest.uri, AttackQuery | sort @timestamp desc",
         "region": "us-east-1",
         "title": "WAF Allowed (Query Focus)",
         "view": "table"
