@@ -55,6 +55,7 @@ deploy_fast() {
 cat << 'EOF' > stop_code.py
 import os
 import json
+import time
 from datetime import datetime
 import boto3
 ec2_client = boto3.client('ec2')
@@ -62,16 +63,29 @@ sns_client = boto3.client('sns')
 instance_id = "i-placeholder"
 sg_id = "sg-placeholder"
 sns_topic_arn = os.environ.get("SNS_TOPIC_ARN")
+
 def lambda_handler(event, context):
     try:
         detail = event.get('detail', {})
         instance_ids = detail.get('instance-id', [instance_id])
         if isinstance(instance_ids, str):
             instance_ids = [instance_ids]
+            
         for i_id in instance_ids:
-            ec2_client.start_instances(InstanceIds=[i_id])
+            # 'stopping' 상태에서 발생하는 에러를 무시하고 최대 30초간 2초 간격으로 재시도
+            for _ in range(15):
+                try:
+                    ec2_client.start_instances(InstanceIds=[i_id])
+                    break  # 성공 시 루프 탈출
+                except Exception as e:
+                    if 'IncorrectInstanceState' in str(e):
+                        time.sleep(2)
+                    else:
+                        print(f"Error: {e}")
+                        break
     except Exception as e:
         print(f"Error: {e}")
+        
     message = {
         "event": "EC2_STOPPED",
         "timestamp": datetime.utcnow().isoformat() + "Z",
@@ -79,7 +93,11 @@ def lambda_handler(event, context):
         "action": "RESTORED"
     }
     if sns_topic_arn:
-        sns_client.publish(TopicArn=sns_topic_arn, Message=json.dumps(message))
+        try:
+            sns_client.publish(TopicArn=sns_topic_arn, Message=json.dumps(message))
+        except Exception as e:
+            print(f"SNS Publish Error: {e}")
+            
     return {"statusCode": 200, "body": "EC2 Restarted and Notified"}
 EOF
 deploy_fast "wsc2026-ec2-stop-remediation" "stop_code.py"
