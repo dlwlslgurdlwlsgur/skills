@@ -43,9 +43,4 @@ rm -f ec2-trust.json
 
 aws ec2 wait instance-running --instance-ids $INSTANCE_ID --region $REGION
 
-aws ec2 modify-instance-attribute \
-  --instance-id $INSTANCE_ID \
-  --disable-api-stop \
-  --region $REGION
-  
 echo
