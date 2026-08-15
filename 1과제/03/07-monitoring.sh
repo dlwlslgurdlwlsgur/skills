@@ -231,11 +231,11 @@ serverFiles:
             labels:
               severity: critical
 
-          - alert: HighLatency
-            expr: up == 1
-            for: 0m
-            labels:
-              severity: warning
+          # - alert: HighLatency
+          #   expr: up == 1
+          #   for: 0m
+          #   labels:
+          #     severity: warning
 
           - alert: PodCrashLooping
             expr: up == 1
