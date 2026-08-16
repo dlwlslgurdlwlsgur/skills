@@ -20,6 +20,7 @@ aws ec2 describe-instances --region ap-northeast-2 --filters Name=tag:Name,Value
 
 
 NOSQL_CLIENT_EC2_PUBLIC_IP=$(aws ec2 describe-instances --region ap-northeast-2 --filters Name=tag:Name,Values=skills-nosql-client-ec2 Name=instance-state-name,Values=running --query 'Reservations[0].Instances[0].PublicIpAddress' --output text 2>/dev/null || true)
+curl -s -o /dev/null -m 10 -w "http_code=%{http_code}\n" "http://${NOSQL_CLIENT_EC2_PUBLIC_IP}:8080/health"
 curl -s -m 10 "http://${NOSQL_CLIENT_EC2_PUBLIC_IP}:8080/health" | jq -r '
 "status=\(.status)
 database=\(.database)
@@ -39,6 +40,7 @@ sessions.expiresAt=\(.dateFieldTypes.sessions.expiresAt)"'
 # dateFieldTypes에 orders.createdAt, orders.dueAt, products.updatedAt, sessions.lastSeen, sessions.expiresAt이 날짜 타입으로 표시되어야 합니다.
 
 
+curl -s -o /dev/null -m 10 -w "http_code=%{http_code}\n" "http://${NOSQL_CLIENT_EC2_PUBLIC_IP}:8080/v1/admin/indexes"
 curl -s -m 10 "http://${NOSQL_CLIENT_EC2_PUBLIC_IP}:8080/v1/admin/indexes" | jq -r '
 .indexes |
 "orders:",
