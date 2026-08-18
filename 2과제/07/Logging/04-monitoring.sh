@@ -390,7 +390,7 @@ spec:
             curl -s 'http://log-generator.o11y:8080/log?level=info&count=5' >/dev/null;
             curl -s 'http://log-generator.o11y:8080/log?level=warn&count=3' >/dev/null;
             curl -s 'http://log-generator.o11y:8080/log?level=error&count=2' >/dev/null;
-            sleep 300; done"]
+            sleep 1800; done"]
 EOF
 
 
