@@ -261,12 +261,17 @@ dashboards:
             {
               "id": 1,
               "title": "Log Count Over Time",
-              "type": "barchart",
+              "type": "timeseries",
               "datasource": {"type": "loki", "uid": "loki"},
               "gridPos": {"h": 9, "w": 12, "x": 0, "y": 0},
               "fieldConfig": {
                 "defaults": {
-                  "custom": {"lineWidth": 1, "fillOpacity": 80, "stacking": {"mode": "normal"}},
+                  "custom": {
+                    "drawStyle": "bars",
+                    "lineWidth": 1,
+                    "fillOpacity": 80,
+                    "stacking": {"mode": "normal"}
+                  },
                   "color": {"mode": "palette-classic"}
                 },
                 "overrides": [
@@ -275,7 +280,7 @@ dashboards:
                   {"matcher": {"id": "byName", "options": "ERROR"}, "properties": [{"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}]}
                 ]
               },
-              "options": {"legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}, "xField": "Time", "stacking": "normal"},
+              "options": {"legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}},
               "targets": [
                 {
                   "datasource": {"type": "loki", "uid": "loki"},
@@ -332,6 +337,7 @@ dashboards:
           ]
         }
 EOF
+
 
 helm upgrade --install o11y-grafana grafana/grafana -n monitoring -f ./grafana-values.yaml --wait
 
