@@ -12,13 +12,14 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/3%EA%B3
 ```
 ```bash
 CLUSTER_NAME="skills-cluster"
+USERNAME=""
 ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 aws eks create-access-entry \
   --cluster-name "$CLUSTER_NAME" \
-  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:root"
+  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:user:${USERNAME}"
 aws eks associate-access-policy \
   --cluster-name "$CLUSTER_NAME" \
-  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:root" \
+  --principal-arn "arn:aws:iam::${ACCOUNT_ID}:user:${USERNAME}" \
   --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
   --access-scope type=cluster
 ```
