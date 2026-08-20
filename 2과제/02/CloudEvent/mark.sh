@@ -6,22 +6,19 @@ aws ec2 stop-instances --instance-ids $INSTANCE_ID &>/dev/null
 aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 22 --cidr 0.0.0.0/0 &>/dev/null
 
 
-aws sns get-topic-attributes --topic-arn arn:aws:sns:eu-west-1:${ACCOUNT_ID}:wsc2026-event-alert --query "Attributes.TopicArn" --output text; for fn in wsc2026-ec2-stop-remediation wsc2026-ec2-terminate-alert wsc2026-sg-remediation wsc2026-tag-alert; do aws lambda get-function --function-name $fn --query "Configuration.[FunctionName,Runtime]" --output text; done
-# arn:aws:sns:eu-west-1:(선수 AWS ID):wsc2026-event-alert
-# wsc2026-ec2-stop-remediation    python3.12
-# wsc2026-ec2-terminate-alert     python3.12
-# wsc2026-sg-remediation  python3.12
-# wsc2026-tag-alert       python3.12
-
+aws sns get-topic-attributes --topic-arn arn:aws:sns:eu-west-1:${ACCOUNT_ID}:wsc2026-event-alert --query "Attributes.TopicArn" --output text; for fn in wsc2026-ec2-type-remediation wsc2026-ec2-terminate-alert wsc2026-sg-remediation wsc2026-role-remediation; do aws lambda get-function --function-name $fn --query "Configuration.[FunctionName,Runtime]" --output text; done
 # arn:aws:sns:eu-west-1:(선수 AWS ID):wsc2026-event-alert
 # wsc2026-ec2-type-remediation    python3.12
 # wsc2026-ec2-terminate-alert     python3.12
 # wsc2026-sg-remediation  python3.12
 # wsc2026-role-remediation       python3.12
 
-for rule in wsc2026-ec2-stop-rule wsc2026-ec2-terminate-rule; do echo "$rule -> $(aws events list-targets-by-rule --rule $rule --query "Targets[0].Arn" --output text)"; done
-# wsc2026-ec2-stop-rule -> arn:aws:lambda:eu-west-1:(선수 AWS ID):function:wsc2026-ec2-stop-remediation
+
+for rule in wsc2026-sg-change-rule wsc2026-role-change-rule wsc2026-ec2-terminate-rule wsc2026-ec2-type-change-rule; do echo "$rule -> $(aws events list-targets-by-rule --rule $rule --query "Targets[0].Arn" --output text)"; done
+# wsc2026-sg-change-rule -> arn:aws:lambda:eu-west-1:(선수 AWS ID):function:wsc2026-sg-remediation
+# wsc2026-role-change-rule -> arn:aws:lambda:eu-west-1:(선수 AWS ID):function:wsc2026-role-remediation
 # wsc2026-ec2-terminate-rule -> arn:aws:lambda:eu-west-1:(선수 AWS ID):function:wsc2026-ec2-terminate-alert
+# wsc2026-ec2-type-change-rule -> arn:aws:lambda:eu-west-1:(선수 AWS ID):function:wsc2026-ec2-type-remediation
 
 
 aws configservice describe-config-rules --config-rule-names wsc2026-sg-ssh-rule wsc2026-required-tags-rule --query "ConfigRules[*].[ConfigRuleName,ConfigRuleState]" --output text

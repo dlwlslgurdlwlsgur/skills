@@ -52,7 +52,7 @@ deploy_fast() {
     rm -f function.zip
 }
 
-cat << 'EOF' > stop_code.py
+cat << 'EOF' > type_code.py
 import os
 import json
 import time
@@ -100,7 +100,7 @@ def lambda_handler(event, context):
             
     return {"statusCode": 200, "body": "EC2 Restarted and Notified"}
 EOF
-deploy_fast "wsc2026-ec2-stop-remediation" "stop_code.py"
+deploy_fast "wsc2026-ec2-type-remediation" "type_code.py"
 
 cat << 'EOF' > terminate_code.py
 import os
@@ -161,7 +161,7 @@ def lambda_handler(event, context):
 EOF
 deploy_fast "wsc2026-sg-remediation" "sg_code.py"
 
-cat << 'EOF' > tag_code.py
+cat << 'EOF' > role_code.py
 import os
 import json
 from datetime import datetime
@@ -184,8 +184,8 @@ def lambda_handler(event, context):
             sns_client.publish(TopicArn=sns_topic_arn, Message=json.dumps(message))
     return {"statusCode": 200, "body": "Tag Non-Compliance Notified"}
 EOF
-deploy_fast "wsc2026-tag-alert" "tag_code.py"
+deploy_fast "wsc2026-role-remediation" "role_code.py"
 
-rm -f stop_code.py terminate_code.py sg_code.py tag_code.py lambda-trust.json
+rm -f type_code.py terminate_code.py sg_code.py role_code.py lambda-trust.json
 
 echo
