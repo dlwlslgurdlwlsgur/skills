@@ -102,11 +102,11 @@ aws events put-rule \
     --region $REGION \
     --event-pattern '{"source": ["aws.config"], "detail-type": ["Config Rules Compliance Change"], "detail": {"configRuleName": ["wsc2026-required-tags-rule"], "newEvaluationResult": { "complianceType": ["NON_COMPLIANT"] }}}'
 
-TAG_LAMBDA_ARN=$(aws lambda get-function --function-name "wsc2026-tag-alert" --region $REGION --query "Configuration.FunctionArn" --output text)
+TAG_LAMBDA_ARN=$(aws lambda get-function --function-name "wsc2026-role-remediation" --region $REGION --query "Configuration.FunctionArn" --output text)
 aws events put-targets --rule "wsc2026-required-tags-rule" --region $REGION --targets "Id=1,Arn=$TAG_LAMBDA_ARN"
 
 aws lambda add-permission \
-    --function-name "wsc2026-tag-alert" \
+    --function-name "wsc2026-role-remediation" \
     --region $REGION \
     --statement-id "AllowConfigTagToTrigger" \
     --action "lambda:InvokeFunction" \

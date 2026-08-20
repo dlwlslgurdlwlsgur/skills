@@ -13,7 +13,6 @@ aws sns get-topic-attributes --topic-arn arn:aws:sns:eu-west-1:${ACCOUNT_ID}:wsc
 # wsc2026-sg-remediation  python3.12
 # wsc2026-role-remediation       python3.12
 
-
 for rule in wsc2026-sg-change-rule wsc2026-role-change-rule wsc2026-ec2-terminate-rule wsc2026-ec2-type-change-rule; do echo "$rule -> $(aws events list-targets-by-rule --rule $rule --query "Targets[0].Arn" --output text)"; done
 # wsc2026-sg-change-rule -> arn:aws:lambda:eu-west-1:(선수 AWS ID):function:wsc2026-sg-remediation
 # wsc2026-role-change-rule -> arn:aws:lambda:eu-west-1:(선수 AWS ID):function:wsc2026-role-remediation
