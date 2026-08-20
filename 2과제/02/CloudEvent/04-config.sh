@@ -17,16 +17,12 @@ setup_rule() {
     aws lambda add-permission --function-name "$func_name" --region $REGION --statement-id "EBInvoke-$rule_name" --action "lambda:InvokeFunction" --principal "events.amazonaws.com" --source-arn "arn:aws:events:$REGION:$ACCOUNT_ID:rule/$rule_name" 2>/dev/null || true
 }
 
-# 채점 스크립트가 타겟을 검사하는 EventBridge Rule 설정
-setup_rule "wsc2026-ec2-stop-rule" '{"source":["aws.ec2"],"detail-type":["EC2 Instance State-change Notification"],"detail":{"state":["stopped"]}}' "wsc2026-ec2-type-remediation"
+setup_rule "wsc2026-ec2-stop-rule" '{"source":["aws.ec2"],"detail-type":["EC2 Instance State-change Notification"],"detail":{"state":["stopped"]}}' "wsc2026-ec2-stop-remediation"
 setup_rule "wsc2026-ec2-terminate-rule" '{"source":["aws.ec2"],"detail-type":["EC2 Instance State-change Notification"],"detail":{"state":["terminated"]}}' "wsc2026-ec2-terminate-alert"
-
-# 기타 Rule (기존 코드 유지)
 setup_rule "wsc2026-sg-change-rule" '{"source":["aws.ec2"],"detail-type":["AWS API Call via CloudTrail"],"detail":{"eventName":["AuthorizeSecurityGroupIngress"]}}' "wsc2026-sg-remediation"
 setup_rule "wsc2026-role-change-rule" '{"source":["aws.iam"],"detail-type":["AWS API Call via CloudTrail"],"detail":{"eventName":["UpdateAssumeRolePolicy","PutRolePolicy","AttachRolePolicy"]}}' "wsc2026-ec2-terminate-alert"
 setup_rule "wsc2026-ec2-type-change-rule" '{"source":["aws.ec2"],"detail-type":["AWS API Call via CloudTrail"],"detail":{"eventName":["ModifyInstanceAttribute"]}}' "wsc2026-ec2-terminate-alert"
 
-# AWS Config 설정 복원 (채점 필수 항목)
 aws s3 mb s3://$CONFIG_BUCKET --region $REGION 2>/dev/null || true
 
 cat << EOF > config-bucket-policy.json
@@ -76,7 +72,6 @@ aws configservice start-configuration-recorder \
 
 sleep 5
 
-# 채점 스크립트에서 ACTIVE 상태를 검사하는 Config Rule 생성
 aws configservice put-config-rule \
     --config-rule '{
         "ConfigRuleName": "wsc2026-sg-ssh-rule",
@@ -99,20 +94,19 @@ aws configservice put-config-rule \
         "InputParameters": "{\"tag1Key\":\"Name\"}"
     }' --region $REGION
 
-# 권한 추가
 aws lambda add-permission --function-name wsc2026-sg-remediation --action lambda:InvokeFunction --statement-id config-sg --principal config.amazonaws.com --region $REGION 2>/dev/null || true
-aws lambda add-permission --function-name wsc2026-role-remediation --action lambda:InvokeFunction --statement-id config-tag --principal config.amazonaws.com --region $REGION 2>/dev/null || true
+aws lambda add-permission --function-name wsc2026-tag-alert --action lambda:InvokeFunction --statement-id config-tag --principal config.amazonaws.com --region $REGION 2>/dev/null || true
 
 aws events put-rule \
     --name "wsc2026-required-tags-rule" \
     --region $REGION \
     --event-pattern '{"source": ["aws.config"], "detail-type": ["Config Rules Compliance Change"], "detail": {"configRuleName": ["wsc2026-required-tags-rule"], "newEvaluationResult": { "complianceType": ["NON_COMPLIANT"] }}}'
 
-TAG_LAMBDA_ARN=$(aws lambda get-function --function-name "wsc2026-role-remediation" --region $REGION --query "Configuration.FunctionArn" --output text)
+TAG_LAMBDA_ARN=$(aws lambda get-function --function-name "wsc2026-tag-alert" --region $REGION --query "Configuration.FunctionArn" --output text)
 aws events put-targets --rule "wsc2026-required-tags-rule" --region $REGION --targets "Id=1,Arn=$TAG_LAMBDA_ARN"
 
 aws lambda add-permission \
-    --function-name "wsc2026-role-remediation" \
+    --function-name "wsc2026-tag-alert" \
     --region $REGION \
     --statement-id "AllowConfigTagToTrigger" \
     --action "lambda:InvokeFunction" \
@@ -120,4 +114,5 @@ aws lambda add-permission \
     --source-arn "arn:aws:events:$REGION:$ACCOUNT_ID:rule/wsc2026-required-tags-rule" 2>/dev/null || true
 
 rm -f config-bucket-policy.json
-echo "Config and EventBridge Setup Complete"
+
+echo
