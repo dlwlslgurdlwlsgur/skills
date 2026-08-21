@@ -19,6 +19,9 @@ wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3
 - wsc2026-static-<임의의 영문 4자리>-<비번호>-bucket
 - KMS
 - /static
+```
+aws s3 rm s3://$BUCKET/static/
+```
 
 <br>
 
