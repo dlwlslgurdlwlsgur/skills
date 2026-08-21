@@ -18,7 +18,7 @@ done
 
 
 for rule in wsc2026-ec2-stop-rule wsc2026-ec2-terminate-rule; do echo "$rule -> $(aws events list-targets-by-rule --rule $rule --query "Targets[0].Arn" --output text)"; done
-# wsc2026-ec2-stop-rule -> arn:aws:lambda:eu-west-1:(선수 AWS ID):function:wsc2026-ec2-stop-remed iation
+# wsc2026-ec2-stop-rule -> arn:aws:lambda:eu-west-1:(선수 AWS ID):function:wsc2026-ec2-stop-remediation
 # wsc2026-ec2-terminate-rule -> arn:aws:lambda:eu-west-1:(선수 AWS ID):function:wsc2026-ec2-terminate-alert
 
 
