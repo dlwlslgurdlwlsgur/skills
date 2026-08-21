@@ -10,9 +10,9 @@ aws sns get-topic-attributes --topic-arn arn:aws:sns:eu-west-1:${ACCOUNT_ID}:wsc
 for fn in wsc2026-ec2-stop-remediation wsc2026-ec2-terminate-alert wsc2026-sg-remediation wsc2026-tag-alert; do
   aws lambda get-function --function-name $fn --query "Configuration.[FunctionName,Runtime]" --output text
 done
-# arn:aws:sns:eu-west-1:(선수 AWS ID):wsc2026-event-a l er t
-# wsc2026-ec2-stop-remed i at i on python3.12
-# wsc2026-ec2-terminate-a l er t python3.12
+# arn:aws:sns:eu-west-1:(선수 AWS ID):wsc2026-event-alert
+# wsc2026-ec2-stop-remediation python3.12
+# wsc2026-ec2-terminate-alert python3.12
 # wsc2026-sg-remediation python3.12
 # wsc2026-tag-alert python3.12
 
