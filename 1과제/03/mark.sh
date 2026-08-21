@@ -134,7 +134,6 @@ done
 # static/index.html	static/main.jpeg
 # KMS wsc2026-bucket-kms: PASS
 # S3 Object KMS Check:
-#   static/: PASS
 #   static/index.html: PASS
 #   static/main.jpeg: PASS
 
