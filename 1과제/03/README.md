@@ -106,6 +106,9 @@ function handler(event) {
 ```bash
 kubectl delete pod not-ready error-gen latency-gen crash-test stress-cpu stress-mem -n wsc2026 --ignore-not-found
 ```
+```bash
+kubectl rollout restart deploy/wsc2026-book-deploy -n wsc2026
+```
 
 <br>
 
