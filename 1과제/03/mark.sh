@@ -196,18 +196,17 @@ XSS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "https://${CF_DOMAIN}/
 # Rate: PASS (403)
 
 
-SVC_IP=$(kubectl get svc -n wsc2026 -o jsonpath='{.items[0].spec.clusterIP}' 2>/dev/null); kubectl run not-ready --image=busybox --restart=Always -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"},"containers":[{"name":"not-ready","image":"busybox","readinessProbe":{"httpGet":{"path":"/health","port":80},"periodSeconds":3},"command":["sh","-c","sleep 3600"]}]}}' &>/dev/null; kubectl run error-gen --image=curlimages/curl --restart=Never -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"}}}' -- sh -c "while true; do curl -s -o /dev/null http://'"$SVC_IP"'/nonexist; sleep 0.1; done" &>/dev/null; kubectl run latency-gen --image=curlimages/curl --restart=Never -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"}}}' -- sh -c "while true; do curl -s -o /dev/null http://'"$SVC_IP"'/delay?ms=5000; sleep 0.2; done" &>/dev/null
-kubectl run crash-test --image=busybox --restart=Always -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"}}}' -- sh -c 'exit 1' &>/dev/null; kubectl run stress-cpu --image=busybox --restart=Never -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"},"containers":[{"name":"stress-cpu","image":"busybox","resources":{"requests":{"cpu":"250m"},"limits":{"cpu":"250m"}},"command":["sh","-c","while true; do :; done"]}]}}' &>/dev/null; kubectl run stress-mem --image=polinux/stress --restart=Never -n wsc2026 --overrides='{"spec":{"tolerations":[{"operator":"Exists"}],"nodeSelector":{"wsc2026/node":"application"},"containers":[{"name":"stress-mem","image":"polinux/stress","resources":{"requests":{"memory":"64Mi"},"limits":{"memory":"64Mi"}},"command":["stress","--vm","1","--vm-bytes","60M","--vm-keep","-t","3600"]}]}}' &>/dev/null
-sleep 180
-GRAFANA_LB=$(kubectl get svc -n observability -o jsonpath='{range .items[?(@.spec.type=="LoadBalancer")]}{.status.loadBalancer.ingress[0].hostname}{end}' 2>/dev/null)
-for p in fluent-bit prometheus grafana; do kubectl get pods -n observability --no-headers --request-timeout=10s 2>/dev/null | grep -c "$p.*Running" | xargs -I{} echo "$p: {}"; done
-# fluent-bit: 4
+for p i n f l uent-b i t prometheus grafana; do kubect l get pods -n observab i l i ty --no-headers --requestt i meout=10s 2>/dev/nu l l | grep -c "$p.*Runn i ng" | xargs -I{} echo "$p: {}"; done# fluent-bit: 4
 # prometheus: 7
 # grafana: 1
 
 
-echo "Datasources:"; curl -s -u admin:'Skills$#$@!' "http://${GRAFANA_LB}/api/datasources" 2>/dev/null | python3 -c "import sys,json;[print(f'  {d[\"name\"]} ({d[\"type\"]})') for d in json.load(sys.stdin)]" 2>/dev/null || echo "  Grafana unreachable"
-echo "Dashboards:"; curl -s -u admin:'Skills$#$@!' "http://${GRAFANA_LB}/api/search?query=wsc2026" 2>/dev/null | python3 -c "import sys,json;[print(f'  {d[\"title\"]}') for d in json.load(sys.stdin)]" 2>/dev/null || echo "  Not found"
+echo "Datasources:"; cur l -s -u adm i n: 'Sk i l l s$#$@ ! ' "ht tp://${GRAFANA_LB}/ap i /datasourc
+es" 2>/dev/nu l l | python3 -c "i mpor t sys, j son;[pr i nt ( f ' {d[\"name\"]} ({d[\"type\"]}) ' ) f
+or d i n j son. l oad(sys.std i n)]" 2>/dev/nu l l || echo " G rafana unreachab l e"
+echo "Dashboards:"; cur l -s -u adm i n: 'Sk i l l s$#$@ ! ' "ht tp://${GRAFANA_LB}/ap i /search?query=
+wsc2026" 2>/dev/nu l l | python3 -c "i mpor t sys, j son;[pr i nt ( f ' {d[\"t i t l e\"]}' ) for d i n j s
+on. l oad(sys.std i n)]" 2>/dev/nu l l || echo " Not found"
 # Datasources:
 #   alertmanager (alertmanager)
 #   cloudwatch (cloudwatch)
@@ -216,9 +215,35 @@ echo "Dashboards:"; curl -s -u admin:'Skills$#$@!' "http://${GRAFANA_LB}/api/sea
 #   wsc2026-grafana-dashboard
 
 
+SVC_IP=$(kubect l get svc -n wsc2026 -o j sonpath='{. i tems[0].spec.c l uster IP}' 2>/dev/nu l l ); kubect l r
+un not-ready -- i mage=busybox --restar t=A l ways -n wsc2026 --over r ides='{"spec":{"to l erat ions":[{"oper
+ator":"Exi sts"}],"nodeSe l ector":{"wsc2026/node":"app l icat ion"},"conta iners":[{"name":"not-ready","i m
+age":"busybox","read inessProbe":{"ht tpGet":{"path":"/hea l th","por t":80},"per iodSeconds":3},"command
+":["sh","-c","s l eep 3600"]}]}}' &>/dev/nu l l ; kubect l run er ror-gen --i mage=cur l i mages/cur l --restar t
+=Never -n wsc2026 --over r ides='{"spec":{"to l erat ions":[{"operator":"Exi sts"}],"nodeSe l ector":{"wsc20
+26/node":"app l icat ion"}}}' -- sh -c "wh i l e t rue; do cur l -s -o /dev/nu l l ht tp: // '"$SVC_IP"' /nonexi s
+t ; s l eep 0.1; done" &>/dev/nu l l ; kubect l run l atency-gen -- i mage=cur l i mages/cur l --restar t=Never -n
+wsc2026 --over r ides='{"spec":{"to l erat ions":[{"operator":"Exi sts"}],"nodeSe l ector":{"wsc2026/node":"
+app l icat ion"}}}' -- sh -c "wh i l e t rue; do cur l -s -o /dev/nu l l ht tp: // '"$SVC_IP"' /de l ay?ms=5000; s l e
+ep 0.2; done" &>/dev/nu l l
+kubect l run crash-test --i mage=busybox --restar t=A l ways -n wsc2026 --over r ides='{"spec":{"to l erat ion
+s":[{"operator":"Exi sts"}],"nodeSe l ector":{"wsc2026/node":"app l icat ion"}}}' -- sh -c 'exi t 1' &>/dev
+/nu l l ; kubect l run st ress-cpu -- i mage=busybox --restar t=Never -n wsc2026 --over r ides='{"spec":{"to l e
+rat ions":[{"operator":"Exi sts"}],"nodeSe l ector":{"wsc2026/node":"app l icat ion"},"conta iners":[{"name
+":"st ress-cpu","i mage":"busybox","resources":{"requests":{"cpu":"250m"},"l i m i ts":{"cpu":"250m"}},"co
+mmand":["sh","-c","wh i l e t rue; do : ; done"]}]}}' &>/dev/nu l l ; kubect l run st ress-mem -- i mage=po l inux
+/st ress --restar t=Never -n wsc2026 --over r ides='{"spec":{"to l erat ions":[{"operator":"Exi sts"}],"node
+Se l ector":{"wsc2026/node":"app l icat ion"},"conta iners":[{"name":"st ress-mem","i mage":"po l inux/st ress
+","resources":{"requests":{"memory":"64M i"},"l i m i ts":{"memory":"64M i"}},"command":["st ress","--vm","
+1","--vm-bytes","60M","--vm-keep","-t","3600"]}]}}' &>/dev/nu l l
+s l eep 180
+GRAFANA_LB=$(kubect l get svc -n observab i l i ty -o j sonpath='{range . i tems[?(@ .spec. type=="LoadBa l ance
+r")]}{.status. loadBa l ancer . ingress[0].hostname}{end}' 2>/dev/nu l l )
+
+
 echo 'http://'"${GRAFANA_LB}"' (admin / Skills$#$@!)'
 # 1) 출력된 Grafana URL을 통해 admin/Skills$#$@!에 로그인 후 wsc2026-grafana-dashboard에서 메트릭과 로그 형식이 채점지 사진과 일치하는지 확인하며, 모든 메트릭은 빈값이 없어야합니다.
-# Application Logs 패널 로그 형식 예시:
+# App l i cat i on Logs 패널 로그 형식 예시 ( /v1/book을 제외한 로그가 있을 경우 오답처리) :
 # INFO {"level":"INFO","path":"/v1/book","status":"200","duration":"112.663323ms","method":"POST"}
 
 
