@@ -103,11 +103,11 @@ function handler(event) {
 
 <br>
 
-<img alt="image" src="https://github.com/user-attachments/assets/95f6b23f-176b-42f2-ae66-4c13d8aed1d1" />
-<img alt="image" src="https://github.com/user-attachments/assets/a9689117-df46-4c41-a54e-f06462ce6c82" />
-
-<br>
-
 ```bash
 kubectl delete pod not-ready error-gen latency-gen crash-test stress-cpu stress-mem -n wsc2026 --ignore-not-found
 ```
+
+<br>
+
+<img alt="image" src="https://github.com/user-attachments/assets/95f6b23f-176b-42f2-ae66-4c13d8aed1d1" />
+<img alt="image" src="https://github.com/user-attachments/assets/a9689117-df46-4c41-a54e-f06462ce6c82" />
