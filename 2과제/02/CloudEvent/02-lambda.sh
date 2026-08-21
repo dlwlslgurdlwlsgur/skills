@@ -72,11 +72,10 @@ def lambda_handler(event, context):
             instance_ids = [instance_ids]
             
         for i_id in instance_ids:
-            # 'stopping' 상태에서 발생하는 에러를 무시하고 최대 30초간 2초 간격으로 재시도
             for _ in range(15):
                 try:
                     ec2_client.start_instances(InstanceIds=[i_id])
-                    break  # 성공 시 루프 탈출
+                    break
                 except Exception as e:
                     if 'IncorrectInstanceState' in str(e):
                         time.sleep(2)
@@ -100,7 +99,8 @@ def lambda_handler(event, context):
             
     return {"statusCode": 200, "body": "EC2 Restarted and Notified"}
 EOF
-deploy_fast "wsc2026-ec2-type-remediation" "stop_code.py"
+# 이름 변경: wsc2026-ec2-type-remediation -> wsc2026-ec2-stop-remediation[cite: 2]
+deploy_fast "wsc2026-ec2-stop-remediation" "stop_code.py" 
 
 cat << 'EOF' > terminate_code.py
 import os
@@ -184,7 +184,7 @@ def lambda_handler(event, context):
             sns_client.publish(TopicArn=sns_topic_arn, Message=json.dumps(message))
     return {"statusCode": 200, "body": "Tag Non-Compliance Notified"}
 EOF
-deploy_fast "wsc2026-role-remediation" "tag_code.py"
+deploy_fast "wsc2026-tag-alert" "tag_code.py" 
 
 rm -f stop_code.py terminate_code.py sg_code.py tag_code.py lambda-trust.json
 
