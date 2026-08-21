@@ -5,11 +5,12 @@ ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 BUCKET="skillsphone-landing-ab-${ACCOUNT_ID}"
 
 
-echo $BUCKET
+echo ${BUCKET}
 aws s3api list-buckets --region us-east-1 | jq -r '[.Buckets[].Name]' | grep "skillsphone-landing-ab-"
 aws s3api list-objects-v2 --bucket ${BUCKET} --region us-east-1 | jq -r '[.Contents[].Key] | "\(any(.[]; . == "version-a/index.html")) \(any(.[]; . == "version-b/index.html"))"'
 aws s3api get-public-access-block --bucket ${BUCKET} --region us-east-1 | jq -r '.PublicAccessBlockConfiguration | (all(.[]; . == true) | tostring)'
 aws s3api get-bucket-policy --bucket ${BUCKET} --region us-east-1 | jq -r '.Policy | fromjson | .Statement[0] | (((.Principal.Service // "-") == "cloudfront.amazonaws.com") | tostring), (((.Condition.StringEquals."AWS:SourceArn" // "-") | startswith("arn:aws:cloudfront::")) | tostring)'
+# skillsphone-landing-ab-<ACCOUNT_ID>
 # skillsphone-landing-ab-<ACCOUNT_ID>
 # true true
 # true
