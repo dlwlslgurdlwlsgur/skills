@@ -107,7 +107,7 @@ kubectl get deploy unicorn-book-app-deploy -n unicorn -o jsonpath='liveness={.sp
 kubectl get pods -n unicorn -l app -o jsonpath='{range .items[*]}{.spec.nodeSelector.unicorn}{"\n"}{end}' | sort -u
 aws eks list-pod-identity-associations --cluster-name unicorn-eks-cluster --namespace unicorn --query "associations[].serviceAccount" --output text
 # unicorn-book-app-deploy   2     2 <- 빨간색 부분 두 값이 같다면 정답
-# unicorn-book-app-svc
+# unicorn-book-app-svc ClusterIP
 # liveness=/health readiness=/health
 # graceful=45 preStop={"exec":{"command":["/bin/sh","-c","sleep 15"]}}
 # app
