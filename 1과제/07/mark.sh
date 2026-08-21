@@ -224,7 +224,8 @@ aws logs filter-log-events --log-group-name /unicorn/eks/book-app --start-time $
 # 2026-05-31T23:54:40Z
 # waiting 30s for log pipeline
 # {"timestamp":"2026-05-31T23:54:42Z","method":"POST","path":"/v1/book","status_code":200,"client_ip":"10.97.12.184"}
-# * 출력값 형식이 위와 같고, 빨간색 부분의 시간 차가 1분 이내면 득점. 
+# 출력된 로그가 위와 같고, 빨간색 부분의 시간 차가 1분 이내면 득점.
+# * None 등의 값이 출력될 경우 무시하도록 합니다.
 
 
 CF=$(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='unicorn-svc-cf'].DomainName | [0]" --output text)
