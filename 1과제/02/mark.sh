@@ -74,6 +74,7 @@ aws kms list-aliases --query "Aliases[?TargetKeyId=='$(aws eks describe-cluster 
 
 
 for ng in wskorea26-addon-ng wskorea26-app-ng; do aws eks describe-nodegroup --cluster-name wskorea26-cluster --nodegroup-name $ng --query "nodegroup.[nodegroupName,instanceTypes[0],tags.Name]" --output text; done; for ng in wskorea26-addon-ng wskorea26-app-ng; do aws ec2 describe-subnets --subnet-ids $(aws eks describe-nodegroup --cluster-name wskorea26-cluster --nodegroup-name $ng --query "nodegroup.subnets[]" --output text) --query "sort(Subnets[*].Tags[?Key=='Name'].Value[])" --output text; done
+for ng in wskorea26-addon-ng wskorea26-app-ng; do aws eks describe-nodegroup --cluster-name wskorea26-cluster --nodegroup-name $ng --query "nodegroup.[nodegroupName,instanceTypes[0]]" --output textdonefor ng in wskorea26-addon-ng wskorea26-app-ng; do aws ec2 describe-subnets --subnet-ids $(aws eks describe-nodegroup --cluster-name wskorea26-cluster --nodegroup-name $ng --query "nodegroup.subnets[]" --output text) --query "sort(Subnets[*].Tags[?Key=='Name'].Value[])" --output textdone
 # wskorea26-addon-ng      t3.medium       wskorea26-addon-node
 # wskorea26-app-ng        t3.medium       wskorea26-app-node
 # wskorea26-priv-subnet-c wskorea26-priv-subnet-d
