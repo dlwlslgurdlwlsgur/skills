@@ -176,8 +176,8 @@ aws iam get-role --role-name unicorn-audit-role --output json | jq -r '.Role | [
 for p in $(aws iam list-role-policies --role-name unicorn-audit-role --query "PolicyNames[]" --output text); do
   aws iam get-role-policy --role-name unicorn-audit-role --policy-name $p --query "PolicyDocument.Statement[].Action[]" --output text; done
 # 3600 arn:aws:iam::111122223333:root unicorn-audit-2026<선수등번호>
-# dynamodb:GetItem dynamodb:Query ec2:DescribeVpcs eks:Describe
-# 권한 정책의 경우 해당 부분 포함하며, *이 없으면 득점 인정.
+# dynamodb:GetItem dynamodb:Query ec2:DescribeVpcs eks:DescribeCluster
+# 정책에서 *만 없으면 득점 인정.
 
 
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)

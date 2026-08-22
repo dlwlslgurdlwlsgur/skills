@@ -1,3 +1,10 @@
+# #################################################
+# 채점시 CloudShell에서 wskorea26-vpc-environment-sg 보안그룹을 사용합니다. 구성 후
+# 통신에 문제가 없도록 Ingress, Egress를 구성합니다. 특히 EKS 접근에 문제가 없도록 네트워
+# 크 구성과 권한 구성을 확인합니다.
+# #################################################
+
+
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 echo "ACCOUNT ID: $ACCOUNT_ID"
 aws configure set region ap-northeast-2

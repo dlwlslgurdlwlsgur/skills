@@ -32,6 +32,8 @@ aws ec2 describe-route-tables --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag
 # ROUTE   0.0.0.0/0       igw-0a85cd67732857621   CreateRoute     active
 # wsc2026-skills-app-rtb-a
 # ROUTE   0.0.0.0/0       nat-071e3d4820939525d   CreateRoute     active
+# 순서가 다를 수 있으나 app-rtb 들의 경우 nat-*를 사용하고, hub-rtb들의 경우 igw를 사용해야
+# 합니다.
 
 
 aws dynamodb describe-table --table-name wsc2026-book-table --query "Table.[KeySchema[0].AttributeName,BillingModeSummary.BillingMode,SSEDescription.SSEType,DeletionProtectionEnabled,GlobalSecondaryIndexes[0].KeySchema[0].AttributeName]" --output text 2>/dev/null

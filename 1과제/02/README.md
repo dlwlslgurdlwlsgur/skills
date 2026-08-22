@@ -1,6 +1,13 @@
-## shell
+## CloudShell
 ```bash
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/01-vpc.sh
+```
+- wskorea26-vpc-environment-sg
+- wskorea26-priv-subnet-c에 연결
+
+
+## shell
+```bash
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/02-kms.sh
 wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/03-cluster.sh
 ```

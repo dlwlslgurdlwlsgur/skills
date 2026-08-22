@@ -527,7 +527,7 @@ dashboards:
                   "queryMode": "Logs",
                   "region": "ap-northeast-2",
                   "logGroupNames": ["wsc2026-log-group"],
-                  "expression": "fields @timestamp, @message | filter @message not like /health/ | sort @timestamp desc | limit 100",
+                  "expression": "fields @timestamp, @message | filter @message like /\/v1\/book/ | sort @timestamp desc | limit 100",
                   "refId": "A"
                 }
               ]
