@@ -138,6 +138,6 @@ resource "kubernetes_service" "book_app" {
       target_port = 8080
     }
 
-    type = "NodePort"
+    type = "ClusterIP"
   }
 }
