@@ -13,9 +13,9 @@ export CANDIDATE_NUMBER=<비번호>
 ## template
 배포파일/test.csv
 ```bash
-wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Workflow/stepfunction_app.py
-wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Workflow/stepfunction_trigger.py
-wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Workflow/workflow.py
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/Workflow/stepfunction_app.py
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/Workflow/stepfunction_trigger.py
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/Workflow/workflow.py
 ```
 
 <br>
