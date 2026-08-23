@@ -5,8 +5,8 @@
 
 ## shell
 ```bash
-wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Analytics/01-vpc.sh
-wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Analytics/02-kinesis.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/Analytics/01-vpc.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/Analytics/02-kinesis.sh
 ```
 
 <br>
@@ -59,5 +59,5 @@ GROUP BY product_name;
 ## shell
 - Zepplin 중지
 ```bash
-wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/2%EA%B3%BC%EC%A0%9C/07/Analytics/03-ec2.sh
+wget https://raw.githubusercontent.com/wngnlwngnl/skills/refs/heads/main/1%EA%B3%BC%EC%A0%9C/02/Analytics/03-ec2.sh
 ```
