@@ -198,6 +198,10 @@ ensure_mapping() {
     aws lambda update-event-source-mapping --uuid "$uuid" --enabled >/dev/null
   fi
 }
+
+echo "EC2 내부에서 토픽이 생성될 때까지 1분 대기합니다."
+sleep 60
+
 ensure_mapping "$RAW_FN" "$RAW_TOPIC"
 ensure_mapping "$ALERT_FN" "$ALERT_TOPIC"
 
