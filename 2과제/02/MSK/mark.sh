@@ -9,11 +9,10 @@ aws dynamodb describe-table --table-name wsc2026-sensor-data --query "Table.[Tab
 # wsc2026-sensor-data
 # sensorId        timestamp
 # {
-#     "BucketArn": "arn:aws:s3:::wsc2026-sensor-alert-bucket-586639730662",
+#     "BucketArn": "arn:aws:s3:::wsc2026-sensor-alert-bucket-<등번호>",
 #     "BucketRegion": "ap-northeast-1",
 #     "AccessPointAlias": false
 # }
-
 
 
 for fn in wsc2026-sensor-consumer wsc2026-sensor-alert-consumer; do aws lambda get-function --function-name $fn --query "Configuration.[FunctionName,Runtime]" --output text; done
@@ -21,8 +20,15 @@ for fn in wsc2026-sensor-consumer wsc2026-sensor-alert-consumer; do aws lambda g
 # wsc2026-sensor-alert-consumer   python3.14
 
 
-aws kafka describe-cluster --cluster-arn $CLUSTER_ARN --query "ClusterInfo.[ClusterName,State,CurrentBrokerSoftwareInfo.KafkaVersion,BrokerNodeGroupInfo.InstanceType,ClientAuthentication.Sasl.Iam.Enabled]" --output text
-# wsc2026-msk-cluster     ACTIVE  3.6.0   kafka.t3.small  True
+aws kafka describe-cluster --cluster-arn "$CLUSTER_ARN" --query "ClusterInfo.[ClusterName,State,CurrentBrokerSoftwareInfo.KafkaVersion,BrokerNodeGroupInfo.InstanceType,ClientAuthentication.Sasl.Iam.Enabled]" --output text
+aws kafka list-topics --cluster-arn "$CLUSTER_ARN" --query "Topics[].[TopicName,ReplicationFactor,PartitionCount]" --output json | grep -A2 wsc2026
+# wsc2026-msk-cluster ACTIVE 3.6.0 kafka.t3.small True
+# "wsc2026-sensor-alert",
+# 2,
+# 1
+# "wsc2026-sensor-raw",
+# 2,
+# 3
 
 
 for fn in wsc2026-sensor-consumer wsc2026-sensor-alert-consumer; do aws lambda list-event-source-mappings --function-name $fn --query "EventSourceMappings[0].[State]" --output text; done
@@ -36,6 +42,7 @@ aws dynamodb scan --table-name wsc2026-sensor-data --max-items 1 --query "Items[
 #     "temperature": "64.6",
 #     "status": "NORMAL"
 # }
+# Value 값은 다를 수 있으나 표기되는 Key는 모두 같아야 합니다.
 
 
 aws dynamodb scan --table-name wsc2026-sensor-data --max-items 3 --query "Items[*].{sensorId:sensorId.S,timestamp:timestamp.S}" --output json
@@ -43,3 +50,5 @@ aws dynamodb scan --table-name wsc2026-sensor-data --max-items 3 --query "Items[
 #     "sensorId": "SENSOR-002",
 #     "timestamp": "2026-06-01T18:28:24+09:00" (timestamp 값이 ISO 8601 KST 형식으로 출력된 경우 정답으로 인정합니다.)
 # }
+# Value 값은 다를 수 있으나 표기되는 Key는 모두 같아야 합니다. 단, timestamp의 경우 시간 자체는 다를 수 있으나,
+# YYYY-MM-DDTHH:mm:ss±HH:mm 형식과 +09:00 형식으로 표기가 되어야 합니다.

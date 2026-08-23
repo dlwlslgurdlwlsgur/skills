@@ -1,3 +1,8 @@
+# 채점 전 S3 버킷과 DynamoDB의 데이터 클렌징이 완료된지 확인하며, 클렌징이 안되었다면
+# 1-1과 1-5, 1-6은 틀린 것으로 간주합니다. 이후 S3 버킷에 input/test.csv 파일을 업로드
+# 하며 60초 이후에 아래 명령어 들을 수행하여 워크플로가 정상 동작 하였는지 확인합니다.
+
+
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 echo "ACCOUNT ID: $ACCOUNT_ID"
 aws configure set region ap-southeast-1

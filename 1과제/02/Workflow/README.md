@@ -28,3 +28,9 @@ python3 -m pip install --user boto3
 ```bash
 python3 ./workflow.py
 ```
+
+<br>
+
+## 채점
+- s3
+- dynamodb

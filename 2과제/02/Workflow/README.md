@@ -29,7 +29,8 @@ python3 -m pip install --user boto3
 python3 ./workflow.py
 ```
 
+<br>
 
 ## 채점
-- 버킷 삭제
-- dynamodb 삭제
+- s3
+- dynamodb
